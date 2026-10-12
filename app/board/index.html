@@ -61,7 +61,7 @@ const card = p => p.locked
       <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><div class="pk">Members-only pick</div><div class="ev">${ICON.ui("lock")} Your access comes from your CMMG Discord membership.</div></div>
       <div class="r">${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`
   : `<div class="box bcard ${p.result ? "r-" + E(p.result) : ""}"><div class="when"><b>${ct(p.time)}</b><span>${E(p.market || p.sport)}</span></div>
-      <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
+      <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.paper ? '<span class="pill" title="Tracked play, not an official bet">PAPER</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
         <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}</div>
       <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`;
 function groups(rows) {
@@ -78,8 +78,8 @@ async function load() {
   $("list").innerHTML = rows.length ? groups(rows) : `<div class="empty">No ${E(B[1])} picks posted yet today${j.date ? " (" + E(j.date) + ")" : ""} — check back soon.</div>`;
   if (j.published && (j.history || []).length) {
     const h = j.history.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
-    const w = h.filter(p => p.result === "WIN").length, l = h.filter(p => p.result === "LOSS").length;
-    $("hist").innerHTML = `<div class="box"><h3>RECENT RESULTS <span class="note" style="letter-spacing:0;font-weight:600">· last ${h.length}: ${w}-${l}</span></h3>
+    // no W-L total here: this list is capped, so a sum would not be the board's record (reviewer 10/11, Rule #4)
+    $("hist").innerHTML = `<div class="box"><h3>RECENT RESULTS</h3>
       <div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>PICK</th><th>ODDS</th><th>RESULT</th></tr>${h.map(p => `<tr><td style="white-space:nowrap">${E(p.date || day(p.time))}</td>
       <td><b>${E(p.bet)}</b><div class="game">${E(p.game || "")}</div></td><td>${odds(p.odds)}</td><td><span class="rb ${E(p.result)}">${E(p.result[0])}</span></td></tr>`).join("")}</table></div></div>`;
   }

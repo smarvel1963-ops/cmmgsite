@@ -36,6 +36,10 @@
 .ld { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .ld > div { min-width:0; }
 .ld h4 { margin:0 0 6px; font-size:12px; letter-spacing:.1em; color:#bfe6ff; }
 .ld .row span:last-child { text-align:right; }
+.mrow { display:grid; grid-template-columns:70px 1fr 70px; gap:4px 10px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
+.mrow b { font-family:Saira; font-size:15px; } .mrow b:nth-of-type(2) { text-align:right; } .mrow span { grid-column:1 / -1; text-align:center; font-size:11px; color:var(--dim); margin-top:-2px; }
+.mbar { display:flex; height:8px; border-radius:6px; overflow:hidden; background:#1e293b; } .mbar i { display:block; height:100%; }
+.wl { font-weight:900; } .wl.W { color:#4ade80; } .wl.L { color:#f87171; } .wl.T { color:#fde047; }
 .pickgame { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; text-decoration:none; padding:10px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; background:rgba(5,12,24,.55); }
 </style></head>
 <body>
@@ -55,7 +59,7 @@ const ct = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleSt
 const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
 const norm = s => String(s || "").toLowerCase();
 const ctDay = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
-let TAB = "lead", timer = null, PICKS = [], MINE = [];
+let TAB = "match", timer = null, PICKS = [], MINE = [];
 
 async function relayBits() {
   const s = CMMG.session();
@@ -118,13 +122,29 @@ async function game(l, id) {
   const bt = j.boxscore?.teams || [];
   const statRows = bt.length === 2 ? (bt[0].statistics || []).slice(0, 14).map((s, i) => `<tr><td>${E(s.displayValue)}</td><td style="text-align:center;color:var(--dim)">${E(s.label || s.name)}</td><td style="text-align:right">${E(bt[1].statistics?.[i]?.displayValue ?? "")}</td></tr>`).join("") : "";
   const inj = (j.injuries || []).map(x => `<div><h4>${E(x.team?.abbreviation || "")}</h4>${(x.injuries || []).slice(0, 8).map(i => `<div class="row"><span>${E(i.athlete?.displayName || "")}<div class="game">${E(i.athlete?.position?.abbreviation || "")}</div></span><span>${E(i.status || i.type?.description || "")}</span></div>`).join("") || `<p class="game">None listed</p>`}</div>`).join("");
-  html += `<div><div class="box"><div class="tabs"><button data-tab="lead">Leaders</button><button data-tab="stats">Team stats</button><button data-tab="inj">Injuries</button></div>
+  html += `<div><div class="box"><div class="tabs"><button data-tab="match">Matchup</button><button data-tab="lead">Leaders</button><button data-tab="stats">Team stats</button><button data-tab="inj">Injuries</button></div>
+      <div data-pane="match">${matchup(j, a, h)}</div>
       <div data-pane="lead">${leaders ? `<div class="ld">${leaders}</div>` : `<p class="game">Leaders show once the game starts.</p>`}</div>
       <div data-pane="stats">${statRows ? `<table class="rt"><tr><th>${E(bt[0].team?.abbreviation || "")}</th><th style="text-align:center">STAT</th><th style="text-align:right">${E(bt[1].team?.abbreviation || "")}</th></tr>${statRows}</table>` : `<p class="game">Team stats show once the game starts.</p>`}</div>
       <div data-pane="inj">${inj ? `<div class="ld">${inj}</div>` : `<p class="game">No injury report.</p>`}</div></div></div></div>`;
   $("root").innerHTML = html; tabs();
   document.title = `${a.team.abbreviation} @ ${h.team.abbreviation} · CMMG Game Center`;
   clearTimeout(timer); if (live) timer = setTimeout(() => game(l, id), 30000);
+}
+// MATCHUP (design list #6): season (pregame) or game (live/final) team stats side by side as bars, recent form for both
+// teams (last five), weather when ESPN has it. Sports info only - no third-party predictions or betting splits.
+function matchup(j, a, h) {
+  const bt = j.boxscore?.teams || [], byId = id => bt.find(t => String(t.team?.id) === String(id));
+  const A = byId(a.team.id), H = byId(h.team.id), num = v => parseFloat(String(v ?? "").replace(/[,%]/g, "").split(/[-/]/)[0]);
+  let cmp = "";
+  if (A && H) cmp = (A.statistics || []).slice(0, 12).map((s, i) => { const hs = (H.statistics || []).find(x => x.name === s.name && x.label === s.label) || (H.statistics || [])[i] || {};
+      const av = num(s.displayValue), hv = num(hs.displayValue), tot = (Math.abs(av) || 0) + (Math.abs(hv) || 0) || 1;
+      return `<div class="mrow"><b>${E(s.displayValue)}</b><div class="mbar"><i style="width:${(Math.abs(av) || 0) / tot * 100}%;background:#3b82f6"></i><i style="width:${(Math.abs(hv) || 0) / tot * 100}%;background:#94a3b8"></i></div><b>${E(hs.displayValue ?? "")}</b><span>${E(s.label || s.name)}</span></div>`; }).join("");
+  const form = (j.lastFiveGames || []).map(x => `<div><h4>${E(x.team?.abbreviation || "")} · LAST 5</h4>${(x.events || []).map(e => `<div class="row"><span>${e.atVs === "@" ? "@" : "vs"} ${E(e.opponent?.abbreviation || "")}</span><span><b class="wl ${E(e.gameResult)}">${E(e.gameResult)}</b> ${E(e.score || "")}</span></div>`).join("") || `<p class="game">No games yet.</p>`}</div>`).join("");
+  const w = j.gameInfo?.weather;
+  return `${cmp ? `<h4 style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;color:#bfe6ff;display:flex;justify-content:space-between"><span>${E(a.team.abbreviation)}</span><span>${(comp => comp.status.type.state === "pre" ? "SEASON" : "THIS GAME")(j.header.competitions[0])}</span><span>${E(h.team.abbreviation)}</span></h4>${cmp}` : `<p class="game">Team comparison shows when ESPN posts it.</p>`}
+    ${form ? `<div class="ld" style="margin-top:14px">${form}</div>` : ""}
+    ${w ? `<div class="row" style="margin-top:10px"><span>Weather</span><b>${E(w.temperature ?? "")}°${w.displayValue ? " · " + E(w.displayValue) : ""}</b></div>` : ""}`;
 }
 function tabs() { document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === TAB)); document.querySelectorAll("[data-pane]").forEach(p => p.style.display = p.dataset.pane === TAB ? "" : "none"); }
 document.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { TAB = b.dataset.tab; tabs(); } });

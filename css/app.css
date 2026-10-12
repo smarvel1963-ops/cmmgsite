@@ -200,3 +200,4 @@ h1 { font-weight:800; letter-spacing:.01em; } h3, .side h3, .box h3 { font-weigh
 .rail a.on .ic, .mnav a.on .ic { color:#4ade80; }
 .tv .ic, .lockmsg .ic { width:1em; height:1em; }
 .when .ic, .chip .ic { color:#9fd2ff; }
+.layout.wide { grid-template-columns:220px 1fr; } @media (max-width:1150px) { .layout.wide { grid-template-columns:1fr; } }

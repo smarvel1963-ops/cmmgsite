@@ -109,4 +109,8 @@ check("remove works even for a pick no longer on the board", post({ task: "track
 check("v1.3: tracker rows carry the game date + my book", post({ task: "mytracker", session: proS }).rows.every(r => "date" in r && "myBook" in r));
 check("forget needs sign-in", /sign in/.test(post({ task: "forget" }).error));
 check("forget deletes my tracked picks", post({ task: "forget", session: proS }).ok && post({ task: "mytracker", session: proS }).rows.length === 0);
+check("results stay unpublished until RESULTS_PUBLIC=1", post({ task: "results" }).published === false && !post({ task: "results" }).picks);
+PROPS.RESULTS_PUBLIC = "1";
+check("results publish graded picks only once switched on", (r => r.published && r.picks.every(p => p.result))(post({ task: "results" })));
+delete PROPS.RESULTS_PUBLIC;
 console.log(`\n${ok} passed, ${bad} failed`);

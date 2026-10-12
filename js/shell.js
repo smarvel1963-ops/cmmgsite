@@ -7,12 +7,12 @@ const SHELL = (() => {
   const MENU = [
     ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/soon/?p=scores"],
               ["game", "stadium", "My Game Center", "/app/soon/?p=game"]]],
-    ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/soon/?p=results"],
+    ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
                  ["teams", "star", "Teams · Players · Schedules", "/app/soon/?p=teams"]]],
     ["COMMUNITY & ACCOUNT", [["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];
-  const SOON = { scores: 1, game: 1, results: 1, teams: 1 };
+  const SOON = { scores: 1, game: 1, teams: 1 };
   // STORE MODE (Google Play payments rule): when the app was opened from the Play Store build (start URL ?src=play, or
   // launched by the Android app), every link to the paid plans is hidden - members who pay elsewhere just sign in.
   // Remembered for the browser session so it holds on every page.

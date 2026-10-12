@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
+ * CMMG SPORTS EDGE RELAY v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
+ * was v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
  * was v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
  * was v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
  * v1.1: "I Took This Pick" only for picks the member may see; My Tracker never shows a locked pick (reviewer finding).
@@ -52,6 +53,7 @@ function doPost(e) {
       case "me": { const s = session(P, req.session); return out(s ? { ok: true, me: publicMe(s) } : { ok: false, error: "signed out" }); }
       case "picks": return out(picks(P, session(P, req.session)));
       case "record": return out(records(P));
+      case "results": return out(results(P));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
@@ -144,6 +146,17 @@ function picks(P, s) {
 function records(P) {
   const r = getBig(P, "F_records");
   return { ok: true, at: r ? r.at : null, records: r ? r.data : null };
+}
+
+// v1.5 Verified Results: every GRADED pick from the feed's history (wins, losses, pushes, voids), OFF until Scott sets
+// Script Property RESULTS_PUBLIC = "1" (grade fixes + record decisions first - docs/cmmg_app/RECORD_AUDIT_2026-10-11.md).
+function results(P) {
+  if (P.getProperty("RESULTS_PUBLIC") !== "1") return { ok: true, published: false };
+  const h = getBig(P, "F_history"), rows = (h && h.data && h.data.picks || []).filter(function (p) { return p.result; });
+  return { ok: true, published: true, at: h ? h.at : null, picks: rows.map(function (p) {
+    return { id: p.id, date: p.date, time: p.time, sport: p.sport, game: p.game, bet: p.bet, market: p.market, odds: p.odds,
+             units: p.units, tier: p.tier, result: p.result, need: p.need };
+  }) };
 }
 
 // ---------------------------------------------------------------- I Took This Pick

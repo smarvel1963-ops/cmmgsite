@@ -1,0 +1,135 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/results/index.html
+     Verified Results (WEB_DESIGNS #11, Scott 10/11 mockup): filters (sport / date range / tier / result / search), KPI row
+     (record, win % WITH its breakeven, net units, ROI, streak, by tier ICE > EDGE > FIRE), results table (newest first,
+     W/L/P/V badges, no confidence column), breakdown by sport, recent picks. Data = relay task "results" (graded feed
+     history), which stays OFF until Scott sets RESULTS_PUBLIC=1 after the grade fixes (ACTIVE_TODO; Scott 10/11 "build
+     sites first, fix those things once we have it all ready") - until then the page shows "results go live soon". -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verified Results · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:26px 24px; margin-bottom:14px;
+  background:linear-gradient(90deg, rgba(5,11,22,.95) 40%, rgba(5,11,22,.4)), url(/img/splash.jpg) right 35% / 55% auto no-repeat, #070f1d; }
+.vhero h1 { font-size:clamp(30px, 4.5vw, 52px); font-style:italic; letter-spacing:.02em; margin:0; line-height:1; }
+.vhero h1 span { background:linear-gradient(180deg,#fff3a8,#ffd700 60%,#c99400); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.vhero p { margin:8px 0 0; letter-spacing:.2em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.filters { display:grid; grid-template-columns:repeat(4, minmax(120px,1fr)) 2fr auto; gap:10px; margin-bottom:14px; align-items:end; }
+@media (max-width:980px) { .filters { grid-template-columns:repeat(2,1fr); } }
+.filters label { display:grid; gap:4px; font-size:12px; color:var(--dim); }
+.filters select, .filters input { padding:9px; border-radius:9px; border:1px solid var(--line); background:#081325; color:var(--text); font:inherit; }
+.kp { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:14px; } @media (max-width:1100px) { .kp { grid-template-columns:repeat(3,1fr); } } @media (max-width:560px) { .kp { grid-template-columns:repeat(2,1fr); } }
+.kp .kpi .n { font-size:22px; white-space:nowrap; } .kp .kpi .s { font-size:11px; color:var(--dim); margin-top:2px; }
+.tierbar { display:grid; grid-template-columns:auto minmax(30px,1fr) auto; gap:4px 8px; align-items:center; font-size:12px; }
+.tierbar i { display:block; height:7px; border-radius:6px; background:rgba(255,255,255,.08); } .tierbar i b { display:block; height:100%; border-radius:6px; }
+.vgrid { display:grid; grid-template-columns:1.7fr 1fr; gap:14px; } .vgrid > *, .vgrid .box { min-width:0; } .filters > * { min-width:0; } @media (max-width:1100px) { .vgrid { grid-template-columns:1fr; } }
+.rt td, .rt th { padding:9px 10px; font-size:13px; } .rt td .game { font-size:12px; }
+.rb { display:inline-block; min-width:28px; text-align:center; font-weight:900; border-radius:7px; padding:4px 6px; font-family:Saira, Inter; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
+.pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px; font-size:13px; color:var(--dim); }
+.soonbar { padding:16px 18px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; }
+.soonbar b { color:#ffd700; } .muted { opacity:.45; filter:grayscale(.4); pointer-events:none; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>VERIFIED <span>RESULTS</span></h1><p>REAL PICKS. REAL RESULTS. WINS AND LOSSES.</p></div>
+    <div id="soon"></div>
+    <div id="body">
+      <div class="filters">
+        <label>Sport<select id="fSport"><option value="">All sports</option></select></label>
+        <label>Date range<select id="fRange"><option value="30">Last 30 days</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="0">All available</option></select></label>
+        <label>Tier<select id="fTier"><option value="">All tiers</option><option>ICE</option><option>EDGE</option><option>FIRE</option></select></label>
+        <label>Result<select id="fRes"><option value="">All results</option><option value="WIN">Wins</option><option value="LOSS">Losses</option><option value="PUSH">Pushes</option><option value="VOID">Voids</option></select></label>
+        <label>Search<input id="fQ" placeholder="Team, pick or sport"></label>
+        <button class="btn ghost" id="clear">Clear</button>
+      </div>
+      <div class="kp" id="kpis"></div>
+      <div class="vgrid">
+        <div class="box"><h3>RESULTS <span id="cnt" style="font-weight:500;color:var(--dim);letter-spacing:0"></span></h3>
+          <div style="overflow-x:auto"><table class="rt" id="tbl"></table></div>
+          <div class="pager"><span id="pg"></span><button class="btn ghost" id="prev">‹</button><button class="btn ghost" id="next">›</button></div></div>
+        <div>
+          <div class="box"><h3>BREAKDOWN BY SPORT</h3><div style="overflow-x:auto"><table class="rt" id="bySport"></table></div></div>
+          <div class="box"><h3>HOW THIS IS COUNTED</h3><ul class="check" style="font-size:13px;color:var(--dim)">
+            <li><span>Every graded CMMG pick in the range, wins and losses, newest first.</span></li>
+            <li><span>Pregame picks only, as published. Odds and stake as posted; your price may differ.</span></li>
+            <li><span>Units at each pick's own odds and stake. Breakeven is the win % those odds need.</span></li>
+            <li><span>Voids and postponements are listed, not counted in the record.</span></li>
+            <li><span>Past results don't promise future results.</span></li></ul></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"];
+let ALL = [], VIEW = [], PAGE = 0; const PER = 15;
+const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
+const nice = d => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ""); return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3], 12)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : ""; };
+const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+const pl = p => { const u = Number(p.units) || 1, d = dec(p.odds); return p.result === "WIN" ? (d ? u * (d - 1) : 0) : p.result === "LOSS" ? -u : 0; };
+
+function stats(rows) {
+  const g = rows.filter(p => p.result === "WIN" || p.result === "LOSS"), w = g.filter(p => p.result === "WIN").length;
+  const push = rows.filter(p => p.result === "PUSH").length, net = rows.reduce((a, p) => a + pl(p), 0);
+  const risk = rows.filter(p => p.result !== "VOID").reduce((a, p) => a + (Number(p.units) || 1), 0);
+  const be = g.length ? g.reduce((a, p) => a + (dec(p.odds) ? 1 / dec(p.odds) : .5238), 0) / g.length : 0;
+  return { w, l: g.length - w, push, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: risk ? net / risk : 0 };
+}
+
+function apply() {
+  const sp = $("fSport").value, days = Number($("fRange").value), tier = $("fTier").value, res = $("fRes").value, q = $("fQ").value.trim().toLowerCase();
+  const cut = days ? new Date(Date.now() - days * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }) : "";
+  VIEW = ALL.filter(p => (!sp || p.sport === sp) && (!cut || p.date >= cut) && (!tier || p.tier === tier) && (!res || p.result === res)
+    && (!q || `${p.game} ${p.bet} ${p.sport}`.toLowerCase().includes(q)));
+  PAGE = 0; draw();
+}
+
+function draw() {
+  const s = stats(VIEW), k = (l, n, sub, cls) => `<div class="kpi"><div class="l">${l}</div><div class="n ${cls || ""}">${n}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+  let streak = 0, sr = ""; for (const p of VIEW) { if (p.result !== "WIN" && p.result !== "LOSS") continue; if (!sr) sr = p.result; if (p.result !== sr) break; streak++; }
+  const tiers = TIERS.map(t => { const x = stats(VIEW.filter(p => p.tier === t)); return `<span>${ICON.tier(t)} ${t}</span><i><b style="width:${(x.wr * 100).toFixed(0)}%;background:${t === "ICE" ? "#7fd8ff" : t === "EDGE" ? "#4ade80" : "#ff7a45"}"></b></i><span>${x.n ? `${x.w}-${x.l}` : "—"}</span>`; }).join("");
+  $("kpis").innerHTML = k("RECORD", `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`, "W - L - P")
+    + k("WIN %", s.n ? (100 * s.wr).toFixed(1) + "%" : "—", s.n ? `breakeven ${(100 * s.be).toFixed(1)}%` : "")
+    + k("NET UNITS", s.n ? sgn(s.net) : "—", "at each pick's odds", s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
+    + k("ROI", s.n ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", "", s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "")
+    + k("CURRENT STREAK", streak ? `${streak} ${sr === "WIN" ? "W" : "L"}` : "—", "")
+    + `<div class="kpi"><div class="l">BY TIER</div><div class="tierbar" style="margin-top:6px">${tiers}</div></div>`;
+  const page = VIEW.slice(PAGE * PER, PAGE * PER + PER);
+  $("cnt").textContent = VIEW.length ? `· ${VIEW.length} picks` : "";
+  $("tbl").innerHTML = `<tr><th>DATE</th><th>SPORT</th><th>PICK</th><th>ODDS</th><th>UNITS</th><th>TIER</th><th>RESULT</th></tr>` + (page.length ? page.map(p => `<tr>
+      <td style="white-space:nowrap">${nice(p.date)}</td><td style="white-space:nowrap">${ICON.sport(p.sport)} ${E(p.sport)}</td>
+      <td><b>${E(p.bet)}</b><div class="game">${E(p.game)}${p.market ? " · " + E(p.market) : ""}</div></td>
+      <td>${odds(p.odds)}</td><td>${E(p.units || 1)}</td><td style="white-space:nowrap">${ICON.tier(p.tier)} ${E(p.tier || "")}</td>
+      <td><span class="rb ${E(p.result)}">${E(p.result[0])}</span></td></tr>`).join("") : `<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:26px">No graded picks match.</td></tr>`);
+  $("pg").textContent = VIEW.length ? `Showing ${PAGE * PER + 1}-${Math.min(VIEW.length, PAGE * PER + PER)} of ${VIEW.length}` : "";
+  const sports = [...new Set(VIEW.map(p => p.sport))];
+  $("bySport").innerHTML = `<tr><th>SPORT</th><th>RECORD</th><th>WIN %</th><th>UNITS</th></tr>` + sports.map(sp => { const x = stats(VIEW.filter(p => p.sport === sp)); return x.n || x.push ? `<tr>
+      <td style="white-space:nowrap">${ICON.sport(sp)} ${E(sp)}</td><td>${x.w}-${x.l}${x.push ? "-" + x.push : ""}</td><td>${x.n ? (100 * x.wr).toFixed(1) + "%" : "—"}</td>
+      <td class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${sgn(x.net)}</td></tr>` : ""; }).join("");
+}
+
+async function load() {
+  let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
+  if (!j.ok || !j.published) {
+    $("soon").innerHTML = `<div class="soonbar"><b>Verified Results go live soon.</b> Every graded pick, wins and losses, with the date range and breakevens shown. Until then, results post in Discord every day and each graded pick shows WON / LOST on <a href="/app/" style="color:var(--ice)">Today's Picks</a>.</div>`;
+    $("body").classList.add("muted"); ALL = []; apply(); return;
+  }
+  ALL = (j.picks || []).slice().sort((a, b) => String(b.date + b.time).localeCompare(String(a.date + a.time)));
+  $("fSport").insertAdjacentHTML("beforeend", [...new Set(ALL.map(p => p.sport))].sort().map(s => `<option>${E(s)}</option>`).join(""));
+  apply();
+}
+["fSport", "fRange", "fTier", "fRes"].forEach(id => $(id).addEventListener("change", apply));
+$("fQ").addEventListener("input", apply);
+$("clear").addEventListener("click", () => { $("fSport").value = ""; $("fRange").value = "30"; $("fTier").value = ""; $("fRes").value = ""; $("fQ").value = ""; apply(); });
+$("prev").addEventListener("click", () => { if (PAGE > 0) { PAGE--; draw(); } });
+$("next").addEventListener("click", () => { if ((PAGE + 1) * PER < VIEW.length) { PAGE++; draw(); } });
+SHELL.mount("results"); load();
+</script>
+</body></html>

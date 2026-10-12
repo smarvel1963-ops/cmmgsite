@@ -87,6 +87,51 @@ const SHELL = (() => {
     let seen = {}; try { seen = JSON.parse(localStorage.getItem("cmmg.alertseen") || "{}") || {}; } catch (e) {}
     const n = ids.filter(i => !seen[i]).length; if (n) { el.hidden = false; el.textContent = n > 9 ? "9+" : n; }
   }
+  function cine() {   // turn the page's hero (or its first h1 + .sub) into the cinematic banner from Scott's designs
+    let h = document.querySelector("main .vhero, main .phero, main .hero, main .thero, main .shero");
+    if (!h) { const h1 = document.querySelector("main h1"); if (!h1) return;
+      const sub = h1.nextElementSibling && h1.nextElementSibling.classList.contains("sub") ? h1.nextElementSibling : null;
+      h = document.createElement("div"); h.className = "vhero"; h1.replaceWith(h); h.appendChild(h1); if (sub) { const p = document.createElement("p"); p.textContent = sub.textContent; sub.remove(); h.appendChild(p); } }
+    if (h.classList.contains("cine")) return;
+    h.classList.add("cine");
+    const body = document.createElement("div"); body.className = "cine-t"; while (h.firstChild) body.appendChild(h.firstChild);
+    h.innerHTML = `<div class="cine-wm" aria-hidden="true"><b>CMMG</b><i>SPORTS EDGE</i></div>`; h.appendChild(body);
+  }
+  // PULL-OUTS (Scott 10/11 "i like left side pull out ... right side pull out which would be live texts from discord or site")
+  let LPT = "site", lpTimer = null;
+  function openDrawer(which) {
+    document.body.classList.toggle("dl-open", which === "left"); document.body.classList.toggle("dr-open", which === "right");
+    if (which === "right") livefeed(); else { clearTimeout(lpTimer); }
+  }
+  function pullouts() {
+    document.addEventListener("click", e => {
+      const b = e.target.closest("[data-drawer]"); if (b) { const w = b.dataset.drawer; openDrawer(w === "close" || document.body.classList.contains(w === "left" ? "dl-open" : "dr-open") ? null : w); return; }
+      const t = e.target.closest("[data-lpt]"); if (t) { LPT = t.dataset.lpt; document.querySelectorAll("[data-lpt]").forEach(x => x.classList.toggle("on", x === t)); livefeed(); }
+    });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") openDrawer(null); });
+  }
+  const ago = ms => { const m = Math.round((Date.now() - ms) / 6e4); return m < 1 ? "now" : m < 60 ? m + "m" : m < 1440 ? Math.round(m / 60) + "h" : Math.round(m / 1440) + "d"; };
+  async function livefeed() {
+    const el = document.getElementById("lpBody"); if (!el) return; clearTimeout(lpTimer);
+    if (LPT === "discord") {
+      let j; try { j = await CMMG.relay({ task: "community", session: CMMG.session()?.token }); } catch (e) { j = null; }
+      const msgs = j && j.live ? (j.channels || []).flatMap(c => (c.messages || []).map(m => ({ ...m, ch: c.name }))).sort((a, b) => String(b.ts).localeCompare(String(a.ts))).slice(0, 40) : [];
+      el.innerHTML = msgs.length ? msgs.map(m => `<div class="lp-m"><div class="lp-a">${E((m.author || "?").slice(0, 1).toUpperCase())}</div><div><b>${E(m.author)}</b> <span class="lp-t">#${E(m.ch)} · ${ago(Date.parse(m.ts))}</span>
+          ${m.text ? `<p>${E(m.text)}</p>` : ""}${m.embed ? `<p class="lp-e">${E(m.embed)}</p>` : ""}</div></div>`).join("") + `<a class="btn disc lp-open" href="${DISCORD}">Open in Discord</a>`
+        : `<p class="lp-empty">Live Discord messages show here once the CMMG feed is connected.</p><a class="btn disc lp-open" href="${DISCORD}">Open the CMMG Discord</a>`;
+    } else {
+      let j; try { j = await CMMG.relay({ task: "picks", session: CMMG.session()?.token }); } catch (e) { j = null; }
+      const ps = j && j.ok ? j.picks || [] : [], now = Date.now(), out = [], posted = j && j.at ? Date.parse(j.at) : now;
+      ps.forEach(p => { const t = Date.parse(p.time);
+        if (p.result && !p.locked) out.push([t + 3 * 36e5 < now ? t + 3 * 36e5 : now - 1, `<b class="rb ${E(p.result)}">${E(p.result[0])}</b> ${E(p.bet)} <span class="lp-t">${E(p.sport)}</span>`]);
+        else if (!p.result && t > now - 3 * 36e5 && t <= now) out.push([t, `${typeof ICON !== "undefined" ? ICON.ui("clock") : ""} <b>Game on</b> · ${p.locked ? E(p.sport) + " members-only pick" : E(p.bet)}`]);
+        else if (!p.result && t > now && t - now < 60 * 6e4) out.push([t - 60 * 6e4, `<b>Starting soon</b> · ${p.locked ? E(p.sport) + " members-only pick" : E(p.bet)} · ${new Date(t).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })} CT`]);
+        out.push([posted, `<span class="tag ${E(p.tier)}" style="font-size:10px;padding:1px 6px">${E(p.tier || "")}</span> New pick · ${p.locked ? E(p.sport) + " · members only" : E(p.bet)}`]); });
+      out.sort((a, b) => b[0] - a[0]);
+      el.innerHTML = out.length ? out.slice(0, 40).map(([t, h]) => `<div class="lp-s"><span class="lp-t">${ago(t)}</span><div>${h}</div></div>`).join("") : `<p class="lp-empty">No live updates yet today.</p>`;
+    }
+    if (document.body.classList.contains("dr-open")) lpTimer = setTimeout(livefeed, 60000);
+  }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
@@ -101,11 +146,30 @@ const SHELL = (() => {
     });
     addEventListener("appinstalled", () => document.getElementById("installBtn")?.remove());
     splash();
+    // DESIGN FRAME (Scott's designs): top icon nav + search + bell + member, a sport chip row, cinematic page banner.
+    const ic = n => typeof ICON !== "undefined" ? ICON.ui(n) : "";
+    const NAV = [["dashboard", "home", "Home", "/app/dashboard/"], ["picks", "target", "Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"],
+      ["mygames", "star", "My Games", "/app/mygames/"], ["teams", "stadium", "Teams", "/app/schedule/"], ["results", "shield", "Results", "/app/results/"],
+      ["tracker", "chart", "Tracker", "/app/tracker/"], ["alerts", "bell", "Alerts", "/app/alerts/"], ["tools", "calc", "Tools", "/app/tools/"],
+      ["learn", "star", "Learn", "/app/learn/"], ["community", "chat", "Community", "/app/community/"]];
+    const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
+    const curSport = new URLSearchParams(location.search).get("l");
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
-      <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON !== "undefined" ? ICON.ui("bell") : "🔔"}<b id="bellN" hidden></b></a><div id="who"></div></header>`);
+      <button class="drawbtn" data-drawer="left" aria-label="Menu"><span class="hb"><i></i><i></i><i></i></span></button>
+      <a class="logo wm" href="/"><img src="/img/lion_64.png" alt="" width="40" height="40"><span><b>CMMG</b><i>SPORTS EDGE</i></span></a>
+      <nav class="topnav" aria-label="CMMG">${NAV.map(([k, i2, l, h]) => `<a class="${k === active ? "on" : ""}" href="${h}">${ic(i2)}<span>${l}</span></a>`).join("")}</nav>
+      <form class="tsearch" action="/app/schedule/"><input name="q" placeholder="Search teams, games…" aria-label="Search"><button aria-label="Search">${ic("target")}</button></form>
+      <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${ic("star")}</a>`}
+      <a class="bell" href="/app/alerts/" aria-label="Alerts">${ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
+      <nav class="sportrow" aria-label="Sports">${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
+        <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
-    const layout = document.querySelector(".layout"); if (layout) layout.insertAdjacentHTML("afterbegin", rail);
+    document.body.insertAdjacentHTML("beforeend", rail.replace('<nav class="rail"', '<nav class="rail drawer-l" id="leftDrawer"') +
+      `<aside class="drawer-r" id="livePanel" aria-label="Live feed"><div class="lp-h"><b>${ic("chat")} LIVE FEED</b><button data-drawer="close" aria-label="Close">✕</button></div>
+        <div class="lp-tabs"><button data-lpt="site" class="on">CMMG</button><button data-lpt="discord">Discord</button></div><div id="lpBody" class="lp-b">Loading…</div></aside>
+      <div class="drawer-bg" data-drawer="close"></div>`);
+    pullouts();
     const flat = MENU.flatMap(([, items]) => items).filter(([k]) => !SOON[k] || k === active);
     document.querySelector("header.top").insertAdjacentHTML("afterend", `<nav class="mnav" aria-label="CMMG menu">` +
       flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}</a>`).join("") + `</nav>`);
@@ -115,7 +179,6 @@ const SHELL = (() => {
     const TABS = [["dashboard", "home", "Home", "/app/dashboard/"], ["picks", "target", "Picks", "/app/"], ["scores", "clock", "Scores", "/app/scores/"],
                   ["tracker", "chart", "Tracker", "/app/tracker/"]];
     const inTabs = TABS.some(([k]) => k === active);
-    const ic = n => typeof ICON !== "undefined" ? ICON.ui(n) : "";
     document.body.insertAdjacentHTML("beforeend", `<nav class="tabbar" aria-label="CMMG app">` +
       TABS.map(([k, i, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${ic(i)}<span>${label}</span></a>`).join("") +
       `<button class="${inTabs ? "" : "on"}" data-more>${ic("gear")}<span>More</span></button></nav>
@@ -129,6 +192,7 @@ const SHELL = (() => {
     });
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Information and entertainment only - no wagering in this app. Picks are opinions. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
       21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only. <a href="/privacy/">Privacy</a> · <a href="/delete-account/">Delete account</a></p>`);
+    cine(); new MutationObserver(() => { if (document.querySelector("main .thero:not(.cine)")) cine(); }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
     who(); membershipBox(document.getElementById("account"));
     bell(active);
     document.addEventListener("click", e => {

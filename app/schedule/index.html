@@ -116,7 +116,7 @@ document.addEventListener("click", e => {
   const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go;
 });
 ["fSport", "fMine"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
-SHELL.mount("teams"); days();
+SHELL.mount("teams"); days(); { const q0 = new URLSearchParams(location.search).get("q"); if (q0) $("fQ").value = q0; }
 CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); }).catch(() => {});
 load();
 </script>

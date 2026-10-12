@@ -114,4 +114,20 @@ PROPS.RESULTS_PUBLIC = "1";
 check("results publish graded picks only once switched on", (r => r.published && r.picks.every(p => p.result))(post({ task: "results" })));
 delete PROPS.RESULTS_PUBLIC;
 check("community stays off until a bot token + channels are set", post({ task: "community" }).live === false);
+// v1.7 boards
+check("board: unknown name refused", post({ task: "board", name: "nope" }).ok === false);
+check("board: empty until the feed sends it", (r => r.ok && r.live === false)(post({ task: "board", name: "horses" })));
+check("board: bad part name refused on put", post({ task: "put", key: "wkey", part: "board_evil", data: {} }).ok === false);
+check("board: wrong key refused", post({ task: "put", key: "nope", part: "board_horses", data: {} }).ok === false);
+post({ task: "put", key: "wkey", part: "board_horses", data: { date: "2026-10-12", picks: [
+  { id: "h1", need: "free", sport: "HORSES", tier: "ICE", game: "Keeneland R5", bet: "#4 Win", odds: 250 },
+  { id: "h2", need: "pro", sport: "HORSES", tier: "EDGE", game: "Keeneland R7", bet: "#2 Win", odds: 180 } ],
+  history: [ { id: "h0", sport: "HORSES", bet: "#1 Win", result: "WIN" }, { id: "hx", sport: "HORSES", bet: "#3 Win" } ] } });
+const hb = post({ task: "board", name: "horses" });
+check("board: free pick visible, pro pick locked with no bet/odds", hb.live && hb.picks[0].bet === "#4 Win" && hb.picks[1].locked && !hb.picks[1].bet && hb.picks[1].odds === undefined, hb);
+check("board: pro member sees the pro pick", post({ task: "board", name: "horses", session: proS }).picks[1].bet === "#2 Win");
+check("board: history hidden until RESULTS_PUBLIC", post({ task: "board", name: "horses" }).history.length === 0);
+PROPS.RESULTS_PUBLIC = "1";
+check("board: history = graded only once public", (r => r.history.length === 1 && r.history[0].result === "WIN")(post({ task: "board", name: "horses" })));
+delete PROPS.RESULTS_PUBLIC;
 console.log(`\n${ok} passed, ${bad} failed`);

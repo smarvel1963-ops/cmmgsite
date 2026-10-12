@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.6 (v1.6: "community" - read-only Discord channel copy, OFF until DISCORD_BOT_TOKEN + COMMUNITY_CHANNELS)
+ * CMMG SPORTS EDGE RELAY v1.7 (v1.7: "board" - extra boards Lives/Horses/F1/NASCAR/Golf/DK/PrizePicks, empty until the PC feed
+ *   sends them (each board has its own OFF switch in data/cmmg_feed_config.json). v1.6: "community" - read-only Discord channel copy, OFF until DISCORD_BOT_TOKEN + COMMUNITY_CHANNELS)
  * was v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
  * was v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
  * was v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
@@ -55,6 +56,7 @@ function doPost(e) {
       case "picks": return out(picks(P, session(P, req.session)));
       case "record": return out(records(P));
       case "results": return out(results(P));
+      case "board": return out(board(P, session(P, req.session), req));
       case "community": return out(community(P, session(P, req.session)));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
@@ -71,7 +73,7 @@ function doPost(e) {
 function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
-  if (["today", "history", "records"].indexOf(req.part) < 0) return { ok: false, error: "unknown part" };
+  if (["today", "history", "records"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
   putBig(P, "F_" + req.part, JSON.stringify({ at: new Date().toISOString(), data: req.data }));
   return { ok: true };
 }
@@ -144,6 +146,24 @@ function picks(P, s) {
     return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };   // no pick/odds/line
   });
   return { ok: true, at: f.at, date: f.data && f.data.date, picks: list, me: s ? publicMe(s) : null };
+}
+// v1.7 BOARDS (Scott 10/11: "horses f1 nascar golf dk and prizepicks need pages", "auto live totals 3 basketball and
+// football"). The feed sends part "board_<name>" = {date, picks:[...], history:[...]}. Today's picks are masked like
+// Pro Track (a locked pick never carries its bet/odds); graded history only once RESULTS_PUBLIC = "1", same as Results.
+const BOARDS = ["lives", "horses", "f1", "nascar", "golf", "dk", "prizepicks"];
+function board(P, s, req) {
+  const name = String(req.name || "");
+  if (BOARDS.indexOf(name) < 0) return { ok: false, error: "unknown board" };
+  const f = getBig(P, "F_board_" + name);
+  if (!f) return { ok: true, live: false, picks: [] };
+  const d = f.data || {};
+  const list = (d.picks || []).map(function (p) {
+    if (canSee(s, p.need || "pro")) return p;
+    return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
+  });
+  const pub = P.getProperty("RESULTS_PUBLIC") === "1";
+  return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub,
+           history: pub ? (d.history || []).filter(function (p) { return p.result; }) : [] };
 }
 function records(P) {
   const r = getBig(P, "F_records");

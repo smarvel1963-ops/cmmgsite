@@ -6,6 +6,7 @@ const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
     ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
+              ["board", "clock", "Live Totals & Boards", "/app/board/?b=lives"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
@@ -166,6 +167,9 @@ const SHELL = (() => {
       ["tracker", "chart", "Tracker", "/app/tracker/"], ["alerts", "bell", "Alerts", "/app/alerts/"], ["tools", "calc", "Tools", "/app/tools/"],
       ["learn", "star", "Learn", "/app/learn/"], ["community", "chat", "Community", "/app/community/"]];
     const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
+    // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
+    const BOARDCHIPS = [["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"]];
+    const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
       <button class="drawbtn" data-drawer="left" aria-label="Menu"><span class="hb"><i></i><i></i><i></i></span></button>
@@ -175,6 +179,7 @@ const SHELL = (() => {
       <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${typeof ICON.color === "function" ? ICON.color("crown") : ic("star")}</a>`}
       <a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON.color === "function" ? ICON.color("bell") : ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
       <nav class="sportrow" aria-label="Sports">${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
+        ${BOARDCHIPS.map(([k, ik, l]) => `<a class="${curBoard === k ? "on" : ""}" href="/app/board/?b=${k}">${typeof ICON !== "undefined" ? ICON.sport(ik) : ""}${l}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;

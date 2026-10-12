@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/board/index.html
+     One page for every extra CMMG board (Scott 10/11: "horses f1 nascar golf dk and prizepicks need pages",
+     "auto live totals 3 basketball and football"): /app/board/?b=lives|horses|f1|nascar|golf|dk|prizepicks.
+     Data = relay task "board" (v1.7). Each board stays empty ("coming to the site soon") until its own switch is turned
+     on in MasterHub's data/cmmg_feed_config.json - no demo data. Locked picks never carry the bet/odds (relay masks them).
+     Graded history shows only once Verified Results are public (RESULTS_PUBLIC), same as the Results page. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CMMG Boards · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.btabs { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .btabs::-webkit-scrollbar { display:none; }
+.btabs a { flex:0 0 auto; display:flex; align-items:center; gap:7px; text-decoration:none; padding:9px 14px; border-radius:11px; border:1px solid rgba(127,216,255,.2); background:rgba(10,22,40,.75); color:#e8f4ff; font-weight:800; font-size:14px; }
+.btabs a .ic { width:20px; height:20px; } .btabs a.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); border-color:#60a5fa; box-shadow:0 0 14px rgba(59,130,246,.5); }
+.grp { margin:16px 0 8px; display:flex; align-items:center; gap:10px; font-family:Saira; font-size:20px; font-weight:800; letter-spacing:.06em; } .grp .ic { width:28px; height:28px; }
+.grp .n { font-family:Inter, sans-serif; font-size:13px; color:#c3d6ea; font-weight:700; letter-spacing:0; }
+.bcard { display:grid; grid-template-columns:120px minmax(0,1fr) auto; gap:14px; align-items:center; padding:14px 16px; border-radius:14px; margin-bottom:10px; }
+.bcard .when b { display:block; font-size:16px; } .bcard .when span { font-size:13px; color:#c3d6ea; }
+.bcard .pk { font-size:19px; font-weight:800; margin-top:6px; } .bcard .ev { font-size:14px; color:#c3d6ea; margin-top:2px; } .bcard .dt { font-size:13px; color:#9fd3ff; margin-top:4px; }
+.bcard .r { text-align:right; } .bcard .odds { font-family:Saira; font-size:20px; font-weight:800; } .bcard .bk { font-size:13px; color:#c3d6ea; }
+.livepill { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.1em; color:#fff; background:#dc2626; border-radius:6px; padding:2px 7px; margin-left:6px; box-shadow:0 0 10px rgba(239,68,68,.6); }
+.rb { display:inline-block; min-width:30px; text-align:center; font-weight:900; border-radius:7px; padding:5px 7px; font-family:Saira, Inter; margin-top:6px; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
+.soonbar { padding:18px 20px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; font-size:15px; } .soonbar b { color:#ffd700; }
+@media (max-width:640px) { .bcard { grid-template-columns:minmax(0,1fr) auto; } .bcard .when { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1 id="ttl">CMMG BOARDS</h1><p id="tag">MORE WAYS TO PLAY.</p></div>
+    <nav class="btabs" id="tabs" aria-label="Boards"></nav>
+    <div id="soon"></div>
+    <div id="list"></div>
+    <div id="hist"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+// key, tab label, title, tagline, icon key (ICON.sport), what it is
+const BOARDS = [
+  ["lives", "Live Totals", "LIVE TOTALS", "IN-GAME TOTALS. NBA · NCAAB · WNBA · FOOTBALL.", "LIVES", "In-game totals our live engines fire while games are on."],
+  ["horses", "Horses", "HORSE RACING", "TODAY'S RACES. OUR PICKS.", "HORSES", "Race-day picks from our horse model."],
+  ["f1", "F1", "FORMULA 1", "RACE WEEKEND PICKS.", "F1", "Formula 1 race-weekend picks."],
+  ["nascar", "NASCAR", "NASCAR", "RACE DAY PICKS.", "NASCAR", "NASCAR race picks."],
+  ["golf", "Golf", "GOLF", "TOURNAMENT PICKS.", "GOLF", "Tournament picks — outrights, top finishes and matchups."],
+  ["dk", "DK Plays", "DK PLAYS", "DAILY FANTASY PLAYS.", "DK", "Our DraftKings fantasy plays."],
+  ["prizepicks", "PrizePicks", "PRIZEPICKS", "PLAYER PROJECTIONS. MORE OR LESS.", "PRIZEPICKS", "PrizePicks player plays."],
+];
+const KEY = (new URLSearchParams(location.search).get("b") || "lives").toLowerCase(), B = BOARDS.find(b => b[0] === KEY) || BOARDS[0];
+document.title = `${B[1]} · CMMG Sports Edge`; $("ttl").textContent = B[2]; $("tag").textContent = B[3];
+$("tabs").innerHTML = BOARDS.map(b => `<a class="${b === B ? "on" : ""}" href="/app/board/?b=${b[0]}">${ICON.sport(b[4])}${E(b[1])}</a>`).join("");
+const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT"; };
+const day = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" }); };
+const card = p => p.locked
+  ? `<div class="box bcard"><div class="when"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div>
+      <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><div class="pk">Members-only pick</div><div class="ev">${ICON.ui("lock")} Your access comes from your CMMG Discord membership.</div></div>
+      <div class="r">${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`
+  : `<div class="box bcard ${p.result ? "r-" + E(p.result) : ""}"><div class="when"><b>${ct(p.time)}</b><span>${E(p.market || p.sport)}</span></div>
+      <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
+        <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}</div>
+      <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`;
+function groups(rows) {
+  const g = []; rows.forEach(p => { const k = p.group || p.sport || ""; let x = g.find(y => y.k === k); if (!x) g.push(x = { k, rows: [] }); x.rows.push(p); });
+  return g.map(x => `<div class="grp">${ICON.sport(x.rows[0].sport)}${E(x.k)}<span class="n">${x.rows.length} pick${x.rows.length === 1 ? "" : "s"}</span></div>${x.rows.map(card).join("")}`).join("");
+}
+async function load() {
+  let j; try { j = await CMMG.relay({ task: "board", name: B[0], session: CMMG.session()?.token }); } catch (e) { j = { ok: false }; }
+  if (!j || !j.ok || !j.live) {
+    $("soon").innerHTML = `<div class="soonbar"><b>${E(B[1])} is coming to the site.</b> ${E(B[5])} Until this board is switched on here, these picks post in the CMMG Discord.${SHELL.STORE ? "" : ` <a href="${SHELL.DISCORD}" style="color:var(--ice)">Open Discord</a>`}</div>`;
+    return;
+  }
+  const rows = (j.picks || []).slice().sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  $("list").innerHTML = rows.length ? groups(rows) : `<div class="empty">No ${E(B[1])} picks posted yet today${j.date ? " (" + E(j.date) + ")" : ""} — check back soon.</div>`;
+  if (j.published && (j.history || []).length) {
+    const h = j.history.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
+    const w = h.filter(p => p.result === "WIN").length, l = h.filter(p => p.result === "LOSS").length;
+    $("hist").innerHTML = `<div class="box"><h3>RECENT RESULTS <span class="note" style="letter-spacing:0;font-weight:600">· last ${h.length}: ${w}-${l}</span></h3>
+      <div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>PICK</th><th>ODDS</th><th>RESULT</th></tr>${h.map(p => `<tr><td style="white-space:nowrap">${E(p.date || day(p.time))}</td>
+      <td><b>${E(p.bet)}</b><div class="game">${E(p.game || "")}</div></td><td>${odds(p.odds)}</td><td><span class="rb ${E(p.result)}">${E(p.result[0])}</span></td></tr>`).join("")}</table></div></div>`;
+  }
+}
+SHELL.mount("board"); load();
+if (B[0] === "lives") setInterval(load, 60000);   // live board refreshes every minute while open
+</script>
+</body></html>

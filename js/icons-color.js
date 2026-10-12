@@ -14,6 +14,10 @@
     ten: '<circle cx="32" cy="32" r="26" fill="#c4e33a"/><circle cx="32" cy="32" r="26" fill="none" stroke="#65a30d" stroke-width="2"/><path d="M10 16c12 6 12 26 0 32M54 16c-12 6-12 26 0 32" fill="none" stroke="#fff" stroke-width="3"/><ellipse cx="22" cy="18" rx="8" ry="3.5" transform="rotate(-30 22 18)" fill="#fff" opacity=".45"/>',
     fight: '<path d="M14 26c0-9 7-15 16-15h6c9 0 14 7 14 15v10c0 9-7 15-16 15h-6c-8 0-14-6-14-14z" fill="#dc2626"/><path d="M14 30h-3a4 4 0 0 1-4-4v-3a4 4 0 0 1 8 0" fill="#b91c1c"/><path d="M20 22h20" stroke="#7f1d1d" stroke-width="3" stroke-linecap="round"/><rect x="18" y="48" width="26" height="9" rx="2" fill="#f8fafc"/><ellipse cx="26" cy="18" rx="7" ry="3" fill="#fff" opacity=".3"/>',
     golf: '<path d="M30 8v40" stroke="#e2e8f0" stroke-width="3"/><path d="M31 9l20 8-20 8z" fill="#ef4444"/><ellipse cx="32" cy="52" rx="20" ry="5" fill="#16a34a"/><circle cx="22" cy="46" r="6" fill="#f8fafc"/>',
+    horse: '<path d="M18 52V30a14 14 0 0 1 28 0v22" fill="none" stroke="#cbd5e1" stroke-width="9" stroke-linecap="round"/><path d="M18 52V30a14 14 0 0 1 28 0v22" fill="none" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="38" r="2" fill="#334155"/><circle cx="46" cy="38" r="2" fill="#334155"/><circle cx="21" cy="25" r="2" fill="#334155"/><circle cx="43" cy="25" r="2" fill="#334155"/><circle cx="32" cy="17" r="2" fill="#334155"/>',
+    race: '<path d="M12 8v50" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/><path d="M14 10h38v26H14z" fill="#f8fafc"/><path d="M14 10h9.5v6.5H14zM33 10h9.5v6.5H33zM23.5 16.5H33V23h-9.5zM42.5 16.5H52V23h-9.5zM14 23h9.5v6.5H14zM33 23h9.5v6.5H33zM23.5 29.5H33V36h-9.5zM42.5 29.5H52V36h-9.5z" fill="#111827"/>',
+    pp: '<rect x="8" y="8" width="48" height="48" rx="12" fill="#7c3aed"/><path d="M24 46V18h10a8 8 0 0 1 0 16h-10" fill="none" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>',
+    dk: '<rect x="8" y="8" width="48" height="48" rx="12" fill="#15803d"/><path d="M18 20h20M18 32h28M18 44h14" stroke="#fde047" stroke-width="5" stroke-linecap="round"/>',
     other: '<circle cx="32" cy="32" r="26" fill="#1d4ed8"/><circle cx="32" cy="32" r="16" fill="#3b82f6"/><circle cx="32" cy="32" r="6" fill="#ffd700"/>',
   };
   const ST = {
@@ -30,7 +34,8 @@
     check: '<circle cx="32" cy="32" r="25" fill="#16a34a"/><path d="M20 33l8 8 16-17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>',
   };
   const FAM = { NFL: "fb", NCAAF: "fb", CFL: "fb", NBA: "bb", NCAAB: "bb", WNBA: "bb", NHL: "hk", MLB: "base", KBO: "base",
-    NPB: "base", NCAABB: "base", MLS: "soc", SOCCER: "soc", TENNIS: "ten", UFC: "fight", MMA: "fight", GOLF: "golf" };
+    NPB: "base", NCAABB: "base", MLS: "soc", SOCCER: "soc", TENNIS: "ten", UFC: "fight", MMA: "fight", GOLF: "golf",
+    HORSES: "horse", HORSE: "horse", F1: "race", FORMULA1: "race", NASCAR: "race", PRIZEPICKS: "pp", DK: "dk", LIVES: "bb" };
   ICON.sport = s => { const f = FAM[String(s || "").toUpperCase()] || "other"; return svg(SP[f], "s-" + f); };
   ICON.color = n => ST[n] ? svg(ST[n], "c-" + n) : "";
 })();

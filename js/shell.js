@@ -7,7 +7,7 @@ const SHELL = (() => {
   const MENU = [
     ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
-    ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
+    ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
     ["COMMUNITY & ACCOUNT", [["alerts", "bell", "Alerts", "/app/alerts/"], ["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Strategy & Tools", "/app/tools/"], ["learn", "star", "Learn & Improve", "/app/learn/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],

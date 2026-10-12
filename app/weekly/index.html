@@ -1,0 +1,135 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/weekly/index.html
+     Weekly Report (Scott's final-review #6, 10/11 "go ahead build away"). One Mon-Sun week (Central Time) at a time:
+     CMMG week (record, win % with its breakeven, units, ROI, vs the week before, day-by-day bars, by sport, by tier,
+     best wins + toughest losses - both shown, honest) and YOUR week (picks you tracked, at your own odds).
+     CMMG numbers come from relay task "results" and stay behind the same RESULTS_PUBLIC switch as Verified Results;
+     "Your week" reads task "mytracker" (the member's own picks) and works now. No invented numbers. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Report · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.wkbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.wkbar b { font-family:Saira; font-size:20px; letter-spacing:.04em; } .wkbar .btn { padding:8px 14px; } .wkbar .btn:disabled { opacity:.4; }
+.kp { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; } @media (max-width:800px) { .kp { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.kpi .s { font-size:13px; color:#c3d6ea; margin-top:3px; } .up { color:#4ade80; } .dn { color:#f87171; }
+.pos { color:#4ade80; } .neg { color:#f87171; }
+.g2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } @media (max-width:900px) { .g2 { grid-template-columns:minmax(0,1fr); } }
+.days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; align-items:end; height:200px; padding-top:10px; }
+.day { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px; font-size:12.5px; min-width:0; }
+.day .col { width:70%; max-width:46px; border-radius:7px 7px 3px 3px; min-height:3px; } .day .col.p { background:linear-gradient(180deg,#4ade80,#16a34a); box-shadow:0 0 12px rgba(34,197,94,.45); }
+.day .col.n { background:linear-gradient(180deg,#f87171,#b91c1c); box-shadow:0 0 12px rgba(239,68,68,.45); } .day .col.z { background:rgba(255,255,255,.12); }
+.day b { font-family:Saira; font-size:14px; white-space:nowrap; } .day span { color:#c3d6ea; font-weight:700; }
+@media (max-width:520px) { .day b { font-size:11px; } }
+.rt td, .rt th { padding:9px 10px; } .rb { display:inline-block; min-width:28px; text-align:center; font-weight:900; border-radius:7px; padding:4px 6px; font-family:Saira, Inter; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID, .rb.PENDING { background:#64748b; color:#fff; }
+.hl { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); } .hl .ic { width:24px; height:24px; }
+.hl .game { font-size:13px; } .hl b.u { font-family:Saira; font-size:16px; }
+.soonbar { padding:16px 18px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; } .soonbar b { color:#ffd700; }
+.note { font-size:13.5px; color:#c3d6ea; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>WEEKLY REPORT</h1><p>EVERY WEEK. EVERY PICK. WINS AND LOSSES.</p></div>
+    <div class="wkbar"><button class="btn ghost" id="prev" aria-label="Previous week">‹ Prev</button><b id="wkLabel"></b><button class="btn ghost" id="next" aria-label="Next week">Next ›</button>
+      <span class="grow"></span><span class="note">Weeks run Monday–Sunday, Central Time.</span></div>
+    <div id="soon"></div>
+    <div id="cmmg">
+      <div class="kp" id="kpis"></div>
+      <div class="box"><h3>UNITS BY DAY</h3><div class="days" id="days"></div></div>
+      <div class="g2">
+        <div class="box"><h3>BY SPORT</h3><div style="overflow-x:auto"><table class="rt" id="bySport"></table></div></div>
+        <div class="box"><h3>BY TIER</h3><div style="overflow-x:auto"><table class="rt" id="byTier"></table></div></div>
+      </div>
+      <div class="g2">
+        <div class="box"><h3>BEST WINS</h3><div id="best"></div></div>
+        <div class="box"><h3>TOUGHEST LOSSES</h3><div id="worst"></div></div>
+      </div>
+    </div>
+    <div class="box"><h3>YOUR WEEK</h3><div id="mine"><p class="note">Loading…</p></div></div>
+    <div class="box"><h3>HOW THIS IS COUNTED</h3><ul class="check note">
+      <li><span>Every graded CMMG pick from Monday to Sunday (Central Time), wins and losses.</span></li>
+      <li><span>Units at each pick's own posted odds and stake. Breakeven is the win % those odds need.</span></li>
+      <li><span>"Your week" uses the picks you tapped "I Took This Pick" on, at the odds you entered.</span></li>
+      <li><span>Voids and postponements are listed, not counted in the record. Past results don't promise future results.</span></li></ul></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"], DN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2), odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+const pl = p => { const u = Number(p.units) || 1, d = dec(p.odds); return p.result === "WIN" ? (d ? u * (d - 1) : 0) : p.result === "LOSS" ? -u : 0; };
+function stats(rows) {
+  const g = rows.filter(p => p.result === "WIN" || p.result === "LOSS"), w = g.filter(p => p.result === "WIN").length;
+  const net = rows.reduce((a, p) => a + pl(p), 0), risk = rows.filter(p => p.result !== "VOID").reduce((a, p) => a + (Number(p.units) || 1), 0);
+  const be = g.length ? g.reduce((a, p) => a + (dec(p.odds) ? 1 / dec(p.odds) : .5238), 0) / g.length : 0;
+  return { w, l: g.length - w, push: rows.filter(p => p.result === "PUSH").length, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: risk ? net / risk : 0 };
+}
+// week math on plain YYYY-MM-DD strings (UTC noon, so DST never shifts a day)
+const D = s => new Date(s + "T12:00:00Z"), S = d => d.toISOString().slice(0, 10), add = (s, n) => S(new Date(D(s).getTime() + n * 864e5));
+const monday = s => add(s, -((D(s).getUTCDay() + 6) % 7));
+const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }), THIS = monday(TODAY);
+let WK = THIS, ALL = [], PUB = false, MINE = null;
+const inWk = (p, w) => p.date >= w && p.date <= add(w, 6);
+const fmt = s => D(s).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+const row = p => `<div class="hl">${ICON.sport(p.sport)}<div><b>${E(p.bet)}</b> <span class="note">${odds(p.odds)}</span><div class="game">${E(p.game)} · ${fmt(p.date)}</div></div><b class="u ${pl(p) > 0 ? "pos" : "neg"}">${sgn(pl(p))}u</b></div>`;
+
+function draw() {
+  $("wkLabel").textContent = `${fmt(WK)} – ${fmt(add(WK, 6))}${WK === THIS ? " · this week" : ""}`;
+  $("next").disabled = WK >= THIS;
+  if (PUB) {
+    const rows = ALL.filter(p => inWk(p, WK)), s = stats(rows), lw = ALL.filter(p => inWk(p, add(WK, -7))), ls = lw.length ? stats(lw) : null;
+    const k = (l, n, sub, cls) => `<div class="kpi"><div class="l">${l}</div><div class="n ${cls || ""}">${n}</div><div class="s">${sub || ""}</div></div>`;
+    const dl = ls && ls.n && s.n ? s.net - ls.net : null;
+    $("kpis").innerHTML = k("RECORD", `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`, ls ? `last week ${ls.w}-${ls.l}${ls.push ? "-" + ls.push : ""}` : "W - L - P")
+      + k("WIN %", s.n ? (100 * s.wr).toFixed(1) + "%" : "—", s.n ? `breakeven ${(100 * s.be).toFixed(1)}%` : "")
+      + k("NET UNITS", s.n ? sgn(s.net) : "—", dl == null ? "at each pick's odds" : `<span class="${dl > 0 ? "up" : dl < 0 ? "dn" : ""}">${dl > 0 ? "▲" : dl < 0 ? "▼" : "="} ${Math.abs(dl).toFixed(2)}u</span> vs last week`, s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
+      + k("ROI", s.n ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", `${rows.length} picks`, s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "");
+    const per = DN.map((d, i) => { const r = rows.filter(p => p.date === add(WK, i)); return [d, stats(r), r.length]; });
+    const mx = Math.max(1, ...per.map(([, x]) => Math.abs(x.net)));
+    $("days").innerHTML = per.map(([d, x, c]) => `<div class="day"><b class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${c ? sgn(x.net) : "—"}</b>
+      <div class="col ${x.net > 0 ? "p" : x.net < 0 ? "n" : "z"}" style="height:${c ? Math.max(3, Math.abs(x.net) / mx * 120) : 3}px"></div><span>${d}</span><span style="font-weight:500">${c ? `${x.w}-${x.l}` : ""}</span></div>`).join("");
+    const tbl = (keys, f, lab) => `<tr><th>${lab}</th><th>RECORD</th><th>WIN %</th><th>UNITS</th></tr>` + (keys.map(key => { const x = stats(rows.filter(p => f(p) === key)); return x.n || x.push ? `<tr>
+      <td style="white-space:nowrap">${lab === "SPORT" ? ICON.sport(key) : ICON.tier(key)} ${E(key)}</td><td>${x.w}-${x.l}${x.push ? "-" + x.push : ""}</td><td>${x.n ? (100 * x.wr).toFixed(1) + "%" : "—"}</td>
+      <td class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${sgn(x.net)}</td></tr>` : ""; }).join("") || `<tr><td colspan="4" class="note">No graded picks this week.</td></tr>`);
+    $("bySport").innerHTML = tbl([...new Set(rows.map(p => p.sport))].sort(), p => p.sport, "SPORT");
+    $("byTier").innerHTML = tbl(TIERS, p => p.tier, "TIER");
+    const wins = rows.filter(p => p.result === "WIN").sort((a, b) => pl(b) - pl(a)).slice(0, 5), losses = rows.filter(p => p.result === "LOSS").sort((a, b) => pl(a) - pl(b)).slice(0, 5);
+    $("best").innerHTML = wins.map(row).join("") || `<p class="note">No wins graded this week yet.</p>`;
+    $("worst").innerHTML = losses.map(row).join("") || `<p class="note">No losses graded this week.</p>`;
+  }
+  drawMine();
+}
+function drawMine() {
+  const el = $("mine");
+  if (MINE === "out") { el.innerHTML = `<p class="note">Sign in with Discord, then tap <b>I Took This Pick</b> on any pick to build your own weekly record.</p>`; return; }
+  if (!MINE) return;
+  const rows = MINE.filter(r => r.date && inWk(r, WK)), done = rows.filter(r => r.result === "WIN" || r.result === "LOSS"), w = done.filter(r => r.result === "WIN").length;
+  const net = rows.reduce((a, r) => a + (r.units_pl || 0), 0), pend = rows.filter(r => r.result === "PENDING").length;
+  if (!rows.length) { el.innerHTML = `<p class="note">No tracked picks this week. Tap <b>I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Today's Picks</a> to add them.</p>`; return; }
+  el.innerHTML = `<div class="kp"><div class="kpi"><div class="l">YOUR RECORD</div><div class="n">${w}-${done.length - w}</div><div class="s">${pend ? pend + " still open" : "all graded"}</div></div>
+    <div class="kpi"><div class="l">YOUR UNITS</div><div class="n ${net > 0 ? "pos" : net < 0 ? "neg" : ""}">${sgn(net)}</div><div class="s">at your odds</div></div>
+    <div class="kpi"><div class="l">PICKS TRACKED</div><div class="n">${rows.length}</div><div class="s">this week</div></div>
+    <div class="kpi"><div class="l">WIN %</div><div class="n">${done.length ? (100 * w / done.length).toFixed(1) + "%" : "—"}</div><div class="s">graded picks</div></div></div>
+    <div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>PICK</th><th>YOUR ODDS</th><th>RESULT</th><th>UNITS</th></tr>${rows.map(r => `<tr><td style="white-space:nowrap">${fmt(r.date)}</td>
+      <td><b>${E(r.bet || r.pick)}</b><div class="game">${E(r.game)}</div></td><td>${odds(r.myOdds)}</td><td><span class="rb ${E(r.result)}">${E(r.result[0])}</span></td>
+      <td class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}">${r.units_pl == null ? "" : sgn(r.units_pl)}</td></tr>`).join("")}</table></div>`;
+}
+async function load() {
+  let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
+  PUB = !!(j && j.ok && j.published); ALL = PUB ? j.picks || [] : [];
+  if (!PUB) { $("cmmg").hidden = true; $("soon").innerHTML = `<div class="soonbar"><b>The CMMG weekly report goes live with Verified Results.</b> Every graded pick of the week, wins and losses, with breakevens. Your own week below works now.</div>`; }
+  const s = CMMG.session();
+  if (!s) MINE = "out"; else { try { const m = await CMMG.relay({ task: "mytracker", session: s.token }); MINE = m && m.ok ? m.rows || [] : "out"; } catch (e) { MINE = "out"; } }
+  draw();
+}
+$("prev").addEventListener("click", () => { WK = add(WK, -7); draw(); });
+$("next").addEventListener("click", () => { if (WK < THIS) { WK = add(WK, 7); draw(); } });
+SHELL.mount("weekly"); draw(); load();
+</script>
+</body></html>

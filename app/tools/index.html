@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/tools/index.html
-     Tools & Education (Scott's design list #10, 10/11 mockup): tabs Calculators / Learn. Calculators (all in-browser math):
+     Strategy & Tools (Scott's design list #10 + 10/11 'Strategy & Tools' mockup): tabs Calculators / Live Tools / Learn. Live tools: live total pace, cash-out fair value, hedge. Calculators (all in-browser math):
      odds converter + break-even, bet payout, parlay, hold, bankroll manager (unit size). Learn: short lessons in plain words
      plus the two CMMG books. Not built from the mockup: value finder / line movement / betting splits / middle finder /
      CLV (need a licensed odds feed), videos (none yet). Tagline avoids winning promises (gambling ad rules). -->
@@ -28,8 +28,8 @@
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>TOOLS &amp; EDUCATION</h1><p>BET SMARTER. LEARN FASTER. STAY DISCIPLINED.</p></div>
-    <div class="tabs2"><button data-tab="calc" class="on"><span data-ic="calc"></span>Calculators</button><button data-tab="learn"><span data-ic="star"></span>Learn</button></div>
+    <div class="vhero"><h1>STRATEGY &amp; TOOLS</h1><p>BETTER DATA. SMARTER TOOLS. STAY DISCIPLINED.</p></div>
+    <div class="tabs2"><button data-tab="calc" class="on"><span data-ic="calc"></span>Calculators</button><button data-tab="live"><span data-ic="clock"></span>Live Tools</button><button data-tab="learn"><span data-ic="star"></span>Learn</button></div>
     <div id="calc">
       <div class="cgrid">
         <div class="box"><h3><span data-ic="calc"></span>ODDS CONVERTER</h3>
@@ -43,10 +43,29 @@
         <div class="box"><h3><span data-ic="chart"></span>PARLAY CALCULATOR</h3>
           <div class="field"><span>Stake ($)</span><input id="ps" value="10" inputmode="decimal"></div><div id="legs"></div>
           <button class="btn ghost" id="addLeg" style="margin-bottom:10px">+ Add leg</button><div class="out" id="pOut"></div></div>
+        <div class="box"><h3><span data-ic="chart"></span>ROUND ROBIN</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Stake per parlay ($)</span><input id="rrs" value="10" inputmode="decimal"></div><div class="field"><span>Parlay size (legs each)</span><select id="rrk"><option>2</option><option>3</option><option>4</option></select></div></div>
+          <div class="field"><span>Leg odds, comma separated</span><input id="rro" value="-110, -110, +120, -105"></div><div class="out" id="rrOut"></div></div>
         <div class="box"><h3><span data-ic="gear"></span>HOLD (THE BOOK'S CUT)</h3>
           <div class="grid2" style="gap:10px"><div class="field"><span>Side A odds</span><input id="ha" value="-110" inputmode="numeric"></div><div class="field"><span>Side B odds</span><input id="hb" value="-110" inputmode="numeric"></div></div>
           <div class="out" id="hOut"></div></div>
       </div>
+    </div>
+    <div id="live" hidden>
+      <div class="cgrid">
+        <div class="box"><h3><span data-ic="clock"></span>LIVE TOTAL PACE</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Points scored so far (both teams)</span><input id="lp" value="98" inputmode="decimal"></div><div class="field"><span>Minutes played</span><input id="lm" value="24" inputmode="decimal"></div></div>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Game length (minutes)</span><select id="lg"><option value="48">48 · NBA</option><option value="40">40 · NCAAB / WNBA</option><option value="60">60 · NFL / NCAAF / NHL</option><option value="90">90 · Soccer</option></select></div><div class="field"><span>Live total line</span><input id="ll" value="214.5" inputmode="decimal"></div></div>
+          <div class="out" id="lpOut"></div></div>
+        <div class="box"><h3><span data-ic="shield"></span>CASH OUT CHECK</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Your stake ($)</span><input id="cs" value="100" inputmode="decimal"></div><div class="field"><span>Your odds</span><input id="co" value="+150" inputmode="numeric"></div></div>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Chance it wins now (%)</span><input id="cp" value="60" inputmode="decimal"></div><div class="field"><span>Book's cash-out offer ($)</span><input id="cx" value="130" inputmode="decimal"></div></div>
+          <div class="out" id="cOut"></div></div>
+        <div class="box"><h3><span data-ic="target"></span>HEDGE CALCULATOR</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Original stake ($)</span><input id="hs" value="100" inputmode="decimal"></div><div class="field"><span>Original odds</span><input id="ho" value="+200" inputmode="numeric"></div></div>
+          <div class="field"><span>Hedge odds (other side, now)</span><input id="hh" value="-150" inputmode="numeric"></div><div class="out" id="hgOut"></div></div>
+      </div>
+      <p class="game" style="margin:8px 2px 0">Live win chances: Live Scores and My Game Center show the play-by-play win probability for many games.</p>
     </div>
     <div id="learn" hidden>
       <div class="box"><h3>EDUCATION CENTER</h3><p style="color:var(--dim);font-size:13px;margin:0">Short lessons in plain words. Tap a card to read it.</p></div>
@@ -80,6 +99,26 @@ function calc() {
   const legs = [...document.querySelectorAll(".leg")].map(i => am(i.value)), ps = Number($("ps").value);
   if (legs.some(l => l == null) || !(ps > 0)) $("pOut").innerHTML = bad;
   else { const d = legs.reduce((a, l) => a * dec(l), 1); $("pOut").innerHTML = `${legs.length} legs · Parlay odds <b>${toAm(d)}</b> · Payout <b class="pos">${money(ps * d)}</b><br><span class="game">Every leg must win. Chance all ${legs.length} hit at these prices: ${pct(1 / d)}.</span>`; }
+  // round robin
+  const rr = $("rro").value.split(",").map(v => am(v)), k = Number($("rrk").value), rs = Number($("rrs").value);
+  if (rr.some(v => v == null) || rr.length < k || !(rs > 0)) $("rrOut").innerHTML = `Enter at least ${k} odds, separated by commas.`;
+  else { const combos = []; (function pick(st, cur) { if (cur.length === k) { combos.push(cur); return; } for (let i = st; i < rr.length; i++) pick(i + 1, cur.concat(rr[i])); })(0, []);
+    const pays = combos.map(c => c.reduce((m, o) => m * dec(o), 1) * rs);
+    $("rrOut").innerHTML = `<b>${combos.length}</b> parlays of ${k} · total stake <b>${money(combos.length * rs)}</b><br>If every leg wins: <b class="pos">${money(pays.reduce((a2, v) => a2 + v, 0))}</b> back · best single parlay ${money(Math.max(...pays))}<br><span class="game">One loss kills every parlay that leg is in.</span>`; }
+  // live pace
+  const lp = Number($("lp").value), lm = Number($("lm").value), lg = Number($("lg").value), ll = Number($("ll").value);
+  if (lm > 0 && lm < lg && lp >= 0) { const proj = lp / lm * lg, diff = proj - ll;
+    $("lpOut").innerHTML = `Pace projects <b>${proj.toFixed(1)}</b> total · ${ll > 0 ? `<b class="${diff > 0 ? "pos" : "neg"}">${diff > 0 ? "+" : ""}${diff.toFixed(1)}</b> vs the line` : ""}<br><span class="game">Straight-line pace only - fouls late, overtime, garbage time and margin all bend it. CMMG's live models adjust for those.</span>`; }
+  else $("lpOut").textContent = "Enter points so far and minutes played (less than the game length).";
+  // cash out
+  const cs = Number($("cs").value), co = am($("co").value), cp = Number($("cp").value) / 100, cx = Number($("cx").value);
+  if (co == null || !(cs > 0) || !(cp >= 0 && cp <= 1)) $("cOut").textContent = "Enter your stake, odds and a win chance from 0 to 100.";
+  else { const fair = cs * dec(co) * cp; $("cOut").innerHTML = `Fair value now <b>${money(fair)}</b>${cx > 0 ? ` · offer is <b class="${cx >= fair ? "pos" : "neg"}">${money(Math.abs(cx - fair))}</b> ${cx >= fair ? "above" : "below"} fair` : ""}<br><span class="game">Fair value = what the ticket is worth at that win chance. Offers below it cost you that much on average.</span>`; }
+  // hedge
+  const hs = Number($("hs").value), ho = am($("ho").value), hh = am($("hh").value);
+  if (ho == null || hh == null || !(hs > 0)) $("hgOut").textContent = bad;
+  else { const win = hs * dec(ho), hedge = win / dec(hh), lock = win - hs - hedge;
+    $("hgOut").innerHTML = `Hedge <b>${money(hedge)}</b> on the other side to lock <b class="${lock >= 0 ? "pos" : "neg"}">${lock >= 0 ? "+" : "-"}${money(Math.abs(lock))}</b> either way<br><span class="game">Original pays ${money(win)} back; the hedge pays the same back if the other side wins.</span>`; }
   const a = am($("ha").value), b = am($("hb").value);
   if (a == null || b == null) $("hOut").innerHTML = bad;
   else { const ia = 1 / dec(a), ib = 1 / dec(b), hold = 1 - 1 / (ia + ib);
@@ -102,10 +141,10 @@ const LESSONS = [
     "<p>A parlay pays more because every leg has to win. The book's cut stacks on every leg, so the true cost is higher than it looks.</p><p>That's why CMMG plays are almost all straight bets. Check any parlay's real chance with the Parlay Calculator.</p>"],
 ];
 $("lessons").innerHTML = LESSONS.map(([i, t, d, b]) => `<div class="box lesson"><h3>${ICON.ui(i)}${E(t)}</h3><p>${E(d)}</p><div class="body">${b}</div></div>`).join("");
-document.addEventListener("input", calc);
+document.addEventListener("input", calc); document.addEventListener("change", calc);
 $("addLeg").addEventListener("click", () => addLeg("-110"));
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-tab]"); if (t) { document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b === t)); $("calc").hidden = t.dataset.tab !== "calc"; $("learn").hidden = t.dataset.tab !== "learn"; return; }
+  const t = e.target.closest("[data-tab]"); if (t) { document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b === t)); ["calc", "live", "learn"].forEach(id => $(id).hidden = t.dataset.tab !== id); return; }
   const l = e.target.closest(".lesson"); if (l) l.classList.toggle("open");
 });
 SHELL.mount("tools"); addLeg("-110"); addLeg("+120");

@@ -18,9 +18,9 @@ const SHELL = (() => {
   // Remembered for the browser session so it holds on every page.
   let STORE = false;
   try {
-    if (/[?&]src=play\b/.test(location.search) || String(document.referrer).startsWith("android-app://")) sessionStorage.setItem("cmmg.store", "play");
+    if (/[?&]src=(play|twa)\b/.test(location.search) || String(document.referrer).startsWith("android-app://")) sessionStorage.setItem("cmmg.store", "play");
     STORE = sessionStorage.getItem("cmmg.store") === "play";
-  } catch (e) { STORE = /[?&]src=play\b/.test(location.search); }
+  } catch (e) { STORE = /[?&]src=(play|twa)\b/.test(location.search); }
   if (STORE) document.documentElement.classList.add("store-play");
   const E = CMMG.esc;
   function plan(s) {

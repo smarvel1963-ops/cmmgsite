@@ -21,7 +21,7 @@
 .links { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 @media (max-width:640px) { .links { grid-template-columns:repeat(2,1fr); } .mini .card { grid-template-columns:1fr auto; gap:6px 10px; } .mini .card .when { grid-column:1 / -1; display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .mini .card .when .tv { margin-top:0; } .hero { background:linear-gradient(180deg, rgba(6,13,26,.9), rgba(6,13,26,.97)), url(/img/crest.jpg) center top / cover no-repeat; } }
 .link { text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; font-weight:800; }
-.link span { display:block; font-size:26px; margin-bottom:4px; }
+.link span { display:block; margin-bottom:6px; } .link span .ic { width:30px; height:30px; color:#7fd8ff; filter:drop-shadow(0 0 6px rgba(127,216,255,.6)); }
 </style></head>
 <body>
 <div class="layout">
@@ -30,8 +30,8 @@
     <div class="kpis" id="glance"><div class="kpi"><div class="l">LOADING</div><div class="n">…</div></div></div>
     <div class="box"><h3>TODAY'S TOP PICKS <a href="/app/" style="float:right;font-size:12px;color:var(--ice)">All picks →</a></h3><div class="mini" id="top"></div></div>
     <div class="links">
-      <a class="link" href="/app/"><span>🎯</span>Today's Picks</a><a class="link" href="/app/tracker/"><span>📈</span>My Tracker</a>
-      <a class="link" href="/app/tools/"><span>🧮</span>Tools</a><a class="link" href="/app/community/"><span>💬</span>Community</a>
+      <a class="link" href="/app/"><span data-ic="target"></span>Today's Picks</a><a class="link" href="/app/tracker/"><span data-ic="chart"></span>My Tracker</a>
+      <a class="link" href="/app/tools/"><span data-ic="calc"></span>Tools</a><a class="link" href="/app/community/"><span data-ic="chat"></span>Community</a>
     </div>
   </main>
   <aside class="side">
@@ -39,10 +39,10 @@
     <div><h3>MY TRACKER <a href="/app/tracker/" style="float:right;font-size:12px;color:var(--ice)">Open →</a></h3><div id="trk" style="color:var(--dim);font-size:13px">Sign in to track the picks you take.</div></div>
   </aside>
 </div>
-<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
 <script>
-const E = CMMG.esc, TIER_ORDER = { ICE: 0, EDGE: 1, FIRE: 2 }, TIER_ICON = { ICE: "❄️", EDGE: "🗡️", FIRE: "🔥" };
-const SPORT_ICON = { NFL: "🏈", NCAAF: "🏈", NBA: "🏀", NCAAB: "🏀", WNBA: "🏀", MLB: "⚾", KBO: "⚾", NPB: "⚾", NHL: "🏒", MLS: "⚽", TENNIS: "🎾", UFC: "🥊", GOLF: "⛳" };
+const E = CMMG.esc, TIER_ORDER = { ICE: 0, EDGE: 1, FIRE: 2 }, TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const SPORT_ICON = new Proxy({}, { get: (o, k) => ICON.sport(k) });
 const ct = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT"; };
 const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
 const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
@@ -67,16 +67,16 @@ async function load() {
   const upcoming = picks.map(p => Date.parse(p.time)).filter(t => t > Date.now()).sort((a, b) => a - b);
   NEXT = upcoming[0] || null;
   g.innerHTML = `<div class="kpi"><div class="l">TODAY'S PICKS</div><div class="n">${picks.length}</div></div>
-    <div class="kpi"><div class="l">❄️ ICE · 🗡️ EDGE · 🔥 FIRE</div><div class="n" style="font-size:20px">${n("ICE")} · ${n("EDGE")} · ${n("FIRE")}</div></div>
+    <div class="kpi"><div class="l">${ICON.tier("ICE")} ICE · ${ICON.tier("EDGE")} EDGE · ${ICON.tier("FIRE")} FIRE</div><div class="n" style="font-size:20px">${n("ICE")} · ${n("EDGE")} · ${n("FIRE")}</div></div>
     <div class="kpi"><div class="l">NEXT GAME</div><div class="count" id="cd">${NEXT ? "" : "—"}</div></div>
     <div class="kpi"><div class="l">YOUR ACCESS</div><div class="n" style="font-size:16px">${picks.filter(p => !p.locked).length} of ${picks.length} open</div></div>`;
   tick();
   if (!picks.length) { top.innerHTML = `<div class="empty" style="border:0">${stale ? "Today's picks aren't posted yet." : "No picks posted yet today."}</div>`; return; }
   top.innerHTML = picks.slice(0, 3).map(p => p.locked
     ? `<div class="card locked"><div class="when"><b>${ct(p.time)}</b><span>${SPORT_ICON[p.sport] || "🎯"} ${E(p.sport)}</span></div>
-        <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="lockmsg" style="margin-top:6px">🔒 Members only</div></div>
+        <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="lockmsg" style="margin-top:6px">${ICON.ui("lock")} Members only</div></div>
         <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${SHELL.UPGRADE}">Unlock</a></div></div>`
-    : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${SPORT_ICON[p.sport] || "🎯"} ${E(p.sport)}</span>${p.tv ? `<div class="tv">📺 ${E(p.tv)}</div>` : ""}</div>
+    : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${SPORT_ICON[p.sport] || "🎯"} ${E(p.sport)}</span>${p.tv ? `<div class="tv">${ICON.ui("tv")} ${E(p.tv)}</div>` : ""}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
           <div class="pick" style="margin-top:4px;font-size:16px">${E(p.bet)}</div><div class="game">${E(p.game)}</div></div>
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}</div></div></div>`).join("");
@@ -101,7 +101,7 @@ async function tracker() {
     <p style="margin:8px 0 0">${wl ? `${(100 * m.won / wl).toFixed(1)}% win rate on ${wl} graded picks, at your odds.` : "Tap “✓ I Took This Pick” on a pick to start."}</p>`;
 }
 
-SHELL.mount("dashboard"); hello(); load(); tracker();
+SHELL.mount("dashboard"); document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic)); hello(); load(); tracker();
 setInterval(tick, 1000); setInterval(load, 5 * 60000);
 </script>
 </body></html>

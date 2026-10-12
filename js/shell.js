@@ -5,12 +5,12 @@
 const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
-    ["MAIN", [["dashboard", "🏠", "Dashboard", "/app/dashboard/"], ["picks", "🎯", "Today's Picks", "/app/"], ["scores", "⏱", "Live Scores", "/app/soon/?p=scores"],
-              ["game", "🏟️", "My Game Center", "/app/soon/?p=game"]]],
-    ["MY CMMG", [["tracker", "📈", "My Tracker", "/app/tracker/"], ["results", "✅", "Verified Results", "/app/soon/?p=results"],
-                 ["teams", "⭐", "Teams · Players · Schedules", "/app/soon/?p=teams"]]],
-    ["COMMUNITY & ACCOUNT", [["community", "💬", "Discord Community", "/app/community/"], ["tools", "🧮", "Tools & Education", "/app/tools/"],
-                             ["account", "⚙️", "Settings & Membership", "/app/account/"]]],
+    ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/soon/?p=scores"],
+              ["game", "stadium", "My Game Center", "/app/soon/?p=game"]]],
+    ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/soon/?p=results"],
+                 ["teams", "star", "Teams · Players · Schedules", "/app/soon/?p=teams"]]],
+    ["COMMUNITY & ACCOUNT", [["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
+                             ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];
   const SOON = { scores: 1, game: 1, results: 1, teams: 1 };
   // STORE MODE (Google Play payments rule): when the app was opened from the Play Store build (start URL ?src=play, or
@@ -61,12 +61,12 @@ const SHELL = (() => {
   }
   function mount(active) {
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
-    // "📲 Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
+    // "Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
     // Home Screen (steps on the Settings page). Hidden once installed.
     addEventListener("beforeinstallprompt", ev => {
       ev.preventDefault(); const prompt = ev;
       if (document.getElementById("installBtn")) return;
-      document.getElementById("who")?.insertAdjacentHTML("beforebegin", `<button class="btn ghost" id="installBtn" style="margin-right:8px">📲 Install app</button>`);
+      document.getElementById("who")?.insertAdjacentHTML("beforebegin", `<button class="btn ghost" id="installBtn" style="margin-right:8px">Install app</button>`);
       document.getElementById("installBtn").addEventListener("click", async () => { prompt.prompt(); await prompt.userChoice.catch(() => {}); document.getElementById("installBtn")?.remove(); });
     });
     addEventListener("appinstalled", () => document.getElementById("installBtn")?.remove());
@@ -74,11 +74,11 @@ const SHELL = (() => {
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
       <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><div id="who"></div></header>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
-      `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${ic} ${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
+      `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
     const layout = document.querySelector(".layout"); if (layout) layout.insertAdjacentHTML("afterbegin", rail);
     const flat = MENU.flatMap(([, items]) => items).filter(([k]) => !SOON[k] || k === active);
     document.querySelector("header.top").insertAdjacentHTML("afterend", `<nav class="mnav" aria-label="CMMG menu">` +
-      flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${ic} ${E(label)}</a>`).join("") + `</nav>`);
+      flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}</a>`).join("") + `</nav>`);
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Information and entertainment only - no wagering in this app. Picks are opinions. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
       21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only. <a href="/privacy/">Privacy</a> · <a href="/delete-account/">Delete account</a></p>`);

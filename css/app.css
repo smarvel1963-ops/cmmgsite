@@ -1,5 +1,6 @@
 /* SAVE AS: app.css · LOCATION: C:/MarvelApps/cmmgsite/css/app.css
  * Shared look for every member page (cmmgsports.com/app/...). Locked: tier colors ICE cyan / EDGE green / FIRE orange. */
+@import url('https://fonts.googleapis.com/css2?family=Saira:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600;700;800&display=swap');
 :root { --bg:#060d1a; --panel:#0c1929; --panel2:#0f2036; --line:rgba(127,216,255,.16); --text:#e8f4ff; --dim:#8fb0cc; --ice:#7fd8ff; --edge:#22c55e; --fire:#ff5a2b; --gold:#ffd700; --disc:#5865f2; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--bg); color:var(--text); font-family:Arial,"Segoe UI",system-ui,sans-serif; }
@@ -157,3 +158,45 @@ html.store-play a[href*="winible.com"], html.store-play .buy { display:none !imp
 @media (max-width:640px) { .stally i { padding:3px 6px; font-size:11px; } .grade .hex { width:46px; height:52px; font-size:24px; } }
 html.store-play a[href*="github.io/join"], html.store-play a[href*="discord.gg"] { display:none !important; }
 .rg a { color:var(--dim); }
+
+/* ================= PREMIUM LOOK (Scott 10/11: "takes away cheapness and look new age") =================
+   Display font Saira for headings / numbers, Inter for text; lit stadium backdrop with a faint grid; glass panels with a
+   thin light edge; glowing primary buttons; our own neon line icons (js/icons.js) instead of emoji. */
+body { font-family:Inter, "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(900px 480px at 85% -8%, rgba(0,140,255,.20), transparent 62%),
+    radial-gradient(700px 380px at 0% -5%, rgba(255,200,0,.08), transparent 60%),
+    linear-gradient(rgba(127,216,255,.035) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(127,216,255,.035) 1px, transparent 1px) 0 0 / 44px 44px,
+    #050b16;
+  background-attachment:fixed; }
+h1, h2, h3, .n, .odds, .count, .pick, .sbanner b, .logo b, .kpi .n, .tile .n, .stats b, .price, .grade .hex, .when b {
+  font-family:Saira, Inter, sans-serif; }
+h1 { font-weight:800; letter-spacing:.01em; } h3, .side h3, .box h3 { font-weight:800; letter-spacing:.12em; font-size:13px; color:#bfe6ff; }
+.pick { font-weight:800; letter-spacing:.01em; } .sbanner b { font-style:italic; font-weight:800; letter-spacing:.04em; }
+.top { background:rgba(5,11,22,.78); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid rgba(127,216,255,.14); }
+.mnav { background:rgba(5,11,22,.82); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.rail, .side > div, .box, .card, .kpi, .tile, .empty, table {
+  background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.78));
+  border:1px solid rgba(127,216,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 12px 30px rgba(0,0,0,.35);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.card { border-radius:16px; }
+.tile.ice { border-color:rgba(127,216,255,.55); box-shadow:0 0 22px rgba(127,216,255,.12), inset 0 1px 0 rgba(255,255,255,.06); }
+.tile.edge { border-color:rgba(34,197,94,.55); box-shadow:0 0 22px rgba(34,197,94,.12), inset 0 1px 0 rgba(255,255,255,.06); }
+.tile.fire { border-color:rgba(255,90,43,.55); box-shadow:0 0 22px rgba(255,90,43,.12), inset 0 1px 0 rgba(255,255,255,.06); }
+.btn.go { background:linear-gradient(180deg,#2fe07a,#13a34f); box-shadow:0 0 18px rgba(34,197,94,.35), inset 0 1px 0 rgba(255,255,255,.25); }
+.btn.disc { background:linear-gradient(180deg,#6f7cff,#4752d8); box-shadow:0 0 18px rgba(88,101,242,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+.btn { transition:transform .12s ease, box-shadow .2s ease; } .btn:hover { transform:translateY(-1px); }
+.chip { background:rgba(10,22,40,.6); } .chip.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); box-shadow:0 0 14px rgba(127,216,255,.35); }
+.rail a.on { background:linear-gradient(90deg, rgba(34,197,94,.22), rgba(34,197,94,.05)); box-shadow:inset 3px 0 0 #22c55e; }
+/* icons */
+.ic { width:1.15em; height:1.15em; vertical-align:-.2em; flex:0 0 auto; }
+.ic.t-ICE { color:#7fd8ff; filter:drop-shadow(0 0 4px rgba(127,216,255,.8)); }
+.ic.t-EDGE { color:#4ade80; filter:drop-shadow(0 0 4px rgba(74,222,128,.8)); }
+.ic.t-FIRE { color:#ff7a45; filter:drop-shadow(0 0 4px rgba(255,122,69,.85)); }
+.sbanner .sic .ic { width:30px; height:30px; color:#fff; filter:drop-shadow(0 0 6px rgba(255,255,255,.55)); }
+.rail a .ic, .mnav a .ic { margin-right:4px; color:#9fd2ff; }
+.rail a.on .ic, .mnav a.on .ic { color:#4ade80; }
+.tv .ic, .lockmsg .ic { width:1em; height:1em; }
+.when .ic, .chip .ic { color:#9fd2ff; }

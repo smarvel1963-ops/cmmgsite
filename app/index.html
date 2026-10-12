@@ -47,14 +47,13 @@
 <div class="toast" id="toast"></div>
 
 <script src="/js/cmmg.js"></script>
-<script src="/js/shell.js"></script>
+<script src="/js/icons.js"></script><script src="/js/shell.js"></script>
 <script>
 const TIER_ORDER = { ICE: 0, EDGE: 1, FIRE: 2 };                       // locked hierarchy: ICE > EDGE > FIRE
-const TIER_ICON = { ICE: "❄️", EDGE: "🗡️", FIRE: "🔥" };
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
 // Sport icons (league logos are trademarks - Scott 10/11 "and sport logo"). Team badges = abbreviation on the team's
 // own colour from the feed; real team logos only with a licence (App Store 5.2.1).
-const SPORT_ICON = { NFL: "🏈", NCAAF: "🏈", NBA: "🏀", NCAAB: "🏀", WNBA: "🏀", MLB: "⚾", KBO: "⚾", NPB: "⚾", NCAABB: "⚾", NHL: "🏒",
-  MLS: "⚽", SOCCER: "⚽", TENNIS: "🎾", UFC: "🥊", MMA: "🥊", GOLF: "⛳", HORSES: "🏇", NASCAR: "🏁", F1: "🏎️" };
+const SPORT_ICON = new Proxy({}, { get: (o, k) => ICON.sport(k) });
 const sp = x => `${SPORT_ICON[String(x || "").toUpperCase()] || "🎯"} ${E(x)}`;
 const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
 const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
@@ -71,7 +70,7 @@ const fam = x => FAMILY[String(x || "").toUpperCase()] || "other";
 const RES = { WIN: ["W", "WON"], LOSS: ["L", "LOST"], PUSH: ["P", "PUSH"], VOID: ["V", "VOID"] };
 const gradeBadge = r => RES[r] ? `<div class="grade g-${r}"><span class="hex">${RES[r][0]}</span><b>${RES[r][1]}</b></div>` : "";
 const sid = x => "sec-" + String(x || "other").toLowerCase().replace(/[^a-z0-9]/g, "");
-const watch = p => p.tv ? `<div class="tv">📺 ${E(p.tv)}</div>` : "";
+const watch = p => p.tv ? `<div class="tv">${ICON.ui("tv")} ${E(p.tv)}</div>` : "";
 const UPGRADE = SHELL.UPGRADE;
 let PICKS = [], SPORT = "ALL", TIER = "ALL", VIEW = "simple", TOOK = null;
 try { VIEW = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
@@ -113,15 +112,15 @@ function draw() {
   const signedIn = !!CMMG.session();
   if (VIEW === "advanced") {
     el.innerHTML = `<table><tr><th>TIME (CT)</th><th>SPORT</th><th>MATCHUP</th><th>PICK</th><th>ODDS</th><th>BOOK</th><th>TAG</th><th></th></tr>` + list.map(p => p.locked
-      ? `<tr><td>${ct(p.time)}</td><td>${sp(p.sport)}</td><td colspan="4" class="lockmsg">🔒 Premium pick — <a href="${UPGRADE}">unlock on Discord</a></td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td><td></td></tr>`
-      : `<tr><td>${ct(p.time)}${p.tv ? `<div class="game">📺 ${E(p.tv)}</div>` : ""}</td><td>${sp(p.sport)}</td><td>${matchup(p) || ""} <span class="game">${E(p.game)}</span></td><td><b>${E(p.bet)}</b></td><td>${odds(p.odds)}</td><td>${E(p.book)}</td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td>
+      ? `<tr><td>${ct(p.time)}</td><td>${sp(p.sport)}</td><td colspan="4" class="lockmsg">${ICON.ui("lock")} Premium pick — <a href="${UPGRADE}">unlock on Discord</a></td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td><td></td></tr>`
+      : `<tr><td>${ct(p.time)}${p.tv ? `<div class="game">${ICON.ui("tv")} ${E(p.tv)}</div>` : ""}</td><td>${sp(p.sport)}</td><td>${matchup(p) || ""} <span class="game">${E(p.game)}</span></td><td><b>${E(p.bet)}</b></td><td>${odds(p.odds)}</td><td>${E(p.book)}</td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td>
          <td><button class="btn go" data-took="${E(p.id)}">I Took This</button></td></tr>`).join("") + `</table>`;
     return;
   }
   const card = p => p.locked
     ? `<div class="card locked sp-${fam(p.sport)}"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}</span></div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="pick">Premium pick hidden</div>
-        <div class="lockmsg">🔒 Members only — your access comes from your CMMG Discord membership.</div></div>
+        <div class="lockmsg">${ICON.ui("lock")} Members only — your access comes from your CMMG Discord membership.</div></div>
         <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">Unlock on Discord</a></div></div>`
     : `<div class="card sp-${fam(p.sport)} ${RES[p.result] ? "graded r-" + p.result : ""}"><div class="when"><b>${RES[p.result] ? '<span class="final">FINAL</span> ' : ""}${ct(p.time)}</b><span>${p.market ? E(p.market) : sp(p.sport)}</span>${watch(p)}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}

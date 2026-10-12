@@ -1,0 +1,117 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/alerts/index.html
+     Alerts Center (Scott's design list #7, 10/11 mockup): an alert feed built from REAL data only - new CMMG picks posted,
+     game-start reminders (a pick's game within 60 min), results (W/L/P) on CMMG picks and on MY tracked picks - with type
+     filters, a sport filter, notification switches per type and per sport (saved on this device) and optional browser
+     notifications while the app is open. Not built from the mockup: line-move alerts (need a licensed odds feed), model
+     confidence %, performance numbers (wait for the audited record). Sports imagery only. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alerts · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:22px; margin-bottom:12px; }
+.vhero h1 { font-size:clamp(28px, 4.6vw, 48px); font-style:italic; margin:0; line-height:1; } .vhero p { margin:8px 0 0; letter-spacing:.2em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.ag { display:grid; grid-template-columns:260px minmax(0,1fr); gap:14px; } .ag > * { min-width:0; } @media (max-width:980px) { .ag { grid-template-columns:minmax(0,1fr); } .ag .setcol { order:2; } }
+.tabs2 { display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; scrollbar-width:none; } .tabs2::-webkit-scrollbar { display:none; }
+.tabs2 button { flex:0 0 auto; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:10px; padding:8px 14px; font-weight:800; font-size:13px; }
+.tabs2 button.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); color:#fff; border-color:#3b82f6; box-shadow:0 0 14px rgba(59,130,246,.45); }
+.al { display:grid; grid-template-columns:70px 30px minmax(0,1fr) auto; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
+.al:last-child { border-bottom:0; } .al .t { font-size:12px; color:var(--dim); } .al .ic { width:24px; height:24px; color:#9fd2ff; }
+.al .k { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.06em; padding:3px 8px; border-radius:6px; margin-bottom:3px; }
+.k.pick { background:rgba(239,68,68,.16); color:#fca5a5; border:1px solid rgba(239,68,68,.5); } .k.start { background:rgba(250,204,21,.12); color:#fde047; border:1px solid rgba(250,204,21,.4); }
+.k.result { background:rgba(34,197,94,.12); color:#86efac; border:1px solid rgba(34,197,94,.45); } .k.mine { background:rgba(59,130,246,.14); color:#93c5fd; border:1px solid rgba(59,130,246,.5); }
+.al .msg b { display:block; } .al .msg span { font-size:12px; color:var(--dim); }
+.al.new { background:linear-gradient(90deg, rgba(59,130,246,.12), transparent 60%); }
+.sw { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 0; font-size:13px; }
+.tog { position:relative; width:40px; height:22px; flex:0 0 auto; } .tog input { opacity:0; width:0; height:0; }
+.tog i { position:absolute; inset:0; border-radius:99px; background:#334155; transition:.2s; } .tog i::before { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; border-radius:50%; background:#fff; transition:.2s; }
+.tog input:checked + i { background:#2563eb; box-shadow:0 0 10px rgba(37,99,235,.6); } .tog input:checked + i::before { transform:translateX(18px); }
+.sumg { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; } @media (max-width:560px) { .sumg { grid-template-columns:repeat(2,1fr); } }
+.sumg div { text-align:center; padding:10px; } .sumg b { display:block; font-family:Saira; font-size:24px; } .sumg span { font-size:11px; color:var(--dim); }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero sb-other" style="background:radial-gradient(600px 220px at 85% 30%, rgba(59,130,246,.35), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325)"><h1>ALERTS CENTER</h1><p>STAY AHEAD. NEVER MISS A PLAY.</p></div>
+    <div class="ag">
+      <div class="setcol">
+        <div class="box"><h3>ALERT SETTINGS</h3><div id="types"></div>
+          <div class="sw" style="margin-top:8px;border-top:1px solid var(--line);padding-top:10px"><span>Phone / browser notifications<br><small style="color:var(--dim)">While the app is open</small></span><button class="btn ghost" id="notif" style="padding:6px 10px">Turn on</button></div></div>
+        <div class="box"><h3>SPORTS</h3><div id="sports"></div></div>
+      </div>
+      <div>
+        <div class="sumg" id="sum"></div>
+        <div class="tabs2" id="tabs"></div>
+        <div class="box"><h3>LATEST ALERTS</h3><div id="feed"><div class="empty" style="border:0">Loading…</div></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const TYPES = [["pick", "New picks (ICE / EDGE / FIRE)"], ["start", "Game start reminders"], ["result", "CMMG pick results (W/L/P)"], ["mine", "My tracked pick results"]];
+const SPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS", "TENNIS", "UFC", "GOLF", "KBO", "NPB"];
+let SET = { types: {}, sports: {} }, TAB = "all", ALERTS = [], SEEN = {};
+try { SET = JSON.parse(localStorage.getItem("cmmg.alertset") || "null") || SET; SEEN = JSON.parse(localStorage.getItem("cmmg.alertseen") || "{}") || {}; } catch (e) {}
+const on = (grp, k) => SET[grp][k] !== false;
+const save = () => { try { localStorage.setItem("cmmg.alertset", JSON.stringify(SET)); } catch (e) {} };
+const ago = ms => { const m = Math.round((Date.now() - ms) / 6e4); return m < 1 ? "now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " d ago"; };
+const ct = iso => new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT";
+
+function build(picks, at, mine) {
+  const out = [], now = Date.now(), posted = at ? Date.parse(at) : now;
+  picks.forEach(p => {
+    const t = Date.parse(p.time);
+    if (!p.result) out.push({ id: "pick:" + p.id, type: "pick", ts: posted, sport: p.sport, tier: p.tier,
+      title: `New ${p.tier || ""} pick`, body: p.locked ? `${p.sport} · members-only pick` : `${p.bet} · ${p.game}`, href: "/app/" });
+    if (!p.result && t > now && t - now <= 60 * 6e4) out.push({ id: "start:" + p.id, type: "start", ts: t - 60 * 6e4, sport: p.sport, tier: p.tier,
+      title: "Game starts soon", body: `${p.locked ? p.sport + " members-only pick" : p.game} · ${ct(p.time)}`, href: "/app/scores/" });
+    if (p.result && !p.locked) out.push({ id: "res:" + p.id, type: "result", ts: Math.max(t, posted), sport: p.sport, tier: p.tier, result: p.result,
+      title: "Result: " + p.result, body: `${p.bet} · ${p.game}`, href: "/app/" });
+  });
+  mine.filter(r => r.result && r.result !== "PENDING").forEach(r => out.push({ id: "mine:" + r.pick + ":" + r.result, type: "mine", ts: r.at ? Date.parse(r.at) : now, sport: r.sport, tier: r.tier, result: r.result,
+    title: "Your pick: " + r.result, body: `${r.bet || "Members-only pick"}${r.units_pl != null ? ` · ${r.units_pl > 0 ? "+" : ""}${r.units_pl}u` : ""}`, href: "/app/tracker/" }));
+  return out.sort((a, b) => b.ts - a.ts);
+}
+
+function draw() {
+  $("types").innerHTML = TYPES.map(([k, l]) => `<label class="sw"><span>${l}</span><span class="tog"><input type="checkbox" data-set="types" data-k="${k}" ${on("types", k) ? "checked" : ""}><i></i></span></label>`).join("");
+  $("sports").innerHTML = SPORTS.map(s => `<label class="sw"><span>${ICON.sport(s)} ${s === "MLS" ? "SOCCER" : s}</span><span class="tog"><input type="checkbox" data-set="sports" data-k="${s}" ${on("sports", s) ? "checked" : ""}><i></i></span></label>`).join("");
+  const vis = ALERTS.filter(a => on("types", a.type) && on("sports", a.sport));
+  const c = t => vis.filter(a => a.type === t).length;
+  $("sum").innerHTML = [["pick", "New picks", "target"], ["start", "Starting soon", "clock"], ["result", "Results", "check"], ["mine", "My results", "star"]]
+    .map(([t, l, i]) => `<div class="glass box" style="margin:0">${ICON.ui(i)}<b>${c(t)}</b><span>${l}</span></div>`).join("");
+  $("tabs").innerHTML = [["all", "All"], ...TYPES.map(([k, l]) => [k, l.split(" (")[0]])].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
+  const list = vis.filter(a => TAB === "all" || a.type === TAB);
+  $("feed").innerHTML = list.length ? list.map(a => `<a class="al ${SEEN[a.id] ? "" : "new"}" href="${a.href}" style="text-decoration:none">
+      <span class="t">${ago(a.ts)}</span>${ICON.sport(a.sport)}
+      <span class="msg"><span class="k ${a.type}">${E(a.title.toUpperCase())}</span><b>${E(a.body)}</b></span>
+      <span>${a.result ? `<span class="rb ${E(a.result)}">${E(a.result[0])}</span>` : a.tier ? `<span class="tag ${E(a.tier)}" style="font-size:11px">${TIER_ICON[a.tier] || ""} ${E(a.tier)}</span>` : ""}</span></a>`).join("")
+    : `<div class="empty" style="border:0">No alerts right now. New picks, game starts and results show here.</div>`;
+  $("notif").textContent = !("Notification" in window) ? "Not supported" : Notification.permission === "granted" ? "On ✓" : Notification.permission === "denied" ? "Blocked in browser" : "Turn on";
+}
+
+async function load() {
+  const s = CMMG.session();
+  const [pj, mj] = await Promise.all([CMMG.relay({ task: "picks", session: s ? s.token : undefined }).catch(() => ({})),
+    s ? CMMG.relay({ task: "mytracker", session: s.token }).catch(() => ({})) : Promise.resolve({})]);
+  const fresh = build(pj && pj.ok ? pj.picks || [] : [], pj && pj.at, mj && mj.ok ? mj.rows || [] : []);
+  // browser notification for anything new since last look (only if switched on)
+  if ("Notification" in window && Notification.permission === "granted" && ALERTS.length)
+    fresh.filter(a => !ALERTS.some(x => x.id === a.id) && on("types", a.type) && on("sports", a.sport)).slice(0, 3)
+      .forEach(a => { try { new Notification("CMMG · " + a.title, { body: a.body, icon: "/img/icon_192.png", tag: a.id }); } catch (e) {} });
+  ALERTS = fresh; draw();
+  setTimeout(() => { ALERTS.forEach(a => SEEN[a.id] = 1); try { localStorage.setItem("cmmg.alertseen", JSON.stringify(SEEN)); localStorage.setItem("cmmg.alertcount", "0"); } catch (e) {} }, 4000);
+}
+document.addEventListener("change", e => { const i = e.target.closest("[data-set]"); if (i) { SET[i.dataset.set][i.dataset.k] = i.checked; save(); draw(); } });
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-tab]"); if (t) { TAB = t.dataset.tab; draw(); return; }
+  if (e.target.closest("#notif") && "Notification" in window && Notification.permission === "default") { await Notification.requestPermission(); draw(); }
+});
+SHELL.mount("alerts"); load(); setInterval(load, 3 * 60000);
+</script>
+</body></html>

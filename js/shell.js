@@ -9,7 +9,7 @@ const SHELL = (() => {
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
-    ["COMMUNITY & ACCOUNT", [["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
+    ["COMMUNITY & ACCOUNT", [["alerts", "bell", "Alerts", "/app/alerts/"], ["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];
   const SOON = {};
@@ -77,6 +77,16 @@ const SHELL = (() => {
     const t = theme(); if (t) document.body.classList.add("theme-" + t);
   }
   function setTheme(t) { try { t ? localStorage.setItem("cmmg.sporttheme", t) : localStorage.removeItem("cmmg.sporttheme"); } catch (e) {} applyTheme(); }
+  async function bell(active) {   // unseen alerts count: new picks + results not yet seen on the Alerts page (cached 5 min)
+    const el = document.getElementById("bellN"); if (!el || active === "alerts") return;
+    let ids;
+    try { const c = JSON.parse(sessionStorage.getItem("cmmg.bellc") || "null"); if (c && Date.now() - c.t < 300000) ids = c.ids; } catch (e) {}
+    if (!ids) { try { const j = await CMMG.relay({ task: "picks", session: CMMG.session()?.token });
+      ids = (j.picks || []).flatMap(p => p.result && !p.locked ? ["pick:" + p.id, "res:" + p.id] : ["pick:" + p.id]);
+      sessionStorage.setItem("cmmg.bellc", JSON.stringify({ t: Date.now(), ids })); } catch (e) { return; } }
+    let seen = {}; try { seen = JSON.parse(localStorage.getItem("cmmg.alertseen") || "{}") || {}; } catch (e) {}
+    const n = ids.filter(i => !seen[i]).length; if (n) { el.hidden = false; el.textContent = n > 9 ? "9+" : n; }
+  }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
@@ -92,7 +102,7 @@ const SHELL = (() => {
     addEventListener("appinstalled", () => document.getElementById("installBtn")?.remove());
     splash();
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
-      <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><div id="who"></div></header>`);
+      <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON !== "undefined" ? ICON.ui("bell") : "🔔"}<b id="bellN" hidden></b></a><div id="who"></div></header>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
     const layout = document.querySelector(".layout"); if (layout) layout.insertAdjacentHTML("afterbegin", rail);
@@ -120,6 +130,7 @@ const SHELL = (() => {
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Information and entertainment only - no wagering in this app. Picks are opinions. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
       21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only. <a href="/privacy/">Privacy</a> · <a href="/delete-account/">Delete account</a></p>`);
     who(); membershipBox(document.getElementById("account"));
+    bell(active);
     document.addEventListener("click", e => {
       const t = e.target.closest("[data-signin],[data-signout]"); if (!t) return;
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }

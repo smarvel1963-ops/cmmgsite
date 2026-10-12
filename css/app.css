@@ -245,3 +245,6 @@ body.theme-soc::before { background: radial-gradient(circle at 50% 45%, transpar
 body.theme-ten::before { background: linear-gradient(0deg, transparent 20%, rgba(255,255,255,.07) 20% 20.4%, transparent 20.4% 79.6%, rgba(255,255,255,.07) 79.6% 80%, transparent 80%), linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.09) 49.9% 50.1%, transparent 50.1%), radial-gradient(1000px 600px at 50% 0%, rgba(132,204,22,.24), transparent 70%); }
 /* team / player page heroes use their SPORT's surface (never team colours) */
 .thero.sb-fb, .thero.sb-bb, .thero.sb-hk, .thero.sb-base, .thero.sb-soc, .thero.sb-ten, .thero.sb-other, .thero.sb-fight, .thero.sb-golf { box-shadow:inset 0 0 0 999px rgba(5,11,22,.45); }
+.bell { position:relative; display:grid; place-items:center; width:38px; height:38px; margin-right:8px; border-radius:10px; color:#ffd700; text-decoration:none; }
+.bell .ic { width:24px; height:24px; filter:drop-shadow(0 0 6px rgba(255,215,0,.5)); }
+.bell b { position:absolute; top:2px; right:0; min-width:17px; height:17px; padding:0 4px; border-radius:99px; background:#ef4444; color:#fff; font:800 10px/17px Inter, sans-serif; text-align:center; box-shadow:0 0 8px #ef4444; }

@@ -5,7 +5,7 @@
 const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
-    ["MAIN", [["picks", "🎯", "Today's Picks", "/app/"], ["scores", "⏱", "Live Scores", "/app/soon/?p=scores"],
+    ["MAIN", [["dashboard", "🏠", "Dashboard", "/app/dashboard/"], ["picks", "🎯", "Today's Picks", "/app/"], ["scores", "⏱", "Live Scores", "/app/soon/?p=scores"],
               ["game", "🏟️", "My Game Center", "/app/soon/?p=game"]]],
     ["MY CMMG", [["tracker", "📈", "My Tracker", "/app/tracker/"], ["results", "✅", "Verified Results", "/app/soon/?p=results"],
                  ["teams", "⭐", "Teams · Players · Schedules", "/app/soon/?p=teams"]]],
@@ -51,7 +51,16 @@ const SHELL = (() => {
     el.addEventListener("click", done);
   }
   function mount(active) {
-    if (!document.querySelector('link[rel="icon"]')) document.head.insertAdjacentHTML("beforeend", `<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/lion_192.png">`);
+    if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
+    // "📲 Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
+    // Home Screen (steps on the Settings page). Hidden once installed.
+    addEventListener("beforeinstallprompt", ev => {
+      ev.preventDefault(); const prompt = ev;
+      if (document.getElementById("installBtn")) return;
+      document.getElementById("who")?.insertAdjacentHTML("beforebegin", `<button class="btn ghost" id="installBtn" style="margin-right:8px">📲 Install app</button>`);
+      document.getElementById("installBtn").addEventListener("click", async () => { prompt.prompt(); await prompt.userChoice.catch(() => {}); document.getElementById("installBtn")?.remove(); });
+    });
+    addEventListener("appinstalled", () => document.getElementById("installBtn")?.remove());
     splash();
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
       <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><div id="who"></div></header>`);

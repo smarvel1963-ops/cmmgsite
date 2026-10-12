@@ -4,7 +4,11 @@
      relay read from the member's Discord roles, lets them refresh it (sign in again) or disconnect. Plan contents match
      the Winible plans (Free / VIP $30 / Elite $45, Scott 10/11). Display settings live on this device only. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Settings & Membership · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<title>Settings & Membership · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG"></head>
 <body>
 <div class="layout">
   <main class="main">
@@ -20,6 +24,13 @@
       <div class="field"><span>Today's Picks opens in</span>
         <select id="view"><option value="simple">Simple view (cards)</option><option value="advanced">Advanced view (table)</option></select></div>
       <p style="color:var(--dim);font-size:12px;margin:0">All times on the site are Central Time (CT).</p></div>
+    <div class="box"><h3>📲 GET THE APP</h3>
+      <p style="color:var(--dim);font-size:13px;margin:0 0 6px">CMMG works like an app on your phone, with no store needed.</p>
+      <ul class="check">
+        <li><span><b>iPhone (Safari):</b> tap Share <b>⬆</b>, then <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
+        <li><span><b>Android (Chrome):</b> tap <b>📲 Install app</b> at the top, or menu <b>⋮</b> → <b>Install app</b>.</span></li>
+        <li><span><b>Computer (Chrome / Edge):</b> click the install icon at the right end of the address bar.</span></li>
+      </ul><p id="installed" style="color:#86efac;font-size:13px;margin:8px 0 0;display:none">✅ You're using the installed app.</p></div>
     <div class="box"><h3>PRIVACY</h3>
       <p style="color:var(--dim);font-size:13px;margin:0">We keep your Discord ID, name and picture, plus the picks you track. Your tracker is only visible to you. We never see your Discord password, and the site never posts to Discord for you. To have your data removed, email <a href="mailto:smarvel1963@gmail.com" style="color:var(--ice)">smarvel1963@gmail.com</a>.</p></div>
   </main>
@@ -59,5 +70,6 @@ const v = document.getElementById("view");
 try { v.value = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
 v.addEventListener("change", () => { try { localStorage.setItem("cmmg.view", v.value); } catch (e) {} });
 SHELL.mount("account"); draw();
+if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.getElementById("installed").style.display = "block";
 </script>
 </body></html>

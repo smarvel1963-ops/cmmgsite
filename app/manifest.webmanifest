@@ -1,0 +1,24 @@
+{
+  "name": "CMMG Sports Edge",
+  "short_name": "CMMG",
+  "description": "CMMG Sports Edge picks, your tracker and tools. Analyze. Execute. Profit.",
+  "id": "/app/",
+  "start_url": "/app/?src=app",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#03070f",
+  "theme_color": "#060d1a",
+  "categories": ["sports", "news"],
+  "icons": [
+    { "src": "/img/icon_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon_maskable_192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/img/icon_maskable_512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Today's Picks", "url": "/app/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] },
+    { "name": "My Tracker", "url": "/app/tracker/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] },
+    { "name": "Tools", "url": "/app/tools/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] }
+  ]
+}

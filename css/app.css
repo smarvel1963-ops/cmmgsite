@@ -155,3 +155,5 @@ html.store-play a[href*="winible.com"], html.store-play .buy { display:none !imp
 .stally { display:flex; gap:5px; margin-left:8px; } .stally i { font-style:normal; font-weight:900; font-size:12px; padding:4px 8px; border-radius:7px; background:rgba(0,0,0,.4); }
 .stally .tw { color:#4ade80; border:1px solid rgba(74,222,128,.6); } .stally .tl { color:#f87171; border:1px solid rgba(248,113,113,.6); } .stally .tp { color:#fde047; border:1px solid rgba(253,224,71,.5); }
 @media (max-width:640px) { .stally i { padding:3px 6px; font-size:11px; } .grade .hex { width:46px; height:52px; font-size:24px; } }
+html.store-play a[href*="github.io/join"], html.store-play a[href*="discord.gg"] { display:none !important; }
+.rg a { color:var(--dim); }

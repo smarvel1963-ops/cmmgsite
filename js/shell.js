@@ -38,7 +38,20 @@ const SHELL = (() => {
       ${p.paid ? "" : `<a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block;margin-top:10px" href="${UPGRADE}">See plans · VIP $30 · Elite $45</a>`}
       <p style="margin:10px 0 0"><a href="/app/account/" style="color:var(--ice);font-size:13px">Manage membership →</a></p>`;
   }
+  function splash() {
+    let seen = false; try { seen = sessionStorage.getItem("cmmg.splash") === "1"; sessionStorage.setItem("cmmg.splash", "1"); } catch (e) {}
+    if (seen) return;
+    document.body.insertAdjacentHTML("beforeend", `<div class="splash" aria-label="CMMG Sports Edge loading"><div class="art"><div class="track"><div class="fill"></div></div></div></div>`);
+    const el = document.querySelector(".splash"), fill = el.querySelector(".fill"), t0 = Date.now();
+    requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = "85%"; }));
+    const done = () => { fill.style.width = "100%"; setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 500); }, 350); };
+    const ready = () => setTimeout(done, Math.max(0, 1500 - (Date.now() - t0)));
+    if (document.readyState === "complete") ready(); else addEventListener("load", ready);
+    setTimeout(done, 5000);                                   // never hold the page longer than this
+    el.addEventListener("click", done);
+  }
   function mount(active) {
+    splash();
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
       <a class="logo" href="/"><b>CMMG</b><span>SPORTS EDGE</span></a><div class="grow"></div><div id="who"></div></header>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>

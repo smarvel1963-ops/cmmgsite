@@ -13,12 +13,21 @@
 <link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.phero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:20px 22px; margin-bottom:12px;
+  background:radial-gradient(500px 200px at 88% 40%, rgba(234,88,12,.25), transparent 70%), radial-gradient(400px 200px at 70% 90%, rgba(22,163,74,.2), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325); }
+.phero h1 { font-size:clamp(28px, 4.6vw, 46px); font-style:italic; margin:0; line-height:1; } .phero p { margin:6px 0 4px; letter-spacing:.18em; font-weight:700; font-size:12px; color:#bfe6ff; } .phero .sub { margin:0; }
+.tiles { grid-template-columns:repeat(6,1fr) !important; } @media (max-width:900px) { .tiles { grid-template-columns:repeat(3,1fr) !important; } }
+.donut { display:flex; gap:12px; align-items:center; } .donut svg { flex:0 0 auto; } .donut .lg { font-size:12px; display:grid; gap:4px; }
+.donut .lg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+.tp { display:grid; grid-template-columns:20px minmax(0,1fr) auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
+.tp .n { font-family:Saira; font-weight:800; color:#ffd700; } .tp b { color:var(--text); font-size:13px; } .tp .tag { font-size:10px; padding:2px 6px; }
+</style>
 </head>
 <body>
 <div class="layout">
   <main class="main">
-    <h1>Today's CMMG Picks</h1>
-    <p class="sub" id="sub">Loading…</p>
+    <div class="phero"><h1>TODAY'S PICKS</h1><p>DATA DRIVEN. DISCIPLINED. EVERY RESULT POSTED.</p><div class="sub" id="sub">Loading…</div></div>
     <div class="tiles" id="tiles"></div>
     <div class="bar" id="sports"></div>
     <div class="bar">
@@ -30,6 +39,9 @@
 
   <aside class="side">
     <div id="account"></div>
+    <div><h3>TOP PLAYS TODAY</h3><div id="topPlays" style="font-size:13px;color:var(--dim)">—</div></div>
+    <div><h3>PICK TYPES</h3><div id="typeDonut"></div></div>
+    <div><h3>UNITS BY TIER</h3><div id="unitDonut"></div></div>
     <div id="tracker"><h3>MY TRACKER <a href="/app/tracker/" style="float:right;font-size:12px;color:var(--ice)">Open →</a></h3><div id="trk">Sign in to track the picks you take.</div></div>
     <div><h3>DISCORD COMMUNITY</h3><p style="color:var(--dim);font-size:13px;margin:0 0 10px">Talk picks with the CMMG community.</p>
       <a class="btn disc" style="display:inline-block;text-decoration:none" href="/app/community/">Community</a></div>
@@ -100,8 +112,14 @@ async function load() {
 
 function draw() {
   const count = t => PICKS.filter(p => p.tier === t).length;
+  const graded = PICKS.filter(p => p.result && !p.locked), gw = graded.filter(p => p.result === "WIN").length, gl = graded.filter(p => p.result === "LOSS").length;
+  const decO = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+  const gu = graded.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((decO(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
   document.getElementById("tiles").innerHTML = ["ICE", "EDGE", "FIRE"].map(t => `<div class="tile ${t.toLowerCase()}"><div class="l">${TIER_ICON[t]} ${t} PICKS</div><div class="n">${count(t)}</div></div>`).join("")
-    + `<div class="tile"><div class="l">TOTAL PICKS</div><div class="n">${PICKS.length}</div></div>`;
+    + `<div class="tile"><div class="l">TOTAL PICKS</div><div class="n">${PICKS.length}</div></div>`
+    + `<div class="tile"><div class="l">TODAY'S RECORD</div><div class="n">${graded.length ? `${gw}-${gl}` : "—"}</div></div>`
+    + `<div class="tile"><div class="l">TODAY'S UNITS</div><div class="n ${gu > 0 ? "pos" : gu < 0 ? "neg" : ""}">${graded.length ? (gu > 0 ? "+" : "") + gu.toFixed(1) + "u" : "—"}</div></div>`;
+  side();
   const sports = ["ALL", ...new Set(PICKS.map(p => p.sport).filter(Boolean))];
   document.getElementById("sports").innerHTML = sports.map(x => `<button class="chip ${x === SPORT ? "on" : ""}" data-sport="${E(x)}">${x === "ALL" ? "All Sports" : sp(x)}</button>`).join("");
   document.getElementById("tiers").innerHTML = ["ALL", "ICE", "EDGE", "FIRE"].map(x => `<button class="chip ${x === TIER ? "on" : ""}" data-tier="${x}">${x === "ALL" ? "All Picks" : TIER_ICON[x] + " " + x}</button>`).join(" ");
@@ -143,6 +161,26 @@ function draw() {
         <span class="scount">${g.picks.length} pick${g.picks.length === 1 ? "" : "s"}</span>${tally(g.picks)}</div>
       <div class="cards">${g.picks.map(card).join("")}</div></section>`).join("");
   if (!signedIn) el.insertAdjacentHTML("afterbegin", `<p style="color:var(--dim);font-size:13px">Sign in with Discord to see the picks your membership includes and to track the ones you take.</p>`);
+}
+
+function donut(parts) {   // parts: [[label, value, colour]]
+  const tot = parts.reduce((a, x) => a + x[1], 0); if (!tot) return `<p class="game" style="margin:0">Nothing yet today.</p>`;
+  let acc = 0; const R = 38, C = 2 * Math.PI * R;
+  const arcs = parts.filter(x => x[1]).map(([l, v, c]) => { const len = v / tot * C, seg = `<circle r="${R}" cx="50" cy="50" fill="none" stroke="${c}" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 50 50)"/>`; acc += len; return seg; }).join("");
+  return `<div class="donut"><svg viewBox="0 0 100 100" width="104" height="104">${arcs}<text x="50" y="49" text-anchor="middle" font-family="Saira" font-weight="800" font-size="18" fill="#e8f4ff">${Math.round(tot * 10) / 10}</text><text x="50" y="62" text-anchor="middle" font-size="8" fill="#8fb0cc">${parts.unit || "PICKS"}</text></svg>
+    <div class="lg">${parts.map(([l, v, c]) => `<span><i style="background:${c}"></i>${E(l)} · ${Math.round(v * 10) / 10} (${Math.round(v / tot * 100)}%)</span>`).join("")}</div></div>`;
+}
+function side() {
+  const vis = PICKS.filter(p => !p.locked && !p.result);
+  const top = vis.slice().sort((a, b) => (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9) || (Number(b.units) || 0) - (Number(a.units) || 0) || String(a.time).localeCompare(String(b.time))).slice(0, 5);
+  document.getElementById("topPlays").innerHTML = top.length ? top.map((p, i) => `<div class="tp"><span class="n">${i + 1}</span><span><b>${E(p.bet)}</b><div class="game">${sp(p.sport)} · ${odds(p.odds)}${p.units ? " · " + E(p.units) + "u" : ""}</div></span><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></div>`).join("")
+    : (PICKS.some(p => p.locked) ? `Members-only picks today. <a href="${UPGRADE}" style="color:var(--ice)">See plans</a>` : "No open picks right now.");
+  const mk = m => { m = String(m || "").toUpperCase(); return /TOTAL/.test(m) ? "Total" : /SPREAD|RUN ?LINE|PUCK ?LINE/.test(m) ? "Spread" : /ML|MONEY/.test(m) ? "Moneyline" : /PROP/.test(m) ? "Prop" : "Other"; };
+  const open = PICKS.filter(p => !p.locked), cnt = k => open.filter(p => mk(p.market) === k).length;
+  document.getElementById("typeDonut").innerHTML = donut([["Spread", cnt("Spread"), "#3b82f6"], ["Total", cnt("Total"), "#22c55e"], ["Moneyline", cnt("Moneyline"), "#facc15"], ["Prop", cnt("Prop"), "#a78bfa"], ["Other", cnt("Other"), "#64748b"]]);
+  const u = t => open.filter(p => p.tier === t).reduce((a, p) => a + (Number(p.units) || 1), 0);
+  const ud = [["ICE", u("ICE"), "#38bdf8"], ["EDGE", u("EDGE"), "#22c55e"], ["FIRE", u("FIRE"), "#ef4444"]]; ud.unit = "UNITS";
+  document.getElementById("unitDonut").innerHTML = donut(ud);
 }
 
 async function loadTracker() {

@@ -204,3 +204,33 @@ h1 { font-weight:800; letter-spacing:.01em; } h3, .side h3, .box h3 { font-weigh
 .rb { display:inline-block; min-width:28px; text-align:center; font-weight:900; border-radius:7px; padding:4px 6px; font-family:Saira, Inter, sans-serif; }
 .rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
 .gm[data-go]:hover { background:rgba(127,216,255,.05); }
+
+/* ===== PHONE LAYOUT (design list #2): bottom tab bar + More sheet; slim top bar ===== */
+.tabbar, .moresheet { display:none; }
+@media (max-width:760px) {
+  .mnav { display:none !important; }
+  .tabbar { display:grid; grid-template-columns:repeat(5,1fr); position:fixed; left:0; right:0; bottom:0; z-index:30;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom)); background:rgba(5,11,22,.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-top:1px solid rgba(127,216,255,.18); }
+  .tabbar a, .tabbar button { display:flex; flex-direction:column; align-items:center; gap:3px; text-decoration:none; color:#8fb0cc; background:none; border:0;
+    font:700 11px Inter, sans-serif; padding:4px 0; position:relative; }
+  .tabbar .ic { width:24px; height:24px; }
+  .tabbar .on { color:#3ba9ff; } .tabbar .on .ic { filter:drop-shadow(0 0 6px rgba(59,169,255,.8)); }
+  .tabbar .on::before { content:""; position:absolute; top:-7px; left:22%; right:22%; height:3px; border-radius:0 0 4px 4px; background:#3ba9ff; box-shadow:0 0 10px #3ba9ff; }
+  body { padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .rg { padding-bottom:20px; }
+  .moresheet:not([hidden]) { display:block; position:fixed; inset:0; z-index:40; }
+  .ms-bg { position:absolute; inset:0; background:rgba(0,0,0,.55); }
+  .ms-panel { position:absolute; left:0; right:0; bottom:0; padding:10px 14px calc(18px + env(safe-area-inset-bottom)); border-radius:20px 20px 0 0;
+    background:linear-gradient(180deg,#0f2036,#070f1d); border-top:1px solid rgba(127,216,255,.25); box-shadow:0 -20px 40px rgba(0,0,0,.5);
+    display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ms-grab { grid-column:1 / -1; width:44px; height:5px; border-radius:9px; background:rgba(255,255,255,.25); margin:0 auto 6px; }
+  .ms-panel a, .ms-panel button { display:flex; align-items:center; gap:8px; text-decoration:none; color:#e8f4ff; font:700 14px Inter, sans-serif;
+    padding:13px 12px; border-radius:12px; background:rgba(10,22,40,.7); border:1px solid rgba(127,216,255,.14); text-align:left; }
+  .ms-panel .on { border-color:rgba(34,197,94,.5); background:rgba(34,197,94,.12); }
+  .ms-panel .ic { width:20px; height:20px; color:#9fd2ff; }
+  .ms-foot { grid-column:1 / -1; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px; }
+  .top { padding:8px 12px; } .top .logo img { width:30px; height:30px; } .top .logo b { font-size:19px; }
+  #installBtn { padding:6px 10px; font-size:12px; }
+  .layout { padding:12px; }
+}

@@ -89,6 +89,23 @@ const SHELL = (() => {
     document.querySelector("header.top").insertAdjacentHTML("afterend", `<nav class="mnav" aria-label="CMMG menu">` +
       flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}</a>`).join("") + `</nav>`);
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+    // PHONE LAYOUT (Scott's design list #2): bottom tab bar Home / Picks / Scores / Tracker / More; More = sheet with the
+    // rest of the menu. CSS shows it only on narrow screens (the rail stays on desktop).
+    const TABS = [["dashboard", "home", "Home", "/app/dashboard/"], ["picks", "target", "Picks", "/app/"], ["scores", "clock", "Scores", "/app/scores/"],
+                  ["tracker", "chart", "Tracker", "/app/tracker/"]];
+    const inTabs = TABS.some(([k]) => k === active);
+    const ic = n => typeof ICON !== "undefined" ? ICON.ui(n) : "";
+    document.body.insertAdjacentHTML("beforeend", `<nav class="tabbar" aria-label="CMMG app">` +
+      TABS.map(([k, i, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${ic(i)}<span>${label}</span></a>`).join("") +
+      `<button class="${inTabs ? "" : "on"}" data-more>${ic("gear")}<span>More</span></button></nav>
+      <div class="moresheet" id="moreSheet" hidden><div class="ms-bg" data-more></div><div class="ms-panel"><div class="ms-grab"></div>` +
+      MENU.flatMap(([, items]) => items).filter(([k]) => !TABS.some(([t]) => t === k)).map(([k, i, label, href]) =>
+        `<a class="${k === active ? "on" : ""}" href="${href}">${ic(i)}${E(label)}</a>`).join("") +
+      `<div class="ms-foot"><a href="/">${ic("home")}cmmgsports.com</a>${CMMG.session() ? `<button data-signout>${ic("shield")}Sign out</button>` : `<button data-signin>${ic("shield")}Sign in with Discord</button>`}</div></div></div>`);
+    document.addEventListener("click", e => {
+      if (!e.target.closest("[data-more]")) return;
+      const sh = document.getElementById("moreSheet"); sh.hidden = !sh.hidden;
+    });
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Information and entertainment only - no wagering in this app. Picks are opinions. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
       21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only. <a href="/privacy/">Privacy</a> · <a href="/delete-account/">Delete account</a></p>`);
     who(); membershipBox(document.getElementById("account"));

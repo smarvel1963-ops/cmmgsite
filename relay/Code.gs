@@ -180,6 +180,7 @@ function community(P, s) {
         msgs = r.getResponseCode() === 200 ? JSON.parse(r.getContentText()).map(function (m) {
           return { id: m.id, ts: m.timestamp, author: (m.author && (m.author.global_name || m.author.username)) || "", bot: !!(m.author && m.author.bot),
                    text: String(m.content || "").replace(/<@[!&]?\d+>/g, "@member").replace(/<#\d+>/g, "#channel").slice(0, 600),
+                   reactions: (m.reactions || []).slice(0, 4).map(function (r) { return { e: (r.emoji && (r.emoji.id ? "" : r.emoji.name)) || "", n: r.count || 0 }; }).filter(function (r) { return r.e; }),
                    embed: (m.embeds && m.embeds[0] && (m.embeds[0].title || m.embeds[0].description || "")) ? String(m.embeds[0].title || m.embeds[0].description).slice(0, 300) : "" };
         }) : [];
         cache.put(key, JSON.stringify(msgs), 60);

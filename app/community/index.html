@@ -24,6 +24,8 @@
 .msg b { font-size:14px; } .msg .tm { color:var(--dim); font-size:12px; margin-left:6px; } .msg p { margin:4px 0 0; color:#dbeafe; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
 .msg .emb { margin-top:6px; border-left:3px solid #3b82f6; padding:6px 10px; background:rgba(59,130,246,.08); border-radius:0 8px 8px 0; font-size:13px; color:#c9dcef; }
 .sportch { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .sportch a { display:flex; gap:8px; align-items:center; text-decoration:none; padding:10px; border:1px solid var(--line); border-radius:10px; background:rgba(5,12,24,.55); font-weight:700; font-size:13px; }
+.ro { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; } .ro b { display:block; font-size:16px; } .ro span { color:var(--dim); font-size:13px; }
+.rx { display:flex; gap:6px; margin-top:6px; } .rx span { font-size:12px; background:rgba(127,216,255,.08); border:1px solid var(--line); border-radius:999px; padding:2px 8px; }
 .sportch .ic { width:20px; height:20px; color:#9fd2ff; } .bigic .ic { width:40px; height:40px; color:#818cf8; }
 </style></head>
 <body>
@@ -32,7 +34,8 @@
     <div class="vhero"><h1>COMMUNITY</h1><p>REAL FANS. REAL DISCUSSION. RESULTS POSTED.</p></div>
     <div class="cg">
       <div class="chcol"><div class="box ch"><h3>CHANNELS</h3><div id="chans"></div></div></div>
-      <div><div class="box"><h3 id="feedT">COMMUNITY FEED</h3><div id="feed"><div class="empty" style="border:0">Loading…</div></div></div></div>
+      <div><div class="box ro"><div><b>Community Feed (read-only)</b><span>Connect to Discord to post, reply and chat with the CMMG community.</span></div><a class="btn disc" id="open2" style="text-decoration:none">Open in Discord</a></div>
+        <div class="box"><h3 id="feedT">COMMUNITY FEED</h3><div id="feed"><div class="empty" style="border:0">Loading…</div></div></div></div>
       <div>
         <div class="box" style="text-align:center"><div class="bigic" data-ic="chat"></div><h3 style="margin-top:6px">JOIN THE CONVERSATION</h3>
           <p style="color:var(--dim);font-size:13px;margin:0 0 12px">Post, reply and react in the CMMG Discord, with the same account you signed in with here.</p>
@@ -49,7 +52,7 @@
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id);
 document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic));
-$("open").href = SHELL.DISCORD;
+$("open").href = SHELL.DISCORD; $("open2").href = SHELL.DISCORD;
 $("sportch").innerHTML = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "MLS", "TENNIS", "UFC", "GOLF"].map(s => `<a href="${SHELL.DISCORD}">${ICON.sport(s)}${s === "MLS" ? "Soccer" : s} talk</a>`).join("");
 let DATA = null, CUR = 0;
 const ago = iso => { const m = Math.round((Date.now() - Date.parse(iso)) / 6e4); return m < 1 ? "now" : m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"; };
@@ -63,7 +66,7 @@ function draw() {
   $("chans").innerHTML = chs.map((c, i) => `<button data-ch="${i}" class="${i === CUR ? "on" : ""}">${ICON.ui("chat")}${E(c.name)}</button>`).join("");
   const c = chs[CUR]; $("feedT").textContent = c ? c.name.toUpperCase() : "COMMUNITY FEED";
   $("feed").innerHTML = c && c.messages.length ? c.messages.map(m => `<div class="msg"><div class="av ${m.bot ? "bot" : ""}">${E((m.author || "?").slice(0, 1).toUpperCase())}</div>
-      <div><b>${E(m.author)}</b><span class="tm">${ago(m.ts)}</span>${m.text ? `<p>${E(m.text)}</p>` : ""}${m.embed ? `<div class="emb">${E(m.embed)}</div>` : ""}</div></div>`).join("")
+      <div><b>${E(m.author)}</b><span class="tm">${ago(m.ts)}</span>${m.text ? `<p>${E(m.text)}</p>` : ""}${m.embed ? `<div class="emb">${E(m.embed)}</div>` : ""}${(m.reactions || []).length ? `<div class="rx">${m.reactions.map(r => `<span>${E(r.e)} ${E(r.n)}</span>`).join("")}</div>` : ""}</div></div>`).join("")
       + `<p style="margin:12px 0 0"><a class="btn disc" style="text-decoration:none" href="https://discord.com/channels/${E(DATA.guild)}/${E(c.id)}">Reply in Discord</a></p>`
     : `<div class="empty" style="border:0">No messages here yet.</div>`;
 }

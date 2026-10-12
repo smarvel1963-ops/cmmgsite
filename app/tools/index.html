@@ -1,58 +1,68 @@
 <!doctype html>
 <!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/tools/index.html
-     Tools & Education (storyboard page 11). Pure in-browser math - no feed, no account needed: odds converter +
-     break-even, bet payout, parlay payout, hold (vig) on a two-way market, plus plain-words education and the books.
-     Line movement / odds comparison need a licensed odds feed (WEB_DESIGNS flag) - not here. -->
+     Tools & Education (Scott's design list #10, 10/11 mockup): tabs Calculators / Learn. Calculators (all in-browser math):
+     odds converter + break-even, bet payout, parlay, hold, bankroll manager (unit size). Learn: short lessons in plain words
+     plus the two CMMG books. Not built from the mockup: value finder / line movement / betting splits / middle finder /
+     CLV (need a licensed odds feed), videos (none yet). Tagline avoids winning promises (gambling ad rules). -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tools & Education · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
 <link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG"></head>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:22px; margin-bottom:12px;
+  background:radial-gradient(500px 200px at 85% 40%, rgba(234,88,12,.25), transparent 70%), radial-gradient(400px 200px at 65% 80%, rgba(22,163,74,.2), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325); }
+.vhero h1 { font-size:clamp(26px, 4.4vw, 46px); font-style:italic; margin:0; line-height:1; } .vhero p { margin:8px 0 0; letter-spacing:.2em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.tabs2 { display:flex; gap:6px; margin-bottom:12px; } .tabs2 button { display:flex; gap:6px; align-items:center; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:12px; padding:10px 18px; font-weight:800; font-size:14px; }
+.tabs2 button.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); color:#fff; border-color:#3b82f6; box-shadow:0 0 14px rgba(59,130,246,.45); }
+.cgrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px; } .cgrid > * { min-width:0; }
+@media (max-width:400px) { .cgrid { grid-template-columns:1fr; } }
+.box h3 .ic { width:20px; height:20px; color:#7fd8ff; vertical-align:-4px; margin-right:6px; }
+.out b { font-family:Saira; } .big2 { font-family:Saira; font-weight:800; font-size:26px; color:#4ade80; }
+.lessons { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
+.lesson { cursor:pointer; } .lesson h3 { display:flex; align-items:center; gap:8px; } .lesson .ic { width:26px; height:26px; color:#ffd700; }
+.lesson > p { color:var(--dim); font-size:13px; margin:0; } .lesson .body { display:none; color:#c9dcef; font-size:14px; margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+.lesson.open .body { display:block; } .lesson .body p { margin:0 0 8px; }
+</style></head>
 <body>
-<div class="layout">
+<div class="layout wide">
   <main class="main">
-    <h1>Tools &amp; Education</h1>
-    <p class="sub">The math behind every bet, in plain words.</p>
-    <div class="grid2">
-      <div class="box"><h3>🔁 ODDS CONVERTER</h3>
-        <div class="field"><span>American odds</span><input id="oc" value="-110" inputmode="numeric"></div>
-        <div class="out" id="ocOut"></div></div>
-      <div class="box"><h3>💵 BET PAYOUT</h3>
-        <div class="grid2" style="gap:10px"><div class="field"><span>Stake ($)</span><input id="bs" value="100" inputmode="decimal"></div>
-          <div class="field"><span>American odds</span><input id="bo" value="+150" inputmode="numeric"></div></div>
-        <div class="out" id="bOut"></div></div>
-      <div class="box"><h3>🧩 PARLAY CALCULATOR</h3>
-        <div class="field"><span>Stake ($)</span><input id="ps" value="10" inputmode="decimal"></div>
-        <div id="legs"></div>
-        <button class="btn ghost" id="addLeg" style="margin-bottom:10px">+ Add leg</button>
-        <div class="out" id="pOut"></div></div>
-      <div class="box"><h3>⚖️ HOLD (THE BOOK'S CUT)</h3>
-        <div class="grid2" style="gap:10px"><div class="field"><span>Side A odds</span><input id="ha" value="-110" inputmode="numeric"></div>
-          <div class="field"><span>Side B odds</span><input id="hb" value="-110" inputmode="numeric"></div></div>
-        <div class="out" id="hOut"></div></div>
+    <div class="vhero"><h1>TOOLS &amp; EDUCATION</h1><p>BET SMARTER. LEARN FASTER. STAY DISCIPLINED.</p></div>
+    <div class="tabs2"><button data-tab="calc" class="on"><span data-ic="calc"></span>Calculators</button><button data-tab="learn"><span data-ic="star"></span>Learn</button></div>
+    <div id="calc">
+      <div class="cgrid">
+        <div class="box"><h3><span data-ic="calc"></span>ODDS CONVERTER</h3>
+          <div class="field"><span>American odds</span><input id="oc" value="-110" inputmode="numeric"></div><div class="out" id="ocOut"></div></div>
+        <div class="box"><h3><span data-ic="target"></span>BET PAYOUT</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Stake ($)</span><input id="bs" value="100" inputmode="decimal"></div><div class="field"><span>American odds</span><input id="bo" value="-110" inputmode="numeric"></div></div>
+          <div class="out" id="bOut"></div></div>
+        <div class="box"><h3><span data-ic="shield"></span>BANKROLL MANAGER</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Bankroll ($)</span><input id="br" value="1000" inputmode="decimal"></div><div class="field"><span>Unit size (% of bankroll)</span><input id="bu" value="2" inputmode="decimal"></div></div>
+          <div class="out" id="brOut"></div></div>
+        <div class="box"><h3><span data-ic="chart"></span>PARLAY CALCULATOR</h3>
+          <div class="field"><span>Stake ($)</span><input id="ps" value="10" inputmode="decimal"></div><div id="legs"></div>
+          <button class="btn ghost" id="addLeg" style="margin-bottom:10px">+ Add leg</button><div class="out" id="pOut"></div></div>
+        <div class="box"><h3><span data-ic="gear"></span>HOLD (THE BOOK'S CUT)</h3>
+          <div class="grid2" style="gap:10px"><div class="field"><span>Side A odds</span><input id="ha" value="-110" inputmode="numeric"></div><div class="field"><span>Side B odds</span><input id="hb" value="-110" inputmode="numeric"></div></div>
+          <div class="out" id="hOut"></div></div>
+      </div>
     </div>
-    <div class="box"><h3>📘 LEARN THE BASICS</h3>
-      <ul class="check">
-        <li><span><b>Units</b> — a unit is your standard bet size (say 1% of your bankroll). "2u" means twice your normal bet. Results in units let people with different bankrolls compare.</span></li>
-        <li><span><b>Break-even</b> — at −110 you must win 52.4% just to break even. The bigger the favorite, the higher that bar. Every price has its own break-even.</span></li>
-        <li><span><b>CMMG tiers</b> — <span id="tierline">ICE is the model's strongest tier, then EDGE, then FIRE.</span> A tier says how strongly the model backs a pick, not that it will win.</span></li>
-        <li><span><b>Line shopping</b> — the same bet is priced differently at different books. A few cents of price on every bet adds up over a season.</span></li>
-        <li><span><b>Parlays</b> — every leg must win, and the book's cut stacks on each leg. That's why CMMG plays are almost all straight bets.</span></li>
-        <li><span><b>Bankroll</b> — bet only money you can afford to lose, keep unit size steady, and never chase losses.</span></li>
-      </ul></div>
-    <div class="box"><h3>📚 THE CMMG BOOKS</h3>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <a href="https://www.amazon.com/dp/B0H9V5X8MD" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:240px"><img src="/img/book1.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 1 · The Complete Guide to AI Handicapping</b><br><span class="game">Kindle $7.99 →</span></span></a>
-        <a href="https://www.amazon.com/dp/B0HLCF12GW" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:240px"><img src="/img/book2.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 2 · The Complete Guide to TOTAL LIVE</b><br><span class="game">Kindle $7.99 →</span></span></a>
-      </div></div>
+    <div id="learn" hidden>
+      <div class="box"><h3>EDUCATION CENTER</h3><p style="color:var(--dim);font-size:13px;margin:0">Short lessons in plain words. Tap a card to read it.</p></div>
+      <div class="lessons" id="lessons"></div>
+      <div class="box" style="margin-top:12px"><h3>THE CMMG BOOKS</h3>
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <a href="https://www.amazon.com/dp/B0H9V5X8MD" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:220px"><img src="/img/book1.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 1 · The Complete Guide to AI Handicapping</b><br><span class="game">Kindle $7.99 →</span></span></a>
+          <a href="https://www.amazon.com/dp/B0HLCF12GW" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:220px"><img src="/img/book2.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 2 · The Complete Guide to TOTAL LIVE</b><br><span class="game">Kindle $7.99 →</span></span></a>
+        </div></div>
+    </div>
   </main>
-  <aside class="side"><div id="account"></div>
-    <div><h3>BET RESPONSIBLY</h3><p style="color:var(--dim);font-size:13px;margin:0">Set a budget before you bet and stick to it. If betting stops being fun, take a break. Help is free and confidential: call or text <b>1-800-GAMBLER</b>.</p></div></aside>
 </div>
 <script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
 <script>
-const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id), E = CMMG.esc;
+document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic));
 const am = v => { const n = Number(String(v).replace(/[^0-9.+-]/g, "")); return isFinite(n) && Math.abs(n) >= 100 ? n : null; };
 const dec = o => o > 0 ? 1 + o / 100 : 1 + 100 / -o;
 const toAm = d => d >= 2 ? "+" + Math.round((d - 1) * 100) : String(-Math.round(100 / (d - 1)));
@@ -63,24 +73,41 @@ function calc() {
   const o = am($("oc").value);
   $("ocOut").innerHTML = o == null ? bad : `Decimal <b>${dec(o).toFixed(3)}</b> · Implied <b>${pct(1 / dec(o))}</b><br><span class="game">You need to win ${pct(1 / dec(o))} of bets at this price to break even.</span>`;
   const st = Number($("bs").value), bo = am($("bo").value);
-  $("bOut").innerHTML = bo == null || !(st > 0) ? bad : `Profit <b class="pos">${money(st * (dec(bo) - 1))}</b> · Total return <b>${money(st * dec(bo))}</b>`;
-  const legs = [...document.querySelectorAll(".leg")].map(i => am(i.value));
-  const ps = Number($("ps").value);
+  $("bOut").innerHTML = bo == null || !(st > 0) ? bad : `To win <b class="pos">${money(st * (dec(bo) - 1))}</b> · Total payout <b>${money(st * dec(bo))}</b>`;
+  const br = Number($("br").value), bu = Number($("bu").value);
+  $("brOut").innerHTML = !(br > 0) || !(bu > 0) ? "Enter your bankroll and unit %." : `<span class="game">1 unit =</span><div class="big2">${money(br * bu / 100)}</div>
+    <span class="game">2u = ${money(br * bu / 50)} · 0.5u = ${money(br * bu / 200)}. ${bu > 5 ? "<b style='color:#fca5a5'>Over 5% per unit is aggressive - most disciplined bettors use 1–3%.</b>" : "Keep the unit steady through wins and losses."}</span>`;
+  const legs = [...document.querySelectorAll(".leg")].map(i => am(i.value)), ps = Number($("ps").value);
   if (legs.some(l => l == null) || !(ps > 0)) $("pOut").innerHTML = bad;
-  else { const d = legs.reduce((a, l) => a * dec(l), 1);
-    $("pOut").innerHTML = `${legs.length} legs · Parlay odds <b>${toAm(d)}</b> · Payout <b class="pos">${money(ps * d)}</b><br><span class="game">Every leg must win. The chance all ${legs.length} hit at these prices (before the book's cut): ${pct(1 / d)}.</span>`; }
+  else { const d = legs.reduce((a, l) => a * dec(l), 1); $("pOut").innerHTML = `${legs.length} legs · Parlay odds <b>${toAm(d)}</b> · Payout <b class="pos">${money(ps * d)}</b><br><span class="game">Every leg must win. Chance all ${legs.length} hit at these prices: ${pct(1 / d)}.</span>`; }
   const a = am($("ha").value), b = am($("hb").value);
   if (a == null || b == null) $("hOut").innerHTML = bad;
   else { const ia = 1 / dec(a), ib = 1 / dec(b), hold = 1 - 1 / (ia + ib);
-    $("hOut").innerHTML = `Hold <b>${pct(hold)}</b> · Fair odds without the cut: <b>${toAm((ia + ib) / ia)}</b> / <b>${toAm((ia + ib) / ib)}</b><br><span class="game">Fair win chance: ${pct(ia / (ia + ib))} / ${pct(ib / (ia + ib))}</span>`; }
+    $("hOut").innerHTML = `Hold <b>${pct(hold)}</b> · Fair odds: <b>${toAm((ia + ib) / ia)}</b> / <b>${toAm((ia + ib) / ib)}</b><br><span class="game">Fair win chance: ${pct(ia / (ia + ib))} / ${pct(ib / (ia + ib))}</span>`; }
 }
-function addLeg(v) {
-  const n = document.querySelectorAll(".leg").length + 1; if (n > 12) return;
-  $("legs").insertAdjacentHTML("beforeend", `<div class="field"><span>Leg ${n} odds</span><input class="leg" value="${v}" inputmode="numeric"></div>`);
-  calc();
-}
+function addLeg(v) { const n = document.querySelectorAll(".leg").length + 1; if (n > 12) return;
+  $("legs").insertAdjacentHTML("beforeend", `<div class="field"><span>Leg ${n} odds</span><input class="leg" value="${v}" inputmode="numeric"></div>`); calc(); }
+const LESSONS = [
+  ["star", "Betting basics", "What a bet is, how a book makes money, why discipline matters.",
+    "<p>A bet is a price on an outcome. The sportsbook sets prices so that, across all its customers, it keeps a cut (the hold) no matter who wins.</p><p>So an average bettor loses slowly over time. The only way to come out ahead is to bet only when the price beats the real chance, and to size every bet the same way.</p>"],
+  ["calc", "Understanding odds", "American, decimal and implied probability.",
+    "<p><b>-150</b> means you risk $150 to win $100. <b>+150</b> means you risk $100 to win $150.</p><p>Every price has a break-even: the win % you need just to not lose money. -110 needs 52.4%, -200 needs 66.7%, +150 needs 40%. Check any price with the Odds Converter.</p>"],
+  ["chart", "Totals (overs & unders)", "How totals are set and what moves them.",
+    "<p>A total is the combined score of both teams. The book sets a number and you bet over or under it.</p><p>Pace, injuries, weather and late line moves all matter. Live, the score and the time left change the fair total minute by minute - which is why CMMG tracks pace and margin, not just the score.</p>"],
+  ["shield", "Bankroll management", "Unit sizing so one bad week doesn't end you.",
+    "<p>Pick a bankroll you can afford to lose. A unit is a fixed slice of it - usually 1–3%. Bet in units, not in feelings.</p><p>Losing streaks happen even to winning bettors. Flat units keep you in the game long enough for an edge to show. Never chase losses with bigger bets.</p>"],
+  ["target", "CMMG tiers: ICE, EDGE, FIRE", "What each tier means.",
+    "<p><b>ICE</b> is the model's strongest tier. <b>EDGE</b> is a clear model edge. <b>FIRE</b> is a value play at a playable price, usually a smaller stake.</p><p>A tier says how strongly the model backs a pick - not that it will win. Every pick is graded, wins and losses.</p>"],
+  ["gear", "Parlays", "Why the payout looks big and what it really costs.",
+    "<p>A parlay pays more because every leg has to win. The book's cut stacks on every leg, so the true cost is higher than it looks.</p><p>That's why CMMG plays are almost all straight bets. Check any parlay's real chance with the Parlay Calculator.</p>"],
+];
+$("lessons").innerHTML = LESSONS.map(([i, t, d, b]) => `<div class="box lesson"><h3>${ICON.ui(i)}${E(t)}</h3><p>${E(d)}</p><div class="body">${b}</div></div>`).join("");
 document.addEventListener("input", calc);
 $("addLeg").addEventListener("click", () => addLeg("-110"));
-SHELL.mount("tools"); document.getElementById("tierline").innerHTML = `${ICON.tier("ICE")} ICE is the model's strongest tier, then ${ICON.tier("EDGE")} EDGE, then ${ICON.tier("FIRE")} FIRE.`; addLeg("-110"); addLeg("+120");
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]"); if (t) { document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b === t)); $("calc").hidden = t.dataset.tab !== "calc"; $("learn").hidden = t.dataset.tab !== "learn"; return; }
+  const l = e.target.closest(".lesson"); if (l) l.classList.toggle("open");
+});
+SHELL.mount("tools"); addLeg("-110"); addLeg("+120");
 </script>
 </body></html>

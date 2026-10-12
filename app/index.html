@@ -62,6 +62,7 @@
 <dialog id="took"><form method="dialog" id="tookForm">
   <h3 style="margin-top:0">I took this pick</h3><p id="tookWhat" style="color:var(--dim);margin:0 0 6px"></p>
   <label>My odds (what I actually got)<input name="odds" inputmode="numeric" required></label>
+  <label>My line (optional - e.g. -3.5 or O 44.5)<input name="line" maxlength="20"></label>
   <label>Units<input name="units" inputmode="decimal" value="1" required></label>
   <label>Sportsbook (optional)<input name="book" maxlength="30"></label>
   <label>Note (optional)<input name="note" maxlength="200"></label>
@@ -246,15 +247,15 @@ document.addEventListener("click", e => {
     TOOK = PICKS.find(p => p.id === t.dataset.took); if (!TOOK) return;
     const f = document.getElementById("tookForm");
     document.getElementById("tookWhat").textContent = `${TOOK.bet} · ${TOOK.game}`;
-    f.odds.value = TOOK.odds != null ? TOOK.odds : ""; f.units.value = 1; f.book.value = TOOK.book || ""; f.note.value = "";
+    f.odds.value = TOOK.odds != null ? TOOK.odds : ""; f.line.value = TOOK.line || ""; f.units.value = 1; f.book.value = TOOK.book || ""; f.note.value = "";
     document.getElementById("took").showModal();
   }
 });
 document.getElementById("took").addEventListener("close", async () => {
   if (document.getElementById("took").returnValue !== "save" || !TOOK) return;
   const f = document.getElementById("tookForm"), s = CMMG.session();
-  const j = await CMMG.relay({ task: "track", session: s.token, pick: TOOK.id, odds: Number(f.odds.value), units: Number(f.units.value), book: f.book.value, note: f.note.value });
-  toast(j.ok ? "Saved to My Tracker ✓" : (j.error || "Couldn't save — try again"));
+  const j = await CMMG.relay({ task: "track", session: s.token, pick: TOOK.id, odds: Number(f.odds.value), line: f.line.value, units: Number(f.units.value), book: f.book.value, note: f.note.value });
+  toast(j.ok ? "Added to My Games ✓" : (j.error || "Couldn't save — try again"));
   loadTracker();
 });
 SHELL.mount("picks"); load(); loadTracker();

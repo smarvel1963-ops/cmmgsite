@@ -65,6 +65,10 @@ const dayOf = i => { const d = new Date(Date.now() + i * 864e5); return { key: d
 
 function days() { $("days").innerHTML = [...Array(7)].map((_, i) => { const d = dayOf(i); return `<button data-day="${i}" class="${i === DAY ? "on" : ""}">${d.wd}<b>${d.md}</b></button>`; }).join(""); }
 
+let WATCH = []; try { WATCH = JSON.parse(localStorage.getItem("cmmg.watch") || "[]") || []; } catch (e) {}
+const watched = id => WATCH.some(w => w.id === id);
+function toggleWatch(l, id, iso) { WATCH = watched(id) ? WATCH.filter(w => w.id !== id) : WATCH.concat({ l, id, day: new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "") }).slice(-40);
+  try { localStorage.setItem("cmmg.watch", JSON.stringify(WATCH)); } catch (e) {} }
 async function load() {
   $("list").innerHTML = `<div class="empty">Loading…</div>`;
   const key = dayOf(DAY).key;
@@ -99,11 +103,12 @@ function draw() {
     return `<div class="row4" data-go="/app/game/?l=${g.league}&id=${encodeURIComponent(g.id)}">
       <div class="when2">${g.state === "pre" ? tm(g.date) : g.state === "in" ? `<span style="color:#f87171">LIVE</span>` : "FINAL"}<small>${g.state === "pre" ? "CT" : E(g.detail)}</small></div>
       <div>${g.teams.map(t => `<div class="tm2"><button class="star ${FAV[t.id] ? "on" : ""}" data-star="${E(t.id)}" data-name="${E(t.name)}" title="${FAV[t.id] ? "Unfollow" : "Follow"}">${FAV[t.id] ? "★" : "☆"}</button>${badge(t)}<a class="n" href="/app/team/?l=${g.league}&id=${encodeURIComponent(t.id.split(":")[1])}" style="text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${E(t.short)}</a><small>${E(t.rec)}</small>${g.state !== "pre" ? `<b style="margin-left:auto;font-family:Saira">${E(t.score)}</b>` : ""}</div>`).join("")}</div>
-      <div class="ex2">${g.tv ? `<span>${ICON.ui("tv")} ${E(g.tv)}</span>` : ""}${p ? `<span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</div></div>`;
+      <div class="ex2"><button class="star ${watched(g.id) ? "on" : ""}" data-watch="${E(g.id)}" data-l="${g.league}" data-d="${E(g.date)}" title="Watch game">${watched(g.id) ? "★" : "☆"} <small style="font-size:11px">Watch</small></button>${g.tv ? `<span>${ICON.ui("tv")} ${E(g.tv)}</span>` : ""}${p ? `<span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</div></div>`;
   }).join("") + `</div>`).join("");
 }
 
 document.addEventListener("click", e => {
+  const ws = e.target.closest("[data-watch]"); if (ws) { e.stopPropagation(); toggleWatch(ws.dataset.l, ws.dataset.watch, ws.dataset.d); draw(); return; }
   const s = e.target.closest("[data-star]");
   if (s) { e.stopPropagation(); const id = s.dataset.star; if (FAV[id]) delete FAV[id]; else FAV[id] = { name: s.dataset.name || id }; saveFav(); draw(); return; }
   const d = e.target.closest("[data-day]"); if (d) { DAY = Number(d.dataset.day); days(); load(); return; }

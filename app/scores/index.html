@@ -48,6 +48,7 @@
 .sp2 { display:grid; grid-template-columns:52px 34px minmax(0,1fr) auto; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; }
 .sp2 .q { color:var(--dim); font-size:12px; } .sp2 .sc2 { font-family:Saira; font-weight:800; }
 .foc { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; } .foc button { background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:8px; padding:5px 9px; font-weight:800; font-size:12px; } .foc button.on { background:#1d4ed8; color:#fff; }
+.wstar { background:none; border:0; color:#ffd700; font-size:18px; padding:0; line-height:1; }
 .mine .row { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; }
 </style></head>
 <body>
@@ -88,6 +89,10 @@ const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return (
 const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alt)}">${E(t.abbr)}</span>`;
 const norm = s => String(s || "").toLowerCase();
 
+let WATCH = []; try { WATCH = JSON.parse(localStorage.getItem("cmmg.watch") || "[]") || []; } catch (e) {}
+const watched = id => WATCH.some(w => w.id === id);
+function toggleWatch(l, id, iso) { WATCH = watched(id) ? WATCH.filter(w => w.id !== id) : WATCH.concat({ l, id, day: new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "") }).slice(-40);
+  try { localStorage.setItem("cmmg.watch", JSON.stringify(WATCH)); } catch (e) {} }
 async function fetchLeague([key, path]) {
   const extra = key === "NCAAF" ? "&groups=80&limit=300" : key === "NCAAB" ? "&groups=50&limit=400" : "";
   try {
@@ -142,7 +147,7 @@ function draw() {
           <div class="mt"><div class="tm">${a ? badge(a) : ""}<div>${E(a?.short || "")}<span>${E(a?.rec || "")}</span></div></div>
             <div class="sc">${hasScore ? `<span class="${a.win ? "win" : h.win ? "lose" : ""}">${E(a.score)}</span> - <span class="${h.win ? "win" : a.win ? "lose" : ""}">${E(h.score)}</span>` : "vs"}</div>
             <div class="tm r"><div>${E(h?.short || "")}<span>${E(h?.rec || "")}</span></div>${h ? badge(h) : ""}</div></div>
-          <div class="gx">${g.tv ? `<span class="tvb">${ICON.ui("tv")}${E(g.tv)}</span>` : ""}
+          <div class="gx"><button class="wstar" data-watch="${E(g.id)}" data-l="${g.league}" data-d="${E(g.date)}" title="Watch">${watched(g.id) ? "★" : "☆"}</button>${g.tv ? `<span class="tvb">${ICON.ui("tv")}${E(g.tv)}</span>` : ""}
             ${p ? `<span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}
             ${mine ? `<a class="btn go" style="padding:5px 10px;font-size:12px;text-decoration:none" href="/app/tracker/">My pick</a>` : ""}</div></div>`;
       }).join("") + `</div>`;
@@ -208,7 +213,8 @@ async function load() {
   clearTimeout(timer); timer = setTimeout(load, GAMES.some(g => g.state === "in") ? 30000 : 120000);
 }
 ["fSport", "fSt"].forEach(id => $(id).addEventListener("change", draw));
-document.addEventListener("click", e => { const v = e.target.closest("[data-sv]"); if (v) { SV = v.dataset.sv; try { localStorage.setItem("cmmg.scoresview", SV); } catch (err) {} draw(); return; }
+document.addEventListener("click", e => { const ws = e.target.closest("[data-watch]"); if (ws) { toggleWatch(ws.dataset.l, ws.dataset.watch, ws.dataset.d); draw(); return; }
+  const v = e.target.closest("[data-sv]"); if (v) { SV = v.dataset.sv; try { localStorage.setItem("cmmg.scoresview", SV); } catch (err) {} draw(); return; }
   const f = e.target.closest("[data-foc]"); if (f) { FOCUS = GAMES.find(g => g.id === f.dataset.foc) || FOCUS; focusList(); loadFocus(); return; }
   if (e.target.closest("a, button")) return; const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go; }); $("fQ").addEventListener("input", draw);
 SHELL.mount("scores"); load();

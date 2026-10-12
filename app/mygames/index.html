@@ -1,0 +1,105 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/mygames/index.html
+     My Games (Scott's final review, priority #1): the member's live command center. Every pick they tapped "I Took This
+     Pick" on (relay mytracker: ungraded, or today's) joins automatically, matched to its ESPN game: live score, clock,
+     their exact selection (their odds / line / units / book), status Upcoming -> Live -> Final -> Graded W/L/P/V.
+     Below: WATCHING - games starred on Scores / Schedules (localStorage cmmg.watch); watching never counts as a pick.
+     Real data only: nothing tracked = empty state. Refreshes every 30 s while a game is live. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Games · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { border-radius:18px; border:1px solid var(--line); padding:22px; margin-bottom:12px; background:radial-gradient(500px 200px at 85% 40%, rgba(59,130,246,.3), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325); }
+.vhero h1 { font-size:clamp(28px, 4.6vw, 48px); font-style:italic; margin:0; line-height:1; } .vhero p { margin:8px 0 0; letter-spacing:.18em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.k3 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px; } @media (max-width:640px) { .k3 { grid-template-columns:repeat(2,1fr); } }
+.mg { border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px; background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.78)); display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:14px; align-items:center; cursor:pointer; }
+@media (max-width:700px) { .mg { grid-template-columns:minmax(0,1fr); } }
+.mg.live { border-color:rgba(239,68,68,.55); box-shadow:0 0 18px rgba(239,68,68,.15); } .mg.r-WIN { border-color:rgba(34,197,94,.6); } .mg.r-LOSS { border-color:rgba(239,68,68,.6); }
+.sb2 { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:10px; align-items:center; }
+.sb2 .t { display:flex; align-items:center; gap:8px; min-width:0; } .sb2 .t .tb { flex:0 0 auto; } .sb2 .t.r { justify-content:flex-end; } .sb2 .t span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sb2 .s { font-family:Saira; font-weight:800; font-size:26px; white-space:nowrap; } .st3 { margin-top:6px; font-size:12px; color:var(--dim); display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.pill2 { font-weight:900; font-size:11px; letter-spacing:.06em; padding:3px 8px; border-radius:6px; } .pill2.pre { background:#0c2a4a; color:#7fd8ff; } .pill2.in { background:#dc2626; color:#fff; } .pill2.post { background:#334155; color:#e2e8f0; }
+.sel b { font-family:Saira; font-size:18px; display:block; } .sel .game { margin-top:2px; }
+.flow { display:flex; gap:4px; margin-top:8px; } .flow i { flex:1; height:5px; border-radius:4px; background:#1e293b; } .flow i.on { background:#3b82f6; } .flow i.done { background:#22c55e; } .flow i.bad { background:#ef4444; }
+.flowl { display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:3px; }
+.unstar { background:none; border:0; color:#ffd700; font-size:18px; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>MY GAMES</h1><p>THE PICKS YOU TOOK. LIVE. GRADED.</p></div>
+    <div class="k3" id="k3"></div>
+    <div class="box"><h3>PICKS I TOOK</h3><div id="took"><div class="empty" style="border:0">Loading…</div></div></div>
+    <div class="box"><h3>WATCHING <span class="game" style="letter-spacing:0;font-weight:500">· not a tracked pick</span></h3><div id="watch"></div></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const PATHS = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
+  WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alt)}">${E(t.abbr)}</span>`;
+const norm = s => String(s || "").toLowerCase(), odds = o => o == null || o === "" ? "—" : (Number(o) > 0 ? "+" + o : String(o));
+const ymd = iso => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
+let timer = null, WATCH = [];
+try { WATCH = JSON.parse(localStorage.getItem("cmmg.watch") || "[]") || []; } catch (e) {}
+const CACHE = {};
+async function board(l, day) {   // ESPN scoreboard for league + day (cached per load)
+  const k = l + day; if (CACHE[k]) return CACHE[k];
+  const extra = l === "NCAAF" ? "&groups=80&limit=300" : l === "NCAAB" ? "&groups=50&limit=400" : "";
+  return CACHE[k] = fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATHS[l]}/scoreboard?dates=${day}${extra}`).then(r => r.json()).then(j => (j.events || []).map(e => {
+    const c = e.competitions[0], st = e.status.type;
+    return { id: e.id, l, date: e.date, state: st.state, detail: st.shortDetail, tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", "),
+      teams: c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1)).map(t => ({ abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName, nick: t.team.name, color: t.team.color, alt: t.team.alternateColor, score: t.score })) };
+  })).catch(() => []);
+}
+const onGame = (txt, g) => g.teams.every(t => [t.name, t.short, t.nick].filter(n => n && n.length > 2).some(n => norm(txt).includes(norm(n))));
+function card(g, body, cls) {
+  const [a, h] = g ? g.teams : [];
+  return `<div class="mg ${cls || ""}" ${g ? `data-go="/app/game/?l=${g.l}&id=${encodeURIComponent(g.id)}"` : ""}>
+    <div>${g ? `<div class="sb2"><div class="t">${badge(a)}<span>${E(a.short)}</span></div><div class="s">${g.state === "pre" ? "vs" : `${E(a.score)} - ${E(h.score)}`}</div><div class="t r"><span>${E(h.short)}</span>${badge(h)}</div></div>
+      <div class="st3">${ICON.sport(g.l)} ${E(g.l)} <span class="pill2 ${g.state}">${g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "UPCOMING"}</span> ${E(g.state === "pre" ? new Date(g.date).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" }) + " CT" : g.detail)}${g.tv ? ` · ${ICON.ui("tv")} ${E(g.tv)}` : ""}</div>`
+      : `<div class="st3">Game not found on today's scoreboard yet.</div>`}</div>
+    <div>${body}</div></div>`;
+}
+async function load() {
+  const s = CMMG.session();
+  if (!s) { $("k3").innerHTML = ""; $("took").innerHTML = `<div class="empty" style="border:0">Sign in to see the games you're following.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; drawWatch([]); return; }
+  let mj; try { mj = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { mj = {}; }
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const rows = (mj.ok ? mj.rows || [] : []).filter(r => r.result === "PENDING" || (r.date || "") === today || (r.time && Date.now() - Date.parse(r.time) < 36 * 36e5));
+  const games = await Promise.all(rows.map(async r => { if (!PATHS[r.sport]) return null; const day = r.time ? ymd(r.time) : today.replace(/-/g, ""); return (await board(r.sport, day)).find(g => onGame(r.game, g)) || null; }));
+  const live = games.filter(g => g && g.state === "in").length;
+  const done = rows.filter(r => r.result && r.result !== "PENDING"), w = done.filter(r => r.result === "WIN").length, l = done.filter(r => r.result === "LOSS").length;
+  const u = done.reduce((a, r) => a + (r.units_pl || 0), 0);
+  $("k3").innerHTML = [["MY GAMES", rows.length], ["LIVE NOW", live], ["GRADED", `${w}-${l}`], ["MY UNITS", (u > 0 ? "+" : "") + u.toFixed(2)]].map(([t, v]) => `<div class="kpi"><div class="l">${t}</div><div class="n ${t === "MY UNITS" ? (u > 0 ? "pos" : u < 0 ? "neg" : "") : ""}">${v}</div></div>`).join("");
+  const step = (r, g) => r.result && r.result !== "PENDING" ? 4 : g ? { pre: 1, in: 2, post: 3 }[g.state] : 1;
+  $("took").innerHTML = rows.length ? rows.map((r, i) => { const g = games[i], n = step(r, g), res = r.result !== "PENDING" ? r.result : "";
+    return card(g, `<div class="sel">${r.tier ? `<span class="tag ${E(r.tier)}" style="font-size:11px">${TIER_ICON[r.tier] || ""} ${E(r.tier)}</span>` : ""}
+        <b>${E(r.bet || "Members-only pick")}</b><div class="game">My odds ${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}</div>
+        ${res ? `<div style="margin-top:6px"><span class="rb ${E(res)}">${E(res)}</span> <b class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}" style="font-family:Saira;display:inline">${r.units_pl > 0 ? "+" : ""}${r.units_pl ?? ""}u</b></div>` : ""}
+        <div class="flow">${[1, 2, 3, 4].map(k => `<i class="${k < n ? (k === 3 && res === "LOSS" ? "bad" : "done") : k === n ? (n === 4 ? (res === "LOSS" ? "bad" : "done") : "on") : ""}"></i>`).join("")}</div>
+        <div class="flowl"><span>Upcoming</span><span>Live</span><span>Final</span><span>Graded</span></div></div>`,
+      `${g && g.state === "in" ? "live" : ""} ${res ? "r-" + res : ""}`); }).join("")
+    : `<div class="empty" style="border:0">No games yet. Tap <b>✓ I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Today's Picks</a> and the game shows up here.</div>`;
+  drawWatch(games);
+  clearTimeout(timer); timer = setTimeout(load, games.some(g => g && g.state === "in") ? 30000 : 120000);
+}
+async function drawWatch() {
+  if (!WATCH.length) { $("watch").innerHTML = `<p class="game" style="margin:0">Tap ☆ on any game in <a href="/app/scores/" style="color:var(--ice)">Live Scores</a> or <a href="/app/schedule/" style="color:var(--ice)">Schedules</a> to watch it here.</p>`; return; }
+  const gs = await Promise.all(WATCH.map(async w => (await board(w.l, w.day)).find(g => g.id === w.id) || null));
+  $("watch").innerHTML = gs.map((g, i) => card(g, `<div style="text-align:right"><button class="unstar" data-unwatch="${E(WATCH[i].id)}" title="Stop watching">★</button><div class="game">Watching</div></div>`)).join("");
+}
+document.addEventListener("click", e => {
+  const u = e.target.closest("[data-unwatch]"); if (u) { e.stopPropagation(); WATCH = WATCH.filter(w => w.id !== u.dataset.unwatch); try { localStorage.setItem("cmmg.watch", JSON.stringify(WATCH)); } catch (err) {} drawWatch(); return; }
+  if (e.target.closest("a, button")) return; const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go;
+});
+SHELL.mount("mygames"); load();
+</script>
+</body></html>

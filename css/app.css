@@ -127,3 +127,8 @@ dialog input { width:100%; padding:9px; border-radius:8px; border:1px solid var(
 .card.sp-base { border-left:4px solid #1d4ed8; } .card.sp-soc { border-left:4px solid #22c55e; } .card.sp-ten { border-left:4px solid #a3e635; }
 .card.sp-fight { border-left:4px solid #b91c1c; } .card.sp-golf { border-left:4px solid #16a34a; } .card.sp-other { border-left:4px solid #64748b; }
 @media (max-width:640px) { .sbanner b { font-size:20px; } .sbanner { padding:12px; } }
+/* #8 v2: bigger glowing tier badge on pick cards - locked icons + order (ICE > EDGE > FIRE, EDGE = 🗡️) */
+.card .tag { font-size:13px; padding:5px 12px; border-radius:9px; }
+.card .tag.ICE { box-shadow:0 0 14px rgba(127,216,255,.45), inset 0 0 8px rgba(127,216,255,.18); }
+.card .tag.EDGE { box-shadow:0 0 14px rgba(34,197,94,.45), inset 0 0 8px rgba(34,197,94,.18); }
+.card .tag.FIRE { box-shadow:0 0 14px rgba(255,90,43,.5), inset 0 0 8px rgba(255,90,43,.2); }

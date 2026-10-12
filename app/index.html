@@ -62,6 +62,13 @@ async function load() {
   try { j = await CMMG.relay({ task: "picks", session: s ? s.token : undefined }); } catch (e) { j = { ok: false }; }
   if (!j.ok) { document.getElementById("sub").textContent = "Couldn't reach CMMG — try again in a minute."; return; }
   if (s && !j.me) { CMMG.signOut(); SHELL.who(); SHELL.membershipBox(document.getElementById("account")); }                     // session expired or no longer valid
+  // Never show an old board as today's (Scott's standing rule: no stale picks on a page). MasterHub's day runs past
+  // midnight until Scott closes it, so a board from yesterday CT still counts until 10 AM CT.
+  const nowCT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }));
+  const todayCT = nowCT.toLocaleDateString("en-CA"), yday = new Date(nowCT.getTime() - 864e5).toLocaleDateString("en-CA");
+  if (j.date && j.date < todayCT && !(j.date === yday && nowCT.getHours() < 10)) {
+    PICKS = []; document.getElementById("sub").textContent = `Today's picks aren't posted yet · last board was ${day(j.date + "T17:00:00Z")}`; draw(); return;
+  }
   PICKS = (j.picks || []).slice().sort((a, b) => (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9) || String(a.time).localeCompare(String(b.time)));
   document.getElementById("sub").textContent = j.date ? `${day(j.date + "T17:00:00Z")} · picks from the CMMG models${j.at ? " · updated " + ct(j.at) : ""}` : (j.note || "No picks published yet today.");
   draw();

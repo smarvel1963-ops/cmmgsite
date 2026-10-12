@@ -25,14 +25,15 @@ const DISCORD_CLIENT_ID = "1558985290188857356";        // public (it's in the l
 const GUILD_ID = "1469251277752893573";                  // the CMMG Discord server (eve_bot.EVE_GUILD_ID)
 const REDIRECTS = ["https://cmmgsports.com/auth/", "http://127.0.0.1:8790/auth/"];   // second = local testing only
 const SESSION_HOURS = 24;
-// v1 access map (athena_bot WELCOME_PREMIUM_ROLE_IDS + TOP5_PASS_ROLE_ID). Scott confirms what each role unlocks;
-// until then every paid role = "pro" (all premium picks) and the Top 5 Pass = "top5". Override with ROLE_MAP.
+// Access map (athena_bot WELCOME_PREMIUM_ROLE_IDS + TOP5_PASS_ROLE_ID), matched to the Winible plans Scott pointed at
+// 10/11 (winible.com/cmmgsports): Free / VIP $30 mo / Elite $45 mo. "pro" = the VIP card (Pro Track, Top 10) - every
+// paid role has it. "elite" = Elite-only feeds (live drops, last-minute captures, arbs) - Elite only. Override with ROLE_MAP.
 const ROLE_MAP_DEFAULT = {
-  "1497727207630442586": ["pro"],    // Elite Members ($20/wk)
-  "1471082166149578936": ["pro"],    // VIP Members ($12/wk)
-  "1497509875780161537": ["pro"],    // 1 Day Members ($7)
-  "1496705632655511594": ["pro"],    // Server Boosters
-  "1554688062812856461": ["top5"],   // Top 5 Pass
+  "1497727207630442586": ["pro", "elite"],   // Elite Members
+  "1471082166149578936": ["pro"],            // VIP Members
+  "1497509875780161537": ["pro"],            // 1 Day Members
+  "1496705632655511594": ["pro"],            // Server Boosters
+  "1554688062812856461": ["top5"],           // Top 5 Pass
 };
 const CHUNK = 8000;                   // Script Property values max ~9 KB - big JSON is split
 const TRACK_MAX = 500;                // a member's tracked picks kept
@@ -126,7 +127,7 @@ function session(P, tok) {
 }
 
 // ---------------------------------------------------------------- picks by entitlement
-// A pick's "need" comes from the feed: "free", "pro" or "top5". Only the server decides what a session sees.
+// A pick's "need" comes from the feed: "free", "pro", "elite" or "top5". Only the server decides what a session sees.
 function canSee(s, need) { return need === "free" || (!!s && s.ent.indexOf(need) >= 0) || (!!s && need === "top5" && s.ent.indexOf("pro") >= 0); }
 function picks(P, s) {
   const f = getBig(P, "F_today");

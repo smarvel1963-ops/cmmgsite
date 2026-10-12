@@ -42,6 +42,14 @@ h2 { text-align: center; font-size: 1.45rem; margin: 0 0 6px; }
 .soon { text-align: center; background: linear-gradient(135deg, rgba(0,191,255,.12), rgba(255,215,0,.08)); border: 1px solid var(--line); border-radius: 18px; padding: 24px 18px; }
 .soon p { color: var(--dim); margin: 6px auto 0; max-width: 620px; }
 .book { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; text-align: left; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 16px; }
+.plan { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; }
+.plan.vip { border-color: rgba(127,216,255,.55); } .plan.elite { border-color: rgba(255,215,0,.65); box-shadow: 0 0 28px rgba(255,215,0,.12); }
+.plan h3 { margin: 0; font-size: 1.15rem; letter-spacing: .04em; }
+.price { font-size: 2rem; font-weight: 900; margin: 6px 0 2px; } .price small { font-size: .9rem; color: var(--dim); font-weight: 400; }
+.plan ul { padding-left: 18px; margin: 12px 0 16px; color: var(--dim); font-size: .95rem; flex: 1; } .plan li { margin: 5px 0; }
+.plan .btn { text-align: center; }
+.note { text-align: center; color: var(--dim); font-size: .85rem; margin-top: 12px; }
 footer { padding: 30px 0 46px; text-align: center; color: var(--dim); font-size: .85rem; }
 footer p { margin: 6px 0; }
 .rg { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 16px; font-size: .8rem; }
@@ -56,7 +64,7 @@ footer p { margin: 6px 0; }
   <p class="lead">Every pick comes from our models, gets a confidence tier, and gets graded when the game ends. Win or lose, the result is posted.</p>
   <div class="btns">
     <a class="btn discord" href="https://smarvel1963-ops.github.io/join/">Join the free Discord</a>
-    <a class="btn pro" href="https://winible.com/cmmgsports">Get CMMG Pro</a>
+    <a class="btn pro" href="#plans">See plans</a>
     <a class="btn ghost" href="app/">Members: today's picks →</a>
   </div>
 </header>
@@ -64,7 +72,7 @@ footer p { margin: 6px 0; }
 <main class="wrap">
   <div class="grid">
     <div class="card"><b>🆓 Free picks</b><span>Free picks every day in our Discord, so you can see how we work before you pay a dime.</span></div>
-    <div class="card"><b>⭐ CMMG Pro</b><span>The full daily card, live-game totals and alerts, delivered on Winible.</span></div>
+    <div class="card"><b>⭐ VIP &amp; Elite</b><span>The full daily card, sport alert channels, live drops and more. Plans on Winible.</span></div>
     <div class="card"><b>📊 Every result posted</b><span>Wins and losses, every day. No deleted picks, no cherry-picked records.</span></div>
     <div class="card"><b>🏟️ Many sports</b><span>NBA, NFL, MLB, NHL, college, tennis, UFC and more, each with its own model.</span></div>
   </div>
@@ -75,6 +83,48 @@ footer p { margin: 6px 0; }
     <div class="tiers" style="justify-content:center">
       <span class="pill ice">❄️ ICE · top tier</span><span class="pill edge">🗡️ EDGE · strong</span><span class="pill fire">🔥 FIRE · value</span>
     </div>
+  </section>
+
+  <section id="plans">
+    <h2>Plans</h2>
+    <p class="lead" style="text-align:center">Your plan is your Discord role. Sign in on this site with the same Discord account and your access matches, so you never pay twice.</p>
+    <div class="plans">
+      <div class="plan">
+        <h3>🆓 FREE</h3><div class="price">$0</div>
+        <ul>
+          <li>Daily free card: 1–2 model plays a day</li>
+          <li>Daily market breakdowns</li>
+          <li>Free Discord community chat</li>
+        </ul>
+        <a class="btn discord" href="https://smarvel1963-ops.github.io/join/">Join free</a>
+      </div>
+      <div class="plan vip">
+        <h3>⭐ VIP</h3><div class="price">$30 <small>/ month</small></div>
+        <ul>
+          <li>The core card: 20+ model plays a day</li>
+          <li>The Top 10: the model's highest-confidence picks each day</li>
+          <li>DFS plays, including PrizePicks and DraftKings slips</li>
+          <li>5 sport-specific alert channels</li>
+          <li>VIP receipts: every VIP play graded, wins and losses</li>
+          <li>Everything in Free</li>
+        </ul>
+        <a class="btn ghost" href="https://winible.com/cmmgsports">Get VIP</a>
+      </div>
+      <div class="plan elite">
+        <h3>👑 ELITE</h3><div class="price">$45 <small>/ month</small></div>
+        <ul>
+          <li>Live in-game drops the moment the model flags a line</li>
+          <li>Late plays an hour or less before start as lines move</li>
+          <li>Full output from our models: Athena, P.J. and Stratos</li>
+          <li>45+ plays a day, almost all straight bets</li>
+          <li>All 15+ sport alert channels</li>
+          <li>Arbitrage and middle alerts</li>
+          <li>Everything in VIP</li>
+        </ul>
+        <a class="btn pro" href="https://winible.com/cmmgsports">Get Elite</a>
+      </div>
+    </div>
+    <p class="note">Weekly and 3-day options are on Winible. Cancel anytime. Picks are opinions, not guarantees.</p>
   </section>
 
   <section>

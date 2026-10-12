@@ -154,12 +154,14 @@ function drawWho() {
     return;
   }
   const paid = s.me.access.some(a => a !== "free");
-  who.innerHTML = `<div class="me">${s.me.avatar ? `<img src="${E(s.me.avatar)}" alt="">` : ""}<div><b>${E(s.me.name)}</b><br><span class="pill ${paid ? "pro" : ""}">${paid ? "PRO MEMBER" : "FREE MEMBER"}</span></div></div>`;
+  const has = a => s.me.access.indexOf(a) >= 0;
+  const plan = has("elite") ? "ELITE MEMBER" : has("pro") ? "VIP MEMBER" : has("top5") ? "TOP 5 PASS" : "FREE MEMBER";
+  who.innerHTML = `<div class="me">${s.me.avatar ? `<img src="${E(s.me.avatar)}" alt="">` : ""}<div><b>${E(s.me.name)}</b><br><span class="pill ${paid ? "pro" : ""}">${plan}</span></div></div>`;
   acc.innerHTML = `<h3>MEMBERSHIP</h3>
     <div class="row"><span>Discord</span><span>✅ Connected${s.me.inServer ? "" : " (not in the CMMG server yet)"}</span></div>
-    <div class="row"><span>Access</span><span>${E(s.me.access.join(", ").toUpperCase())}</span></div>
+    <div class="row"><span>Plan</span><span>${plan}</span></div>
     <p style="color:var(--dim);font-size:12px">Access comes from your CMMG Discord roles and refreshes each time you sign in.</p>
-    ${paid ? "" : `<a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">Upgrade on Discord</a> `}
+    ${paid ? "" : `<a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">See plans · VIP $30 · Elite $45</a> `}
     <button class="btn ghost" id="signout">Sign out</button>`;
 }
 

@@ -47,6 +47,10 @@ check("VIP role: access = pro", L.ok && L.me.access.join() === "pro", L.me);
 const proS = L.session;
 DISCORD.roles = ["1554688062812856461"]; DISCORD.user = { id: "333", username: "t5" };
 const top5S = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+DISCORD.roles = ["1497727207630442586"]; DISCORD.user = { id: "444", username: "elite" };
+L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
+check("Elite role: access = pro + elite", L.ok && L.me.access.slice().sort().join() === "elite,pro", L.me);
+const eliteS = L.session;
 
 // feed
 check("feed: wrong write key refused", post({ task: "put", key: "nope", part: "today", data: {} }).error === "not allowed");
@@ -54,7 +58,8 @@ const big = "x".repeat(20000);
 const today = { date: "2026-10-11", picks: [
   { id: "p1", sport: "NHL", time: "2026-10-11T21:10:00Z", tier: "ICE", game: "SEA @ WSH", bet: "OVER 6.0", odds: -125, need: "pro", note: big },
   { id: "f1", sport: "NFL", time: "2026-10-11T18:00:00Z", tier: "EDGE", game: "BUF @ KC", bet: "BUF ML", odds: -145, need: "free" },
-  { id: "t1", sport: "MLB", time: "2026-10-11T23:00:00Z", tier: "FIRE", game: "LAD @ SD", bet: "LAD ML", odds: -120, need: "top5" } ] };
+  { id: "t1", sport: "MLB", time: "2026-10-11T23:00:00Z", tier: "FIRE", game: "LAD @ SD", bet: "LAD ML", odds: -120, need: "top5" },
+  { id: "e1", sport: "NBA", time: "2026-10-11T23:30:00Z", tier: "ICE", game: "BOS @ NY", bet: "UNDER 221", odds: -110, need: "elite" } ] };
 check("feed: PUT today (big, chunked)", post({ task: "put", key: "wkey", part: "today", data: today }).ok && Number(PROPS["F_today#n"]) >= 3);
 let p = post({ task: "picks" });
 const byId = a => Object.fromEntries(a.picks.map(x => [x.id, x]));
@@ -67,6 +72,10 @@ b = byId(post({ task: "picks", session: proS }));
 check("pro (VIP) member: sees the premium picks + Top 5", b.p1.bet === "OVER 6.0" && !b.p1.locked && b.t1.bet === "LAD ML");
 b = byId(post({ task: "picks", session: top5S }));
 check("Top 5 Pass: sees Top 5, not the other premium picks", b.t1.bet === "LAD ML" && b.p1.locked);
+check("VIP: an Elite-only pick stays LOCKED", byId(post({ task: "picks", session: proS })).e1.locked);
+b = byId(post({ task: "picks", session: eliteS }));
+check("Elite: sees Elite-only + VIP picks + Top 5", b.e1.bet === "UNDER 221" && b.p1.bet === "OVER 6.0" && b.t1.bet === "LAD ML");
+check("VIP can't track an Elite-only pick", post({ task: "track", session: proS, pick: "e1" }).ok === false);
 const forged = proS.split(".")[0].slice(0, -2) + "xx." + proS.split(".")[1];
 check("a tampered session is refused (treated as signed out)", byId(post({ task: "picks", session: forged })).p1.locked);
 const parts = proS.split("."), payload = JSON.parse(Buffer.from(parts[0].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());

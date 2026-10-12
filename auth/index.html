@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/auth/index.html
+     Discord sends the member back here after "Continue with Discord". This page checks the one-time state it
+     started (CSRF), hands the code + PKCE verifier to the CMMG relay, keeps the relay's signed session on this
+     device, and goes to the member area. Nothing secret lives in this page. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signing in · CMMG Sports Edge</title>
+<style>body{margin:0;background:#060d1a;color:#e8f4ff;font-family:Arial,system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}a{color:#7fd8ff}</style>
+</head><body><div><h2 id="t">Signing you in…</h2><p id="m" style="color:#8fb0cc"></p></div>
+<script src="../js/cmmg.js"></script>
+<script>
+(async () => {
+  const q = new URLSearchParams(location.search), t = document.getElementById("t"), m = document.getElementById("m");
+  const fail = msg => { t.textContent = "Sign-in didn't finish"; m.innerHTML = msg + ' <a href="../app/">Back</a>'; };
+  if (q.get("error")) return fail("Discord said: " + CMMG.esc(q.get("error_description") || q.get("error")) + ".");
+  const st = JSON.parse(sessionStorage.getItem("cmmg.oauth") || "null");
+  sessionStorage.removeItem("cmmg.oauth");                       // used once
+  if (!st || !q.get("state") || q.get("state") !== st.state || Date.now() - st.at > 10 * 60000) return fail("That sign-in link wasn't started here (or it expired).");
+  history.replaceState(null, "", location.pathname);             // the code never stays in the address bar
+  try {
+    const j = await CMMG.relay({ task: "login", code: q.get("code"), verifier: st.verifier, redirect: CMMG.REDIRECT });
+    if (!j.ok) return fail(CMMG.esc(j.error || "Please try again."));
+    CMMG.saveSession(j.session, j.me);
+    location.replace("../app/");
+  } catch (e) { fail("Couldn't reach CMMG — check your connection."); }
+})();
+</script></body></html>

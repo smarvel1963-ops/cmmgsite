@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
+ * CMMG SPORTS EDGE RELAY v1.6 (v1.6: "community" - read-only Discord channel copy, OFF until DISCORD_BOT_TOKEN + COMMUNITY_CHANNELS)
+ * was v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
  * was v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
  * was v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
  * was v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
@@ -54,6 +55,7 @@ function doPost(e) {
       case "picks": return out(picks(P, session(P, req.session)));
       case "record": return out(records(P));
       case "results": return out(results(P));
+      case "community": return out(community(P, session(P, req.session)));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
@@ -157,6 +159,35 @@ function results(P) {
     return { id: p.id, date: p.date, time: p.time, sport: p.sport, game: p.game, bet: p.bet, market: p.market, odds: p.odds,
              units: p.units, tier: p.tier, result: p.result, need: p.need };
   }) };
+}
+
+// v1.6 Community (design list #8): READ-ONLY copy of chosen CMMG Discord channels for the app's Community page. OFF until
+// Scott sets Script Properties DISCORD_BOT_TOKEN (a read-only bot in the CMMG server) and COMMUNITY_CHANNELS =
+// [{"id":"<channel id>","name":"Announcements","need":"free"}, ...]. Never posts. A channel whose "need" the session
+// can't see is left out. Messages cached 60 s (CacheService) so members don't hammer Discord.
+function community(P, s) {
+  const token = P.getProperty("DISCORD_BOT_TOKEN"); let chans = [];
+  try { chans = JSON.parse(P.getProperty("COMMUNITY_CHANNELS") || "[]"); } catch (e) { chans = []; }
+  if (!token || !chans.length) return { ok: true, live: false };
+  const cache = CacheService.getScriptCache(), out = [];
+  chans.filter(function (c) { return canSee(s, c.need || "free"); }).slice(0, 8).forEach(function (c) {
+    const key = "C_" + c.id; let msgs = null;
+    try { msgs = JSON.parse(cache.get(key) || "null"); } catch (e) { msgs = null; }
+    if (!msgs) {
+      try {
+        const r = UrlFetchApp.fetch("https://discord.com/api/v10/channels/" + encodeURIComponent(c.id) + "/messages?limit=20",
+          { headers: { Authorization: "Bot " + token }, muteHttpExceptions: true });
+        msgs = r.getResponseCode() === 200 ? JSON.parse(r.getContentText()).map(function (m) {
+          return { id: m.id, ts: m.timestamp, author: (m.author && (m.author.global_name || m.author.username)) || "", bot: !!(m.author && m.author.bot),
+                   text: String(m.content || "").replace(/<@[!&]?\d+>/g, "@member").replace(/<#\d+>/g, "#channel").slice(0, 600),
+                   embed: (m.embeds && m.embeds[0] && (m.embeds[0].title || m.embeds[0].description || "")) ? String(m.embeds[0].title || m.embeds[0].description).slice(0, 300) : "" };
+        }) : [];
+        cache.put(key, JSON.stringify(msgs), 60);
+      } catch (e) { msgs = []; }
+    }
+    out.push({ id: c.id, name: c.name || "channel", need: c.need || "free", messages: msgs });
+  });
+  return { ok: true, live: true, guild: GUILD_ID, channels: out };
 }
 
 // ---------------------------------------------------------------- I Took This Pick

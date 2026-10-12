@@ -113,4 +113,5 @@ check("results stay unpublished until RESULTS_PUBLIC=1", post({ task: "results" 
 PROPS.RESULTS_PUBLIC = "1";
 check("results publish graded picks only once switched on", (r => r.published && r.picks.every(p => p.result))(post({ task: "results" })));
 delete PROPS.RESULTS_PUBLIC;
+check("community stays off until a bot token + channels are set", post({ task: "community" }).live === false);
 console.log(`\n${ok} passed, ${bad} failed`);

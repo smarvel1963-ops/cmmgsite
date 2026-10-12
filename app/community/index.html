@@ -1,37 +1,75 @@
 <!doctype html>
 <!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/community/index.html
-     Discord Community (storyboard page 10), V1: where the community lives + "Open in Discord". Read-only synced channels
-     (V1 of the chat module) need the bot bridge + Message Content intent; posting from the site is V2. No sample chat
-     lines or testimonials on this page - only real messages will ever show here. -->
+     Community (Scott's design list #8, 10/11 mockup): hero, channel tabs, a READ-ONLY feed of chosen CMMG Discord channels
+     (relay task "community", OFF until Scott adds a read-only bot token + channel list), sport channel list and
+     "Open in Discord" to post or reply. Discord stays the community source (Scott 10/11). Not built from the mockup:
+     composer, polls, leaderboards, contests (future). Sports imagery only. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Discord Community · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<title>Community · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
 <link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG"></head>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:22px; margin-bottom:12px;
+  background:radial-gradient(500px 200px at 85% 40%, rgba(88,101,242,.35), transparent 70%), radial-gradient(400px 200px at 65% 80%, rgba(234,88,12,.18), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325); }
+.vhero h1 { font-size:clamp(28px, 4.6vw, 48px); font-style:italic; margin:0; line-height:1; } .vhero p { margin:8px 0 0; letter-spacing:.2em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.cg { display:grid; grid-template-columns:240px minmax(0,1fr) 300px; gap:14px; } .cg > * { min-width:0; }
+@media (max-width:1150px) { .cg { grid-template-columns:minmax(0,1fr) 280px; } .cg .chcol { display:none; } } @media (max-width:820px) { .cg { grid-template-columns:minmax(0,1fr); } }
+.ch a, .ch button { display:flex; gap:8px; align-items:center; width:100%; text-align:left; text-decoration:none; background:none; border:0; color:var(--dim); font:600 14px Inter, sans-serif; padding:8px 10px; border-radius:9px; }
+.ch .on { background:rgba(59,130,246,.18); color:#fff; } .ch .ic { width:18px; height:18px; }
+.msg { display:grid; grid-template-columns:40px minmax(0,1fr); gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+.msg .av { width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-weight:800; background:#1e3a8a; color:#fff; font-family:Saira; }
+.msg .av.bot { background:linear-gradient(180deg,#ffd700,#b98a00); color:#241a00; }
+.msg b { font-size:14px; } .msg .tm { color:var(--dim); font-size:12px; margin-left:6px; } .msg p { margin:4px 0 0; color:#dbeafe; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.msg .emb { margin-top:6px; border-left:3px solid #3b82f6; padding:6px 10px; background:rgba(59,130,246,.08); border-radius:0 8px 8px 0; font-size:13px; color:#c9dcef; }
+.sportch { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .sportch a { display:flex; gap:8px; align-items:center; text-decoration:none; padding:10px; border:1px solid var(--line); border-radius:10px; background:rgba(5,12,24,.55); font-weight:700; font-size:13px; }
+.sportch .ic { width:20px; height:20px; color:#9fd2ff; } .bigic .ic { width:40px; height:40px; color:#818cf8; }
+</style></head>
 <body>
-<div class="layout">
+<div class="layout wide">
   <main class="main">
-    <h1>Discord Community</h1>
-    <p class="sub">The CMMG community lives on Discord: picks talk, game chat, alerts and every result posted.</p>
-    <div class="box" style="text-align:center;padding:28px">
-      <div style="font-size:44px">💬</div>
-      <h2 style="margin:6px 0">Talk picks with the CMMG community</h2>
-      <p style="color:var(--dim);max-width:520px;margin:6px auto 16px">Use the same Discord account you signed in with here. Your Discord roles decide what you see in both places.</p>
-      <a class="btn disc" style="text-decoration:none;display:inline-block;font-size:16px;padding:12px 20px" id="open">Open the CMMG Discord</a>
+    <div class="vhero"><h1>COMMUNITY</h1><p>REAL FANS. REAL DISCUSSION. RESULTS POSTED.</p></div>
+    <div class="cg">
+      <div class="chcol"><div class="box ch"><h3>CHANNELS</h3><div id="chans"></div></div></div>
+      <div><div class="box"><h3 id="feedT">COMMUNITY FEED</h3><div id="feed"><div class="empty" style="border:0">Loading…</div></div></div></div>
+      <div>
+        <div class="box" style="text-align:center"><div class="bigic" data-ic="chat"></div><h3 style="margin-top:6px">JOIN THE CONVERSATION</h3>
+          <p style="color:var(--dim);font-size:13px;margin:0 0 12px">Post, reply and react in the CMMG Discord, with the same account you signed in with here.</p>
+          <a class="btn disc" id="open" style="text-decoration:none;display:block;text-align:center">Open in Discord</a></div>
+        <div class="box"><h3>SPORT CHANNELS</h3><div class="sportch" id="sportch"></div></div>
+        <div class="box"><h3>WHAT YOUR PLAN SEES</h3><ul class="check" style="font-size:13px">
+          <li><span>Community chat · daily free card</span><span>Free</span></li><li><span>Sport alert channels · VIP receipts</span><span>VIP</span></li>
+          <li><span>Live drops · all 15+ channels · arbitrage</span><span>Elite</span></li></ul></div>
+      </div>
     </div>
-    <div class="grid2">
-      <div class="box"><h3>🆓 FREE</h3><ul class="check">
-        <li><span>Community chat</span><span>✅</span></li><li><span>The daily free card</span><span>✅</span></li><li><span>Daily market breakdowns</span><span>✅</span></li></ul></div>
-      <div class="box"><h3>⭐ VIP · 👑 ELITE</h3><ul class="check">
-        <li><span>Sport alert channels (VIP 5 · Elite 15+)</span><span>🔒</span></li><li><span>VIP receipts: every play graded</span><span>🔒</span></li>
-        <li><span>Elite live drops and arbitrage alerts</span><span>🔒</span></li></ul>
-        <a href="https://winible.com/cmmgsports" style="color:var(--ice);font-size:13px">See plans →</a></div>
-    </div>
-    <div class="box"><h3>COMING TO THIS PAGE</h3><p style="color:var(--dim);font-size:13px;margin:0">Live announcements and game threads from the CMMG Discord, right here — with "Open in Discord" to reply.</p></div>
   </main>
-  <aside class="side"><div id="account"></div></aside>
 </div>
 <script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
-<script>SHELL.mount("community"); document.getElementById("open").href = SHELL.DISCORD;</script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic));
+$("open").href = SHELL.DISCORD;
+$("sportch").innerHTML = ["NFL", "NCAAF", "NBA", "NCAAB", "MLB", "NHL", "MLS", "TENNIS", "UFC", "GOLF"].map(s => `<a href="${SHELL.DISCORD}">${ICON.sport(s)}${s === "MLS" ? "Soccer" : s} talk</a>`).join("");
+let DATA = null, CUR = 0;
+const ago = iso => { const m = Math.round((Date.now() - Date.parse(iso)) / 6e4); return m < 1 ? "now" : m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"; };
+function draw() {
+  if (!DATA || !DATA.live) {
+    $("chans").innerHTML = ["Announcements", "Free picks", "General chat", "Results & wins", "Strategy talk"].map(n => `<a href="${SHELL.DISCORD}">${ICON.ui("chat")}${n}</a>`).join("");
+    $("feed").innerHTML = `<div class="empty" style="border:0">The live feed from the CMMG Discord shows here soon.<br>Until then, everything is in the Discord.<br><br><a class="btn disc" style="text-decoration:none" href="${SHELL.DISCORD}">Open the CMMG Discord</a></div>`;
+    return;
+  }
+  const chs = DATA.channels || [];
+  $("chans").innerHTML = chs.map((c, i) => `<button data-ch="${i}" class="${i === CUR ? "on" : ""}">${ICON.ui("chat")}${E(c.name)}</button>`).join("");
+  const c = chs[CUR]; $("feedT").textContent = c ? c.name.toUpperCase() : "COMMUNITY FEED";
+  $("feed").innerHTML = c && c.messages.length ? c.messages.map(m => `<div class="msg"><div class="av ${m.bot ? "bot" : ""}">${E((m.author || "?").slice(0, 1).toUpperCase())}</div>
+      <div><b>${E(m.author)}</b><span class="tm">${ago(m.ts)}</span>${m.text ? `<p>${E(m.text)}</p>` : ""}${m.embed ? `<div class="emb">${E(m.embed)}</div>` : ""}</div></div>`).join("")
+      + `<p style="margin:12px 0 0"><a class="btn disc" style="text-decoration:none" href="https://discord.com/channels/${E(DATA.guild)}/${E(c.id)}">Reply in Discord</a></p>`
+    : `<div class="empty" style="border:0">No messages here yet.</div>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-ch]"); if (b) { CUR = Number(b.dataset.ch); draw(); } });
+SHELL.mount("community");
+const pull = () => CMMG.relay({ task: "community", session: CMMG.session()?.token }).then(j => { if (j && j.ok) { DATA = j; draw(); } }).catch(() => {});
+draw(); pull(); setInterval(() => { if (DATA && DATA.live) pull(); }, 90000);
+</script>
 </body></html>

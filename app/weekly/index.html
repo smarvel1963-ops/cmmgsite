@@ -111,7 +111,7 @@ function drawMine() {
   if (!MINE) return;
   const rows = MINE.filter(r => r.date && inWk(r, WK)), done = rows.filter(r => r.result === "WIN" || r.result === "LOSS"), w = done.filter(r => r.result === "WIN").length;
   const net = rows.reduce((a, r) => a + (r.units_pl || 0), 0), pend = rows.filter(r => r.result === "PENDING").length;
-  if (!rows.length) { el.innerHTML = `<p class="note">No tracked picks this week. Tap <b>I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Today's Picks</a> to add them.</p>`; return; }
+  if (!rows.length) { el.innerHTML = `<p class="note">No tracked picks this week. Tap <b>I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Pro Track</a> to add them.</p>`; return; }
   el.innerHTML = `<div class="kp"><div class="kpi"><div class="l">YOUR RECORD</div><div class="n">${w}-${done.length - w}</div><div class="s">${pend ? pend + " still open" : "all graded"}</div></div>
     <div class="kpi"><div class="l">YOUR UNITS</div><div class="n ${net > 0 ? "pos" : net < 0 ? "neg" : ""}">${sgn(net)}</div><div class="s">at your odds</div></div>
     <div class="kpi"><div class="l">PICKS TRACKED</div><div class="n">${rows.length}</div><div class="s">this week</div></div>

@@ -96,7 +96,7 @@ function topPicks() {
   const col = { ICE: "#38bdf8", EDGE: "#22c55e", FIRE: "#ef4444" }, wid = { ICE: 100, EDGE: 75, FIRE: 50 };
   $("topSport").innerHTML = vis.length ? vis.map((p, i) => `<div class="tpr"><span class="n">${i + 1}</span><span><b>${E(p.bet)}</b><div class="game">${E(p.game)} · ${E(p.odds > 0 ? "+" + p.odds : p.odds)}${p.result ? ` · <span class="rb ${E(p.result)}">${E(p.result[0])}</span>` : ""}</div></span>
       <span class="bar5"><i style="width:${wid[p.tier] || 30}%;background:${col[p.tier] || "#64748b"}"></i></span><span class="tag ${E(p.tier)}" style="font-size:11px">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></div>`).join("")
-    : mine.length ? `${mine.length} members-only ${E(L)} pick${mine.length > 1 ? "s" : ""} today. <a href="/app/" style="color:var(--ice)">Today's Picks →</a>` : `No CMMG ${E(L)} picks posted today.`;
+    : mine.length ? `${mine.length} members-only ${E(L)} pick${mine.length > 1 ? "s" : ""} today. <a href="/app/" style="color:var(--ice)">Pro Track →</a>` : `No CMMG ${E(L)} picks posted today.`;
 }
 function draw() {
   topPicks();

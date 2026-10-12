@@ -17,7 +17,7 @@
     { "src": "/img/icon_maskable_512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Today's Picks", "url": "/app/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] },
+    { "name": "Pro Track", "url": "/app/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] },
     { "name": "My Tracker", "url": "/app/tracker/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] },
     { "name": "Tools", "url": "/app/tools/", "icons": [{ "src": "/img/icon_192.png", "sizes": "192x192" }] }
   ]

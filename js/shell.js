@@ -5,7 +5,7 @@
 const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
-    ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
+    ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
@@ -161,7 +161,7 @@ const SHELL = (() => {
     splash();
     // DESIGN FRAME (Scott's designs): top icon nav + search + bell + member, a sport chip row, cinematic page banner.
     const ic = n => typeof ICON !== "undefined" ? ICON.ui(n) : "";
-    const NAV = [["dashboard", "home", "Home", "/app/dashboard/"], ["picks", "target", "Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"],
+    const NAV = [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"],
       ["mygames", "star", "My Games", "/app/mygames/"], ["teams", "stadium", "Teams", "/app/schedule/"], ["results", "shield", "Results", "/app/results/"],
       ["tracker", "chart", "Tracker", "/app/tracker/"], ["alerts", "bell", "Alerts", "/app/alerts/"], ["tools", "calc", "Tools", "/app/tools/"],
       ["learn", "star", "Learn", "/app/learn/"], ["community", "chat", "Community", "/app/community/"]];
@@ -189,7 +189,7 @@ const SHELL = (() => {
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
     // PHONE LAYOUT (Scott's design list #2): bottom tab bar Home / Picks / Scores / Tracker / More; More = sheet with the
     // rest of the menu. CSS shows it only on narrow screens (the rail stays on desktop).
-    const TABS = [["dashboard", "home", "Home", "/app/dashboard/"], ["picks", "target", "Picks", "/app/"], ["scores", "clock", "Scores", "/app/scores/"],
+    const TABS = [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Home", "/app/dashboard/"], ["scores", "clock", "Scores", "/app/scores/"],
                   ["tracker", "chart", "Tracker", "/app/tracker/"]];
     const inTabs = TABS.some(([k]) => k === active);
     document.body.insertAdjacentHTML("beforeend", `<nav class="tabbar" aria-label="CMMG app">` +

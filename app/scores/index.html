@@ -155,12 +155,12 @@ function draw() {
   $("mine").innerHTML = !CMMG.session() ? "Sign in to see the picks you took." : MINE.length ? MINE.map(m => `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)">
       <div><b style="color:var(--text)">${E(m.bet)}</b><div class="game">${E(m.sport)} · ${m.g ? (m.g.state === "pre" ? ct(m.g.date) : E(m.g.detail)) : "—"}</div></div>
       <div class="sc" style="font-size:16px">${m.g && m.g.state !== "pre" ? `${E(m.g.teams[0]?.score)}-${E(m.g.teams[1]?.score)}` : ""}</div>
-      <span class="tag ${E(m.tier)}" style="font-size:10px">${TIER_ICON[m.tier] || ""} ${E(m.tier)}</span></div>`).join("") : "No picks tracked today. Tap “I Took This Pick” on Today's Picks.";
+      <span class="tag ${E(m.tier)}" style="font-size:10px">${TIER_ICON[m.tier] || ""} ${E(m.tier)}</span></div>`).join("") : "No picks tracked today. Tap “I Took This Pick” on Pro Track.";
   const open = PICKS.filter(p => !p.locked);
   $("cmmg").innerHTML = open.length ? open.slice(0, 8).map(p => { const g = GAMES.find(x => x.league === p.sport && pickFor(x) === p);
       return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)"><span>${TIER_ICON[p.tier] || ""} <b style="color:var(--text)">${E(p.bet)}</b></span>
       <span>${g ? (g.state === "pre" ? ct(g.date) : `${E(g.teams[0]?.score)}-${E(g.teams[1]?.score)} · ${E(g.detail)}`) : ct(p.time)}</span></div>`; }).join("")
-    : `${PICKS.length} picks today${PICKS.length ? " · members-only details" : ""}. <a href="/app/" style="color:var(--ice)">Today's Picks →</a>`;
+    : `${PICKS.length} picks today${PICKS.length ? " · members-only details" : ""}. <a href="/app/" style="color:var(--ice)">Pro Track →</a>`;
 }
 
 function perf() {   // today's graded CMMG picks the viewer can see (results already shown on the cards)

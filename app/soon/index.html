@@ -27,7 +27,7 @@ const PAGES = {
 const key = new URLSearchParams(location.search).get("p"), p = PAGES[key] || PAGES.scores, E = CMMG.esc;
 document.title = p[1] + " · CMMG Sports Edge";
 document.getElementById("soon").innerHTML = `<div class="ic">${p[0]}</div><h1>${E(p[1])}</h1><p>${E(p[2])}</p>
-  <p style="font-weight:700;color:var(--gold)">Coming soon.</p><a class="btn go" style="text-decoration:none;display:inline-block;margin-top:8px" href="/app/">Today's Picks →</a>`;
+  <p style="font-weight:700;color:var(--gold)">Coming soon.</p><a class="btn go" style="text-decoration:none;display:inline-block;margin-top:8px" href="/app/">Pro Track →</a>`;
 SHELL.mount(PAGES[key] ? key : "scores");
 </script>
 </body></html>

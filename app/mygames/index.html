@@ -87,7 +87,7 @@ async function load() {
         <div class="flow">${[1, 2, 3, 4].map(k => `<i class="${k < n ? (k === 3 && res === "LOSS" ? "bad" : "done") : k === n ? (n === 4 ? (res === "LOSS" ? "bad" : "done") : "on") : ""}"></i>`).join("")}</div>
         <div class="flowl"><span>Upcoming</span><span>Live</span><span>Final</span><span>Graded</span></div></div>`,
       `${g && g.state === "in" ? "live" : ""} ${res ? "r-" + res : ""}`); }).join("")
-    : `<div class="empty" style="border:0">No games yet. Tap <b>✓ I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Today's Picks</a> and the game shows up here.</div>`;
+    : `<div class="empty" style="border:0">No games yet. Tap <b>✓ I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Pro Track</a> and the game shows up here.</div>`;
   drawWatch(games);
   clearTimeout(timer); timer = setTimeout(load, games.some(g => g && g.state === "in") ? 30000 : 120000);
 }

@@ -158,7 +158,7 @@ function draw() {
         <td><span class="res ${E(r.result)}">${E(r.result)}</span></td>
         <td class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}">${r.units_pl == null ? "" : sgn(r.units_pl)}</td>
         <td><button class="btn ghost" style="padding:5px 9px" data-edit="${E(r.pick)}">Edit</button></td></tr>`).join("") + `</table></div>`
-        : `<p class="game">${ROWS.length ? "No picks match." : "Nothing tracked yet. Tap “✓ I Took This Pick” on Today's Picks to start."}</p>`}</div>`;
+        : `<p class="game">${ROWS.length ? "No picks match." : "Nothing tracked yet. Tap “✓ I Took This Pick” on Pro Track to start."}</p>`}</div>`;
   }
 }
 

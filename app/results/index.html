@@ -204,7 +204,7 @@ function extras2() {
 async function load() {
   let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
   if (!j.ok || !j.published) {
-    $("soon").innerHTML = `<div class="soonbar"><b>Verified Results go live soon.</b> Every graded pick, wins and losses, with the date range and breakevens shown. Until then, results post in Discord every day and each graded pick shows WON / LOST on <a href="/app/" style="color:var(--ice)">Today's Picks</a>.</div>`;
+    $("soon").innerHTML = `<div class="soonbar"><b>Verified Results go live soon.</b> Every graded pick, wins and losses, with the date range and breakevens shown. Until then, results post in Discord every day and each graded pick shows WON / LOST on <a href="/app/" style="color:var(--ice)">Pro Track</a>.</div>`;
     $("body").classList.add("muted"); ALL = []; apply(); return;
   }
   ALL = (j.picks || []).slice().sort((a, b) => String(b.date + b.time).localeCompare(String(a.date + a.time)));

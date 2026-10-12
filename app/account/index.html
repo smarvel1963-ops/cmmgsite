@@ -99,7 +99,7 @@ function draw() {
     const cur = SHELL.theme() || "";
     h = `<div class="g3"><div class="box"><h3>SPORT THEME</h3><p class="game" style="margin:0 0 10px">The background behind every page. Sports only.</p>
         <div class="th">${[["", "CMMG classic"], ...Object.entries(SHELL.THEMES)].map(([k, n]) => `<button data-thm="${k}" class="${k === cur ? "on" : ""}" style="background:${THEME_BG[k]}">${E(n)}</button>`).join("")}</div></div>
-      <div class="box"><h3>VIEW</h3><div class="field"><span>Today's Picks opens in</span><select id="view"><option value="simple">Simple view (cards)</option><option value="advanced">Advanced view (table)</option></select></div>
+      <div class="box"><h3>VIEW</h3><div class="field"><span>Pro Track opens in</span><select id="view"><option value="simple">Simple view (cards)</option><option value="advanced">Advanced view (table)</option></select></div>
         <label class="sw"><span>Show the lion loading screen</span><span class="tog"><input type="checkbox" id="spl" ${ls("cmmg.nosplash") === "1" ? "" : "checked"}><i></i></span></label>
         <p class="game" style="margin:8px 0 0">All times are Central Time (CT).</p></div></div>`;
   } else if (TAB === "app") {

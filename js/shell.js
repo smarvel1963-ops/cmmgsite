@@ -13,6 +13,15 @@ const SHELL = (() => {
                              ["account", "⚙️", "Settings & Membership", "/app/account/"]]],
   ];
   const SOON = { scores: 1, game: 1, results: 1, teams: 1 };
+  // STORE MODE (Google Play payments rule): when the app was opened from the Play Store build (start URL ?src=play, or
+  // launched by the Android app), every link to the paid plans is hidden - members who pay elsewhere just sign in.
+  // Remembered for the browser session so it holds on every page.
+  let STORE = false;
+  try {
+    if (/[?&]src=play\b/.test(location.search) || String(document.referrer).startsWith("android-app://")) sessionStorage.setItem("cmmg.store", "play");
+    STORE = sessionStorage.getItem("cmmg.store") === "play";
+  } catch (e) { STORE = /[?&]src=play\b/.test(location.search); }
+  if (STORE) document.documentElement.classList.add("store-play");
   const E = CMMG.esc;
   function plan(s) {
     if (!s) return { key: "out", name: "SIGNED OUT", paid: false };
@@ -79,5 +88,5 @@ const SHELL = (() => {
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, UPGRADE, DISCORD };
+  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE };
 })();

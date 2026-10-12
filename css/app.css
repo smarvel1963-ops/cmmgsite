@@ -132,3 +132,6 @@ dialog input { width:100%; padding:9px; border-radius:8px; border:1px solid var(
 .card .tag.ICE { box-shadow:0 0 14px rgba(127,216,255,.45), inset 0 0 8px rgba(127,216,255,.18); }
 .card .tag.EDGE { box-shadow:0 0 14px rgba(34,197,94,.45), inset 0 0 8px rgba(34,197,94,.18); }
 .card .tag.FIRE { box-shadow:0 0 14px rgba(255,90,43,.5), inset 0 0 8px rgba(255,90,43,.2); }
+
+/* STORE MODE (Play build): no links to paid plans anywhere in the app */
+html.store-play a[href*="winible.com"], html.store-play .buy { display:none !important; }

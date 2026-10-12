@@ -31,8 +31,11 @@
         <li><span><b>Android (Chrome):</b> tap <b>📲 Install app</b> at the top, or menu <b>⋮</b> → <b>Install app</b>.</span></li>
         <li><span><b>Computer (Chrome / Edge):</b> click the install icon at the right end of the address bar.</span></li>
       </ul><p id="installed" style="color:#86efac;font-size:13px;margin:8px 0 0;display:none">✅ You're using the installed app.</p></div>
-    <div class="box"><h3>PRIVACY</h3>
-      <p style="color:var(--dim);font-size:13px;margin:0">We keep your Discord ID, name and picture, plus the picks you track. Your tracker is only visible to you. We never see your Discord password, and the site never posts to Discord for you. To have your data removed, email <a href="mailto:smarvel1963@gmail.com" style="color:var(--ice)">smarvel1963@gmail.com</a>.</p></div>
+    <div class="box" id="privacy"><h3>PRIVACY</h3>
+      <p style="color:var(--dim);font-size:13px;margin:0">We keep your Discord ID, name and picture, plus the picks you track. Your tracker is only visible to you. We never see your Discord password, and the site never posts to Discord for you. Delete it yourself below, or email <a href="mailto:smarvel1963@gmail.com" style="color:var(--ice)">smarvel1963@gmail.com</a>.</p></div>
+    <div class="box" id="delete"><h3>DELETE MY ACCOUNT &amp; DATA</h3>
+      <p style="color:var(--dim);font-size:13px;margin:0 0 10px">Removes everything CMMG stores about you: your tracked picks. Your Discord account and Discord roles are not changed. This can't be undone.</p>
+      <div id="delBox"></div></div>
   </main>
   <aside class="side"><div id="account"></div></aside>
 </div>
@@ -70,6 +73,21 @@ const v = document.getElementById("view");
 try { v.value = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
 v.addEventListener("change", () => { try { localStorage.setItem("cmmg.view", v.value); } catch (e) {} });
 SHELL.mount("account"); draw();
+function drawDelete() {
+  const el = document.getElementById("delBox"), s = CMMG.session();
+  el.innerHTML = s ? `<button class="btn ghost" id="delBtn" style="color:#fca5a5;border-color:rgba(252,165,165,.5)">Delete my account &amp; data</button>`
+    : `<p style="font-size:13px;margin:0">Sign in with Discord first, then come back here to delete your data.</p><button class="btn disc" data-signin style="margin-top:8px">Continue with Discord</button>`;
+}
+drawDelete();
+document.addEventListener("click", async e => {
+  if (!e.target.closest("#delBtn")) return;
+  const el = document.getElementById("delBox");
+  if (!el.dataset.sure) { el.dataset.sure = "1"; el.insertAdjacentHTML("beforeend", `<p style="color:#fca5a5;font-size:13px;margin:8px 0 0">Tap again to confirm. Your tracked picks will be deleted.</p>`); return; }
+  const s = CMMG.session(); let j;
+  try { j = await CMMG.relay({ task: "forget", session: s.token }); } catch (err) { j = { ok: false, error: "Couldn't reach CMMG. Try again." }; }
+  if (j.ok) { CMMG.signOut(); el.innerHTML = `<p style="color:#86efac;margin:0">✅ Done. Your CMMG data is deleted and you're signed out.</p>`; SHELL.who(); }
+  else el.insertAdjacentHTML("beforeend", `<p style="color:#fca5a5;font-size:13px">${CMMG.esc(j.error || "Couldn't delete. Try again.")}</p>`);
+});
 if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) document.getElementById("installed").style.display = "block";
 </script>
 </body></html>

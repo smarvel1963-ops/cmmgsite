@@ -67,19 +67,16 @@ const SHELL = (() => {
     } catch (e) {}
     return false;
   }
-  // FAVOURITE-TEAM THEME (Scott 10/11 perk idea): the member's chosen team's colours wash the app background - colours
-  // only, never a logo. Saved on this device.
-  function theme() { try { return JSON.parse(localStorage.getItem("cmmg.theme") || "null"); } catch (e) { return null; } }
+  // SPORT THEME (Scott 10/11: "stick to sports themes no team or person themes"): the member picks a sport and the app
+  // background becomes that sport's playing surface, drawn in CSS (css/app.css .theme-*). Never a team or a player.
+  const THEMES = { fb: "Football field", bb: "Basketball court", base: "Baseball diamond", hk: "Hockey rink", soc: "Soccer pitch", ten: "Tennis court" };
+  function theme() { try { const t = localStorage.getItem("cmmg.sporttheme"); return THEMES[t] ? t : null; } catch (e) { return null; } }
   function applyTheme() {
-    const t = theme(), ok = c => /^[0-9a-f]{6}$/i.test(c || "");
-    document.getElementById("teamTheme")?.remove();
-    if (!t || !ok(t.color)) return;
-    const a = "#" + t.color, b = ok(t.alt) ? "#" + t.alt : a;
-    document.head.insertAdjacentHTML("beforeend", `<style id="teamTheme">body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-      background:radial-gradient(900px 520px at 88% -6%, ${a}55, transparent 64%), radial-gradient(700px 420px at 0% 100%, ${b}33, transparent 62%); }
-      .top { box-shadow:inset 0 -2px 0 ${a}aa; }</style>`);
+    try { localStorage.removeItem("cmmg.theme"); } catch (e) {}          // retired team-colour theme (10/11)
+    Object.keys(THEMES).forEach(k => document.body.classList.remove("theme-" + k));
+    const t = theme(); if (t) document.body.classList.add("theme-" + t);
   }
-  function setTheme(t) { try { t ? localStorage.setItem("cmmg.theme", JSON.stringify(t)) : localStorage.removeItem("cmmg.theme"); } catch (e) {} applyTheme(); }
+  function setTheme(t) { try { t ? localStorage.setItem("cmmg.sporttheme", t) : localStorage.removeItem("cmmg.sporttheme"); } catch (e) {} applyTheme(); }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
@@ -128,5 +125,5 @@ const SHELL = (() => {
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE, theme, setTheme };
+  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
 })();

@@ -89,7 +89,7 @@ function pickFor(g) { return DAY === 0 ? PICKS.find(p => p.sport === g.league &&
 function draw() {
   const sp = $("fSport").value, q = norm($("fQ").value), mineOnly = $("fMine").checked;
   const vis = GAMES.filter(g => (!sp || g.league === sp) && (!q || g.teams.some(t => norm(t.name).includes(q) || norm(t.abbr).includes(q))) && (!mineOnly || g.teams.some(t => FAV[t.id])));
-  const favs = Object.entries(FAV);
+  const favs = Object.entries(FAV).filter(([id]) => !id.startsWith("P:"));
   $("favBox").style.display = favs.length ? "" : "none";
   $("favs").innerHTML = favs.map(([id, f]) => `<span>${ICON.sport(id.split(":")[0])} ${E(f.name)} <button class="star on" data-star="${E(id)}" title="Unfollow">★</button></span>`).join("");
   const secs = LEAGUES.map(([k]) => [k, vis.filter(g => g.league === k).sort((a, b) => a.date.localeCompare(b.date))]).filter(([, gs]) => gs.length);

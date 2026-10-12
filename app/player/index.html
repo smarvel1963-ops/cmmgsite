@@ -1,0 +1,127 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/player/index.html
+     Player page (Scott's design list #5, 10/11 "Dak Prescott" mockup): header (name, #, position, team badge, Follow),
+     key season tiles, tabs Overview (season stats, trend chart from the game log, next game, CMMG prop picks on this
+     player today) / Game Log / Bio. ?l=NFL&id=<espn athlete id>; reached from the team page roster. No player photo or
+     team logo (likeness / trademark) - initials + team colours. No invented ranks or projections (ESPN gives none). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.thero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:20px; margin-bottom:12px; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+.ini { flex:0 0 auto; width:92px; height:92px; border-radius:50%; display:grid; place-items:center; font-family:Saira; font-weight:800; font-size:32px; border:4px solid; }
+.thero h1 { font-size:clamp(26px, 4.5vw, 44px); font-style:italic; margin:0; line-height:1; text-transform:uppercase; }
+.thero .sub2 { color:#c9dcef; margin-top:6px; font-size:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.thero .fol { margin-left:auto; }
+.tiles2 { display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px; margin-bottom:12px; }
+.tiles2 div { text-align:center; padding:12px 6px; } .tiles2 b { display:block; font-family:Saira; font-weight:800; font-size:24px; } .tiles2 span { font-size:11px; color:var(--dim); letter-spacing:.06em; }
+.tabs2 { display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; scrollbar-width:none; } .tabs2::-webkit-scrollbar { display:none; }
+.tabs2 button { flex:0 0 auto; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:10px; padding:8px 16px; font-weight:800; font-size:13px; }
+.tabs2 button.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); color:#fff; border-color:#3b82f6; box-shadow:0 0 14px rgba(59,130,246,.45); }
+.g2 { display:grid; grid-template-columns:1.3fr 1fr; gap:12px; } @media (max-width:900px) { .g2 { grid-template-columns:1fr; } } .g2 > * { min-width:0; }
+.wl { font-weight:900; } .wl.W { color:#4ade80; } .wl.L { color:#f87171; }
+.trend button { background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:8px; padding:5px 10px; font-weight:800; font-size:12px; margin:0 4px 6px 0; }
+.trend button.on { background:#1d4ed8; color:#fff; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main"><div id="root"><div class="empty">Loading…</div></div></main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), qs = new URLSearchParams(location.search);
+const PATHS = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
+  WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const FAMS = { NFL: "fb", NCAAF: "fb", NBA: "bb", NCAAB: "bb", WNBA: "bb", MLB: "base", NHL: "hk", MLS: "soc" };
+const L = qs.get("l"), ID = qs.get("id"), KEY = `P:${L}:${ID}`;
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const norm = s => String(s || "").toLowerCase();
+let TAB = "over", A = null, OV = null, GL = null, TEAM = null, PICKS = [], TR = 0, FAV = {};
+try { FAV = JSON.parse(localStorage.getItem("cmmg.favs") || "{}") || {}; } catch (e) {}
+
+async function load() {
+  const path = PATHS[L]; if (!path || !ID) { $("root").innerHTML = `<div class="empty">Open a player from a team page roster.</div>`; return; }
+  const B = `https://site.web.api.espn.com/apis/common/v3/sports/${path}/athletes/${encodeURIComponent(ID)}`;
+  const [a, ov, gl, pj] = await Promise.all([fetch(B).then(r => r.json()).catch(() => ({})), fetch(B + "/overview").then(r => r.json()).catch(() => ({})),
+    fetch(B + "/gamelog").then(r => r.json()).catch(() => ({})), CMMG.relay({ task: "picks", session: CMMG.session()?.token }).catch(() => ({}))]);
+  A = a.athlete; OV = ov; GL = gl; PICKS = pj && pj.ok ? pj.picks || [] : [];
+  if (!A) { $("root").innerHTML = `<div class="empty">Couldn't load this player.</div>`; return; }
+  if (A.team?.id) TEAM = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/teams/${A.team.id}`).then(r => r.json()).then(j => j.team).catch(() => null);
+  document.title = `${A.displayName} · CMMG Sports Edge`;
+  draw();
+}
+
+function season() { const s = OV?.statistics; if (!s) return null; const row = (s.splits || []).find(x => /regular/i.test(x.displayName)) || (s.splits || [])[0];
+  return row ? { labels: s.labels || [], names: s.displayNames || s.labels || [], vals: row.stats || [] } : null; }
+function logRows() {   // newest first: {date, opp, atVs, result, score, stats[]}
+  if (!GL || !GL.events) return [];
+  const evs = (GL.seasonTypes || []).flatMap(st => (st.categories || []).flatMap(c => c.events || []));
+  return evs.map(x => { const ev = GL.events[x.eventId] || {}; return { id: x.eventId, date: ev.gameDate, opp: ev.opponent?.abbreviation || "", atVs: ev.atVs || "", result: ev.gameResult || "", score: ev.score || "", stats: x.stats || [] }; })
+    .filter(r => r.date).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function trend(rows, labels) {
+  const pick = labels.map((l, i) => [l, i]).filter(([l]) => ["YDS", "PTS", "REB", "AST", "TD", "H", "HR", "RBI", "G", "SOG", "K", "SV"].includes(l));
+  const uniq = []; pick.forEach(p => { if (!uniq.some(u => u[0] === p[0])) uniq.push(p); });
+  if (!uniq.length || rows.length < 2) return `<p class="game">The trend appears after a couple of games.</p>`;
+  const [lab, idx] = uniq[Math.min(TR, uniq.length - 1)];
+  const pts = rows.slice(0, 10).reverse().map(r => ({ v: parseFloat(String(r.stats[idx]).replace(/,/g, "")) || 0, l: r.opp }));
+  const W = 600, H = 170, P = 24, hi = Math.max(1, ...pts.map(p => p.v)), X = i => P + i * (W - 2 * P) / Math.max(1, pts.length - 1), Y = v => H - P - v * (H - 2 * P) / hi;
+  return `<div class="trend">${uniq.map(([l], i) => `<button data-tr="${i}" class="${i === Math.min(TR, uniq.length - 1) ? "on" : ""}">${E(l)}</button>`).join("")}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%"><path d="${pts.map((p, i) => (i ? "L" : "M") + X(i) + " " + Y(p.v)).join(" ")}" fill="none" stroke="#3ba9ff" stroke-width="2.6" style="filter:drop-shadow(0 0 4px #3ba9ff)"/>
+    ${pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p.v)}" r="4" fill="#3ba9ff"/><text x="${X(i)}" y="${Y(p.v) - 9}" text-anchor="middle" font-size="12" font-weight="800" fill="#e8f4ff" font-family="Saira">${p.v}</text><text x="${X(i)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="#8fb0cc">${E(p.l)}</text>`).join("")}</svg>`;
+}
+
+function draw() {
+  const c = TEAM?.color || A.team?.color, alt = TEAM?.alternateColor, fav = !!FAV[KEY];
+  const ini = (A.firstName?.[0] || "") + (A.lastName?.[0] || "");
+  const s = season(), rows = logRows(), labels = GL?.labels || s?.labels || [];
+  let html = `<p style="margin:0 0 10px"><a href="javascript:history.back()" style="color:var(--ice);font-size:13px">‹ Back</a></p>
+    <div class="thero sb-${FAMS[L] || "other"}">
+      <div class="ini" style="background:${hex(c)};color:${lum(c) > 150 ? "#0b1220" : "#fff"};border-color:${hex(alt)}">${E(ini)}</div>
+      <div><h1>${E(A.displayName)}</h1><div class="sub2">${A.displayJersey ? E(A.displayJersey) + " · " : ""}${E(A.position?.displayName || A.position?.abbreviation || "")}
+        ${TEAM ? `· <a href="/app/team/?l=${L}&id=${encodeURIComponent(TEAM.id)}" style="color:#e8f4ff">${E(TEAM.displayName)}</a>` : ""} · ${ICON.sport(L)} ${E(L)}</div></div>
+      <button class="btn ${fav ? "pro" : "ghost"} fol" data-follow>${fav ? "★ Following" : "☆ Follow player"}</button></div>`;
+  if (s) html += `<div class="tiles2">${s.labels.slice(0, 8).map((l, i) => `<div class="glass box" style="margin:0"><b>${E(s.vals[i] ?? "—")}</b><span>${E(s.names[i] || l)}</span></div>`).join("")}</div>`;
+  html += `<div class="tabs2">${[["over", "Overview"], ["log", "Game Log"], ["bio", "Bio"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("")}</div>`;
+  if (TAB === "over") {
+    const ng = OV?.nextGame, last = A.lastName || "";
+    const props = PICKS.filter(p => p.sport === L && !p.locked && last.length > 2 && norm(p.bet).includes(norm(last)));
+    html += `<div class="g2"><div><div class="box"><h3>SEASON TREND (LAST 10)</h3>${trend(rows, labels)}</div>
+      <div class="box"><h3>RECENT GAMES</h3>${rows.length ? gameTable(rows.slice(0, 5), labels) : `<p class="game">No games played yet.</p>`}</div></div>
+      <div><div class="box"><h3>NEXT GAME</h3>${ng?.events?.[0] ? nextGame(ng.events[0]) : `<p class="game">No game scheduled.</p>`}</div>
+      <div class="box"><h3>CMMG PROP PICKS</h3>${props.length ? props.map(p => `<div class="row"><span>${TIER_ICON[p.tier] || ""} <b>${E(p.bet)}</b><div class="game">${E(p.game)} · ${E(p.book || "")}</div></span><span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result[0])}</span>` : E(p.odds > 0 ? "+" + p.odds : p.odds)}</span></div>`).join("")
+        : `<p class="game">No CMMG prop pick on ${E(A.displayName)} today.</p>`}</div></div></div>`;
+  } else if (TAB === "log") {
+    html += `<div class="box"><h3>GAME LOG</h3>${rows.length ? gameTable(rows, labels) : `<p class="game">No games played yet.</p>`}</div>`;
+  } else {
+    const bio = [["Age", A.age], ["Height", A.displayHeight], ["Weight", A.displayWeight], ["Born", A.displayBirthPlace], ["College", A.college?.name], ["Experience", A.displayExperience], ["Draft", A.displayDraft]].filter(([, v]) => v);
+    html += `<div class="box"><h3>BIO</h3>${bio.map(([k, v]) => `<div class="row"><span>${k}</span><b>${E(v)}</b></div>`).join("")}</div>`;
+  }
+  $("root").innerHTML = html;
+}
+function gameTable(rows, labels) {
+  const n = Math.min(labels.length, 9);
+  return `<div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>OPP</th><th>RESULT</th>${labels.slice(0, n).map(l => `<th>${E(l)}</th>`).join("")}</tr>` + rows.map(r => `<tr>
+    <td style="white-space:nowrap">${new Date(r.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td><td>${E(r.atVs === "@" ? "@ " : "vs ")}${E(r.opp)}</td>
+    <td style="white-space:nowrap"><span class="wl ${E(r.result)}">${E(r.result)}</span> ${E(r.score)}</td>${r.stats.slice(0, n).map(v => `<td>${E(v)}</td>`).join("")}</tr>`).join("") + `</table></div>`;
+}
+function nextGame(ev) {
+  const c = (ev.competitions || [ev])[0] || {}, cs = c.competitors || [];
+  const nm = cs.map(x => x.team?.abbreviation).filter(Boolean).join(" vs ") || ev.shortName || "";
+  const d = ev.date ? new Date(ev.date).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " CT" : "";
+  return `<a class="row" style="text-decoration:none" href="/app/game/?l=${L}&id=${encodeURIComponent(ev.id)}"><span><b>${E(ev.shortName || nm)}</b><div class="game">${E(d)}</div></span><span style="color:var(--ice)">Game Center →</span></a>`;
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab]"); if (t) { TAB = t.dataset.tab; draw(); return; }
+  const tr = e.target.closest("[data-tr]"); if (tr) { TR = Number(tr.dataset.tr); draw(); return; }
+  if (e.target.closest("[data-follow]")) { if (FAV[KEY]) delete FAV[KEY]; else FAV[KEY] = { name: A.displayName, player: true }; try { localStorage.setItem("cmmg.favs", JSON.stringify(FAV)); } catch (err) {} draw(); }
+});
+SHELL.mount("teams"); load();
+</script>
+</body></html>

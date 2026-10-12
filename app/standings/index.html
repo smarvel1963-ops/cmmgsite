@@ -44,7 +44,7 @@ const SPORTS = [  // [key, espn path, columns [label, stat abbreviation]]
   ["WNBA", "basketball/wnba", [["W", "W"], ["L", "L"], ["PCT", "PCT"], ["GB", "GB"], ["PPG", "PPG"], ["OPP", "OPP PPG"], ["STRK", "STRK"]]],
   ["MLS", "soccer/usa.1", [["GP", "GP"], ["W", "W"], ["D", "D"], ["L", "L"], ["PTS", "P"], ["GF", "F"], ["GA", "A"], ["GD", "GD"]]],
 ];
-let CUR = "NFL", CACHE = {}, FAV = {}, THEME = SHELL.theme();
+let CUR = "NFL", CACHE = {}, FAV = {};
 try { CUR = localStorage.getItem("cmmg.stsport") || "NFL"; FAV = JSON.parse(localStorage.getItem("cmmg.favs") || "{}") || {}; } catch (e) {}
 const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
 const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
@@ -73,7 +73,7 @@ async function load() {
   el.innerHTML = confs.map(cf => `${confs.length > 1 || groups.length > 1 ? `<div class="conf">${E(cf || "")}</div>` : ""}<div class="cols2">` + groups.filter(g => g.conf === cf).map(g => {
     const rows = g.entries.slice().sort((a, b) => (Number(stat(a, "SEED")) || 99) - (Number(stat(b, "SEED")) || 99));
     return `<div class="box"><h3>${E(g.name)}</h3><div style="overflow-x:auto"><table class="rt st2"><tr><th>TEAM</th>${cols.map(([l]) => `<th>${l}</th>`).join("")}</tr>` +
-      rows.map(en => { const t = en.team, id = `${key}:${t.id}`, fav = FAV[id] || (THEME && THEME.key === id);
+      rows.map(en => { const t = en.team, id = `${key}:${t.id}`, fav = FAV[id];
         return `<tr class="${fav ? "fav" : ""}"><td><a class="tn" href="/app/team/?l=${key}&id=${encodeURIComponent(t.id)}">${FAV[id] ? "★" : ""}${badge(t)}<span>${E(t.shortDisplayName || t.displayName)}</span></a></td>` +
           cols.map(([l, ab]) => { const v = stat(en, ab); return `<td class="${(l === "DIFF" || l === "GD") ? (String(v).startsWith("+") ? "pos" : String(v).startsWith("-") ? "neg" : "") : ""}">${E(v)}</td>`; }).join("") + `</tr>`; }).join("") + `</table></div></div>`;
   }).join("") + `</div>`).join("");

@@ -234,3 +234,14 @@ h1 { font-weight:800; letter-spacing:.01em; } h3, .side h3, .box h3 { font-weigh
   #installBtn { padding:6px 10px; font-size:12px; }
   .layout { padding:12px; }
 }
+
+/* SPORT THEMES (Settings > Display). Fixed, faint playing-surface drawings behind every page - sports only. */
+body[class*="theme-"]::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.55; }
+body.theme-fb::before { background: repeating-linear-gradient(90deg, transparent 0 9.5%, rgba(255,255,255,.07) 9.5% 9.7%), radial-gradient(1000px 600px at 50% 0%, rgba(22,163,74,.28), transparent 70%), linear-gradient(180deg, rgba(20,83,45,.35), transparent 70%); }
+body.theme-bb::before { background: radial-gradient(circle at 50% 42%, transparent 120px, rgba(255,255,255,.08) 121px 124px, transparent 125px), linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.07) 49.9% 50.1%, transparent 50.1%), radial-gradient(1000px 600px at 50% 0%, rgba(234,88,12,.28), transparent 70%); }
+body.theme-base::before { background: radial-gradient(700px 500px at 50% 110%, rgba(180,120,60,.28), transparent 65%), repeating-linear-gradient(135deg, transparent 0 40px, rgba(255,255,255,.035) 40px 80px), radial-gradient(1000px 600px at 50% 0%, rgba(29,78,216,.25), transparent 70%); }
+body.theme-hk::before { background: linear-gradient(90deg, transparent 49.8%, rgba(220,38,38,.22) 49.8% 50.2%, transparent 50.2%), linear-gradient(90deg, transparent 30%, rgba(147,197,253,.14) 30% 30.6%, transparent 30.6% 69.4%, rgba(147,197,253,.14) 69.4% 70%, transparent 70%), radial-gradient(1000px 600px at 50% 0%, rgba(147,197,253,.22), transparent 70%); }
+body.theme-soc::before { background: radial-gradient(circle at 50% 45%, transparent 110px, rgba(255,255,255,.08) 111px 114px, transparent 115px), repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 6%, transparent 6% 12%), radial-gradient(1000px 600px at 50% 0%, rgba(22,163,74,.28), transparent 70%); }
+body.theme-ten::before { background: linear-gradient(0deg, transparent 20%, rgba(255,255,255,.07) 20% 20.4%, transparent 20.4% 79.6%, rgba(255,255,255,.07) 79.6% 80%, transparent 80%), linear-gradient(90deg, transparent 49.9%, rgba(255,255,255,.09) 49.9% 50.1%, transparent 50.1%), radial-gradient(1000px 600px at 50% 0%, rgba(132,204,22,.24), transparent 70%); }
+/* team / player page heroes use their SPORT's surface (never team colours) */
+.thero.sb-fb, .thero.sb-bb, .thero.sb-hk, .thero.sb-base, .thero.sb-soc, .thero.sb-ten, .thero.sb-other, .thero.sb-fight, .thero.sb-golf { box-shadow:inset 0 0 0 999px rgba(5,11,22,.45); }

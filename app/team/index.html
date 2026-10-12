@@ -38,6 +38,7 @@ const E = CMMG.esc, $ = id => document.getElementById(id), qs = new URLSearchPar
 const PATHS = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
   WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
 const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const FAMS = { NFL: "fb", NCAAF: "fb", NBA: "bb", NCAAB: "bb", WNBA: "bb", MLB: "base", NHL: "hk", MLS: "soc" };
 const L = qs.get("l"), ID = qs.get("id"), KEY = `${L}:${ID}`;
 const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
 const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
@@ -45,14 +46,14 @@ const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${l
 const dt = iso => new Date(iso).toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 const tm = iso => new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT";
 const norm = s => String(s || "").toLowerCase();
-let TAB = "over", TEAM = null, SCHED = [], STATS = [], PICKS = [], CM = null, FAV = {};
+let TAB = "over", TEAM = null, SCHED = [], STATS = [], ROSTER = [], PICKS = [], CM = null, FAV = {};
 try { FAV = JSON.parse(localStorage.getItem("cmmg.favs") || "{}") || {}; } catch (e) {}
 
 async function load() {
   const path = PATHS[L]; if (!path || !ID) { $("root").innerHTML = `<div class="empty">Pick a team from <a href="/app/schedule/" style="color:var(--ice)">Schedules</a> or a game.</div>`; return; }
   const base = `https://site.api.espn.com/apis/site/v2/sports/${path}/teams/${encodeURIComponent(ID)}`;
-  const [t, s, st, pj, cm] = await Promise.all([fetch(base).then(r => r.json()).catch(() => ({})), fetch(base + "/schedule").then(r => r.json()).catch(() => ({})),
-    fetch(base + "/statistics").then(r => r.json()).catch(() => ({})), CMMG.relay({ task: "picks", session: CMMG.session()?.token }).catch(() => ({})),
+  const [t, s, st, ro, pj, cm] = await Promise.all([fetch(base).then(r => r.json()).catch(() => ({})), fetch(base + "/schedule").then(r => r.json()).catch(() => ({})),
+    fetch(base + "/statistics").then(r => r.json()).catch(() => ({})), fetch(base + "/roster").then(r => r.json()).catch(() => ({})), CMMG.relay({ task: "picks", session: CMMG.session()?.token }).catch(() => ({})),
     CMMG.relay({ task: "results" }).catch(() => ({}))]);
   TEAM = t.team; if (!TEAM) { $("root").innerHTML = `<div class="empty">Couldn't load this team.</div>`; return; }
   SCHED = (s.events || []).map(e => { const c = e.competitions[0], me = c.competitors.find(x => String(x.team.id) === String(ID)), op = c.competitors.find(x => x !== me) || {};
@@ -60,6 +61,8 @@ async function load() {
     return { id: e.id, date: e.date, state: c.status?.type?.state, home: me?.homeAway === "home", opp: op.team || {}, my: sc(me), their: sc(op), win: me?.winner,
       tv: [...new Set((c.broadcasts || []).map(b => b.media?.shortName).filter(Boolean))].join(", ") }; });
   STATS = st?.results?.stats?.categories || [];
+  const ath = ro.athletes || [];   // NFL/NBA: groups with items; some leagues: flat list
+  ROSTER = ath.length && ath[0].items ? ath.flatMap(g => (g.items || []).map(x => ({ ...x, grp: g.position || "" }))) : ath;
   PICKS = pj && pj.ok ? pj.picks || [] : []; CM = cm && cm.published ? cm.picks || [] : null;
   document.title = `${TEAM.displayName} · CMMG Sports Edge`;
   draw();
@@ -86,14 +89,13 @@ function statTiles(limit) {
 function draw() {
   const fav = !!FAV[KEY], c = TEAM.color;
   let html = `<p style="margin:0 0 10px"><a href="javascript:history.back()" style="color:var(--ice);font-size:13px">‹ Back</a></p>
-    <div class="thero glass" style="background:linear-gradient(110deg, ${hex(c)}55, rgba(5,11,22,.95) 55%), #070f1d">
+    <div class="thero sb-${FAMS[L] || "other"}">
       <div class="bigb" style="background:${hex(c)};color:${lum(c) > 150 ? "#0b1220" : "#fff"};border-color:${hex(TEAM.alternateColor)}">${E(TEAM.abbreviation)}</div>
       <div><h1>${E(TEAM.displayName)}</h1><div class="sub2">${ICON.sport(L)} ${E(L)}${TEAM.standingSummary ? " · " + E(TEAM.standingSummary) : ""}</div></div>
-      <div class="fol" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ${fav ? "pro" : "ghost"}" data-follow><span class="star2">${fav ? "★" : "☆"}</span> ${fav ? "Following" : "Follow"}</button>
-      <button class="btn ghost" data-theme>${SHELL.theme() && SHELL.theme().key === KEY ? "Remove my theme" : "Use as my app theme"}</button></div></div>
+      <div class="fol" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ${fav ? "pro" : "ghost"}" data-follow><span class="star2">${fav ? "★" : "☆"}</span> ${fav ? "Following" : "Follow"}</button></div></div>
     <div class="recs"><div class="glass box" style="margin:0"><b>${E(rec("total"))}</b><span>RECORD</span></div><div class="glass box" style="margin:0"><b>${E(rec("home"))}</b><span>HOME</span></div>
       <div class="glass box" style="margin:0"><b>${E(rec("road") !== "—" ? rec("road") : rec("away"))}</b><span>AWAY</span></div><div class="glass box" style="margin:0"><b>${streak()}</b><span>STREAK</span></div></div>
-    <div class="tabs2">${[["over", "Overview"], ["sched", "Schedule"], ["picks", "Picks"], ["stats", "Stats"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("")}</div>`;
+    <div class="tabs2">${[["over", "Overview"], ["sched", "Schedule"], ["roster", "Roster"], ["picks", "Picks"], ["stats", "Stats"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("")}</div>`;
   const now = new Date().toISOString();
   const next = SCHED.filter(g => g.state !== "post").sort((a, b) => a.date.localeCompare(b.date));
   const past = SCHED.filter(g => g.state === "post").sort((a, b) => b.date.localeCompare(a.date));
@@ -103,6 +105,11 @@ function draw() {
       <div class="box"><h3>TEAM STATS (SEASON)</h3>${statTiles(2)}</div>`;
   } else if (TAB === "sched") {
     html += `<div class="box"><h3>FULL SCHEDULE</h3>${SCHED.slice().sort((a, b) => a.date.localeCompare(b.date)).map(gameRow).join("") || `<p class="game">No schedule yet.</p>`}</div>`;
+  } else if (TAB === "roster") {
+    const grp = g => ({ offense: "Offense", defense: "Defense", specialTeam: "Special teams", injuredReserveOrOut: "Injured / out", practiceSquad: "Practice squad" }[g] || g);
+    const groups = [...new Set(ROSTER.map(x => x.grp || ""))];
+    html += groups.map(g => `<div class="box"><h3>${E(grp(g) || "ROSTER").toUpperCase()}</h3>${ROSTER.filter(x => (x.grp || "") === g).map(x => `<a class="row" style="text-decoration:none" href="/app/player/?l=${L}&id=${encodeURIComponent(x.id)}">
+      <span><b>${E(x.displayName || x.fullName || "")}</b><div class="game">${x.jersey ? "#" + E(x.jersey) + " · " : ""}${E(x.position?.abbreviation || "")}</div></span><span style="color:var(--ice)">›</span></a>`).join("")}</div>`).join("") || `<div class="empty">No roster listed.</div>`;
   } else if (TAB === "picks") {
     const today = PICKS.filter(p => p.sport === L && !p.locked && onTeam(p.game));
     const hist = CM ? CM.filter(p => p.sport === L && onTeam(p.game)).sort((a, b) => String(b.date).localeCompare(String(a.date))) : null;
@@ -117,11 +124,6 @@ function draw() {
 
 document.addEventListener("click", e => {
   const t = e.target.closest("[data-tab]"); if (t) { e.preventDefault(); TAB = t.dataset.tab; draw(); return; }
-  if (e.target.closest("[data-theme]")) {
-    const cur = SHELL.theme();
-    SHELL.setTheme(cur && cur.key === KEY ? null : { key: KEY, name: TEAM.displayName, abbr: TEAM.abbreviation, color: TEAM.color, alt: TEAM.alternateColor });
-    draw(); return;
-  }
   if (e.target.closest("[data-follow]")) {
     if (FAV[KEY]) delete FAV[KEY]; else FAV[KEY] = { name: TEAM.displayName, color: TEAM.color, alt: TEAM.alternateColor, abbr: TEAM.abbreviation };
     try { localStorage.setItem("cmmg.favs", JSON.stringify(FAV)); } catch (err) {} draw();

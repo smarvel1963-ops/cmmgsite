@@ -59,7 +59,16 @@ const SHELL = (() => {
     setTimeout(done, 5000);                                   // never hold the page longer than this
     el.addEventListener("click", done);
   }
+  function welcomeGate() {   // first visit while signed out -> the welcome / sign-in screen (design list #1)
+    try {
+      if (!CMMG.session() && localStorage.getItem("cmmg.welcomed") !== "1" && !/^\/app\/welcome\//.test(location.pathname)) {
+        location.replace("/app/welcome/"); return true;
+      }
+    } catch (e) {}
+    return false;
+  }
   function mount(active) {
+    if (welcomeGate()) return;
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
     // "Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
     // Home Screen (steps on the Settings page). Hidden once installed.

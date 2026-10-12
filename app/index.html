@@ -20,6 +20,12 @@
 .tiles { grid-template-columns:repeat(6,1fr) !important; } @media (max-width:900px) { .tiles { grid-template-columns:repeat(3,1fr) !important; } }
 .donut { display:flex; gap:12px; align-items:center; } .donut svg { flex:0 0 auto; } .donut .lg { font-size:12px; display:grid; gap:4px; }
 .donut .lg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+.ringw { display:flex; gap:14px; align-items:center; } .ringw b { display:block; font-family:Saira; font-size:26px; } .ringw span { color:var(--dim); font-size:12px; }
+.qa { display:grid; gap:8px; } .qa a { text-decoration:none; font-weight:800; font-size:13px; padding:11px 12px; border-radius:10px; border:1px solid color-mix(in srgb, var(--c) 60%, transparent); background:color-mix(in srgb, var(--c) 14%, transparent); }
+.sl { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
+.sl button { background:none; border:0; color:#fca5a5; font-size:15px; } .slt { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; } .slt div { background:var(--panel2); border-radius:10px; padding:8px; text-align:center; }
+.slt b { display:block; font-family:Saira; font-size:18px; } .slt span { font-size:11px; color:var(--dim); } .addp { margin-top:6px; background:rgba(250,204,21,.12); border:1px solid rgba(250,204,21,.5); color:#fde047; border-radius:8px; padding:5px 10px; font-weight:800; font-size:12px; }
+.addp.in { background:#ca8a04; color:#1f1600; }
 .tp { display:grid; grid-template-columns:20px minmax(0,1fr) auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); }
 .tp .n { font-family:Saira; font-weight:800; color:#ffd700; } .tp b { color:var(--text); font-size:13px; } .tp .tag { font-size:10px; padding:2px 6px; }
 </style>
@@ -27,7 +33,7 @@
 <body>
 <div class="layout">
   <main class="main">
-    <div class="phero"><h1>TODAY'S PICKS</h1><p>DATA DRIVEN. DISCIPLINED. EVERY RESULT POSTED.</p><div class="sub" id="sub">Loading…</div></div>
+    <div class="phero"><h1>PICKS HUB</h1><p>DAILY PICKS. SMARTER DATA. EVERY RESULT POSTED.</p><div class="sub" id="sub">Loading…</div></div>
     <div class="tiles" id="tiles"></div>
     <div class="bar" id="sports"></div>
     <div class="bar">
@@ -39,6 +45,11 @@
 
   <aside class="side">
     <div id="account"></div>
+    <div><h3>TODAY'S RECORD</h3><div id="ring"></div></div>
+    <div id="slipBox"><h3>PARLAY BUILDER <button class="btn ghost" id="slipClear" style="float:right;padding:3px 9px;font-size:11px">Clear</button></h3><div id="slip"></div></div>
+    <div><h3>QUICK ACTIONS</h3><div class="qa">
+      <a href="/app/tools/" style="--c:#22c55e">Parlay &amp; odds calculators</a><a href="/app/scores/" style="--c:#3b82f6">Live scores &amp; momentum</a>
+      <a href="/app/tracker/" style="--c:#a78bfa">My Performance Lab</a><a href="/app/game/" style="--c:#facc15">My Game Center</a></div></div>
     <div><h3>TOP PLAYS TODAY</h3><div id="topPlays" style="font-size:13px;color:var(--dim)">—</div></div>
     <div><h3>PICK TYPES</h3><div id="typeDonut"></div></div>
     <div><h3>UNITS BY TIER</h3><div id="unitDonut"></div></div>
@@ -84,6 +95,8 @@ const gradeBadge = r => RES[r] ? `<div class="grade g-${r}"><span class="hex">${
 const sid = x => "sec-" + String(x || "other").toLowerCase().replace(/[^a-z0-9]/g, "");
 const watch = p => p.tv ? `<div class="tv">${ICON.ui("tv")} ${E(p.tv)}</div>` : "";
 const UPGRADE = SHELL.UPGRADE;
+let SLIP = [], STAKE = 10;
+try { SLIP = JSON.parse(sessionStorage.getItem("cmmg.slip") || "[]") || []; } catch (e) {}
 let PICKS = [], SPORT = "ALL", TIER = "ALL", VIEW = "simple", TOOK = null;
 try { VIEW = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
 const E = CMMG.esc;
@@ -146,7 +159,7 @@ function draw() {
           ${p.note ? `<div class="why">${E(p.note)}</div>` : ""}
           ${p.confidence ? `<div style="font-size:12px;color:var(--dim);margin-top:6px">${E(p.confidence)}% confidence<div class="conf"><i style="width:${Math.max(0, Math.min(100, Number(p.confidence)))}%"></i></div></div>` : ""}</div>
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>
-          ${RES[p.result] ? gradeBadge(p.result) : `<button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button>`}</div></div>`;
+          ${RES[p.result] ? gradeBadge(p.result) : `<button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button><br><button class="addp ${SLIP.includes(p.id) ? "in" : ""}" data-slip="${E(p.id)}">${SLIP.includes(p.id) ? "✓ In parlay" : "+ Parlay"}</button>`}</div></div>`;
   // one section per sport; sections ordered by their best tier, then their earliest game (list is already ICE>EDGE>FIRE, time)
   const groups = [];
   list.forEach(p => { let g = groups.find(x => x.sport === p.sport); if (!g) groups.push(g = { sport: p.sport, picks: [] }); g.picks.push(p); });
@@ -170,7 +183,28 @@ function donut(parts) {   // parts: [[label, value, colour]]
   return `<div class="donut"><svg viewBox="0 0 100 100" width="104" height="104">${arcs}<text x="50" y="49" text-anchor="middle" font-family="Saira" font-weight="800" font-size="18" fill="#e8f4ff">${Math.round(tot * 10) / 10}</text><text x="50" y="62" text-anchor="middle" font-size="8" fill="#8fb0cc">${parts.unit || "PICKS"}</text></svg>
     <div class="lg">${parts.map(([l, v, c]) => `<span><i style="background:${c}"></i>${E(l)} · ${Math.round(v * 10) / 10} (${Math.round(v / tot * 100)}%)</span>`).join("")}</div></div>`;
 }
+function ring() {
+  const g = PICKS.filter(p => p.result && !p.locked && p.result !== "VOID"), w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length;
+  const decO = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+  const u = g.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((decO(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
+  const wr = w + l ? w / (w + l) : 0, C = 2 * Math.PI * 40;
+  document.getElementById("ring").innerHTML = w + l ? `<div class="ringw"><svg viewBox="0 0 100 100" width="104"><circle r="40" cx="50" cy="50" fill="none" stroke="#1e293b" stroke-width="10"/><circle r="40" cx="50" cy="50" fill="none" stroke="${u >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${wr * C} ${C}" transform="rotate(-90 50 50)" style="filter:drop-shadow(0 0 6px ${u >= 0 ? "#22c55e" : "#ef4444"})"/><text x="50" y="57" text-anchor="middle" font-family="Saira" font-weight="800" font-size="20" fill="#e8f4ff">${Math.round(wr * 100)}%</text></svg>
+    <div><b>${w}-${l}</b><span>today, graded</span><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}" style="font-size:20px">${u > 0 ? "+" : ""}${u.toFixed(1)}u</b></div></div>` : `<p class="game" style="margin:0">No graded picks yet today.</p>`;
+}
+function slip() {
+  const legs = SLIP.map(id => PICKS.find(p => p.id === id)).filter(p => p && !p.locked && !p.result);
+  SLIP = legs.map(p => p.id); try { sessionStorage.setItem("cmmg.slip", JSON.stringify(SLIP)); } catch (e) {}
+  const decO = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+  const d = legs.reduce((a, p) => a * (decO(p.odds) || 1), 1), am = d >= 2 ? "+" + Math.round((d - 1) * 100) : String(-Math.round(100 / (d - 1)));
+  document.getElementById("slip").innerHTML = legs.length ? legs.map(p => `<div class="sl"><span><b style="color:var(--text)">${E(p.bet)}</b><div class="game">${E(p.sport)}</div></span><span>${odds(p.odds)}</span><button data-unslip="${E(p.id)}" title="Remove">✕</button></div>`).join("")
+    + (legs.length > 1 ? `<div class="field" style="margin-top:8px"><span>Bet amount ($)</span><input id="slipStake" value="${STAKE}" inputmode="decimal"></div>
+      <div class="slt"><div><b>${am}</b><span>${legs.length}-leg odds</span></div><div><b class="pos">$${(STAKE * d).toFixed(2)}</b><span>Total payout</span></div></div>
+      <p class="game" style="margin:8px 0 0">Every leg must win. Chance all hit at these prices: ${(100 / d).toFixed(1)}%. CMMG plays are posted as straight bets.</p>` : `<p class="game" style="margin:8px 0 0">Add one more pick for a parlay.</p>`)
+    : `<p class="game" style="margin:0">Tap <b>+ Parlay</b> on any open pick to build a slip.</p>`;
+  const st = document.getElementById("slipStake"); if (st) st.oninput = () => { STAKE = Number(st.value) || 0; const t = document.querySelector(".slt b.pos"); if (t) t.textContent = "$" + (STAKE * d).toFixed(2); };
+}
 function side() {
+  ring(); slip();
   const vis = PICKS.filter(p => !p.locked && !p.result);
   const top = vis.slice().sort((a, b) => (TIER_ORDER[a.tier] ?? 9) - (TIER_ORDER[b.tier] ?? 9) || (Number(b.units) || 0) - (Number(a.units) || 0) || String(a.time).localeCompare(String(b.time))).slice(0, 5);
   document.getElementById("topPlays").innerHTML = top.length ? top.map((p, i) => `<div class="tp"><span class="n">${i + 1}</span><span><b>${E(p.bet)}</b><div class="game">${sp(p.sport)} · ${odds(p.odds)}${p.units ? " · " + E(p.units) + "u" : ""}</div></span><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></div>`).join("")
@@ -196,6 +230,9 @@ async function loadTracker() {
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button, a"); if (!t) return;
+  if (t.dataset.slip) { const id = t.dataset.slip; SLIP = SLIP.includes(id) ? SLIP.filter(x => x !== id) : SLIP.concat(id).slice(-12); draw(); return; }
+  if (t.dataset.unslip) { SLIP = SLIP.filter(x => x !== t.dataset.unslip); draw(); return; }
+  if (t.id === "slipClear") { SLIP = []; draw(); return; }
   if (t.dataset.sport) {
     if (VIEW === "simple" && TIER === "ALL" && t.dataset.sport !== "ALL") {        // banner sections: jump, keep the rest
       SPORT = "ALL"; draw(); document.getElementById(sid(t.dataset.sport))?.scrollIntoView({ behavior: "smooth", block: "start" }); return;

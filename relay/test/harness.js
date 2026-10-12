@@ -83,4 +83,17 @@ let mt = post({ task: "mytracker", session: proS });
 check("tracker: graded with MY odds (2u at -120 = +1.67u)", mt.ok && mt.rows[0].result === "WIN" && mt.rows[0].units_pl === 1.67 && mt.summary.won === 1, mt);
 mt = post({ task: "mytracker", session: freeS });
 check("each member sees only their own tracked picks", mt.rows.length === 1 && mt.rows[0].pick === "f1" && mt.rows[0].result === "PENDING");
+
+// v1.1 leak fix
+const leak = post({ task: "track", session: freeS, pick: "t1" });
+check("v1.1: a free member can't track a locked premium pick", leak.ok === false && /members/.test(leak.error), leak);
+check("v1.1: an unknown pick id is refused", post({ task: "track", session: proS, pick: "nope123" }).ok === false);
+post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-12", picks: [ { id: "p9", need: "pro", sport: "NBA", tier: "ICE", game: "LAL @ DEN", bet: "UNDER 224.5", odds: -110 } ] } });
+check("pro member tracks p9", post({ task: "track", session: proS, pick: "p9" }).ok);
+// role lost -> the same uid signs in free: tracked p9 must not show its details
+DISCORD.roles = []; DISCORD.user = { id: "222", username: "vip" };
+const downS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+const mt2 = post({ task: "mytracker", session: downS });
+const r9 = mt2.rows.find(r => r.pick === "p9");
+check("v1.1: My Tracker hides a locked, ungraded pick's game/bet", r9 && r9.game === "" && r9.bet === "", r9);
 console.log(`\n${ok} passed, ${bad} failed`);

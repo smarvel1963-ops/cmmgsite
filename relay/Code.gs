@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1 (Scott 2026-10-11: "lets do it" - the website + app backend).
+ * CMMG SPORTS EDGE RELAY v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
+ * v1.1: "I Took This Pick" only for picks the member may see; My Tracker never shows a locked pick (reviewer finding).
  * One small server for cmmgsports.com (and later the phone app):
  *   1. "Continue with Discord" - the site sends Discord's one-time code (+ PKCE verifier); the relay trades it for
  *      the member's identity, reads the member's ROLES in the CMMG server and turns them into access (DISCORD IS THE
@@ -146,6 +147,11 @@ function track(P, s, req) {
   if (!s) return { ok: false, error: "sign in with Discord first" };
   const id = String(req.pick || "").slice(0, 80);
   if (!/^[A-Za-z0-9_.:-]{1,80}$/.test(id)) return { ok: false, error: "bad pick" };
+  // v1.1 (masterhub-reviewer 10/11): a member can only track a pick they are allowed to SEE - otherwise a free member
+  // could track a locked pick's id and read its details back through My Tracker.
+  const known = feedPicksById(P)[id];
+  if (!known) return { ok: false, error: "that pick isn't on the board" };
+  if (!canSee(s, known.need || "pro") && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
   const num = (v, lo, hi) => { const n = Number(v); return isFinite(n) && n >= lo && n <= hi ? n : null; };
   const lock = LockService.getScriptLock(); lock.waitLock(5000);
   try {
@@ -163,11 +169,11 @@ function track(P, s, req) {
 function myTracker(P, s) {
   if (!s) return { ok: false, error: "sign in with Discord first" };
   const mine = getBig(P, "T_" + s.uid) || [];
-  const h = getBig(P, "F_history"), t = getBig(P, "F_today");
-  const byId = {};
-  [].concat(t && t.data && t.data.picks || [], h && h.data && h.data.picks || []).forEach(function (p) { byId[p.id] = p; });
+  const byId = feedPicksById(P);
   const rows = mine.map(function (m) {
-    const p = byId[m.pick] || {}, res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
+    let p = byId[m.pick] || {};
+    if (p.id && !canSee(s, p.need || "pro") && !p.result) p = { need: p.need, sport: p.sport, tier: p.tier };   // never leak a locked pick
+    const res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
     let pl = null;
     if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
     else if (res === "LOSS") pl = -u; else if (res === "PUSH" || res === "VOID") pl = 0;
@@ -180,6 +186,13 @@ function myTracker(P, s) {
   return { ok: true, rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
+}
+
+// Today's board + graded history, by id (graded history last, so a result wins over today's copy).
+function feedPicksById(P) {
+  const h = getBig(P, "F_history"), t = getBig(P, "F_today"), byId = {};
+  [].concat(t && t.data && t.data.picks || [], h && h.data && h.data.picks || []).forEach(function (p) { byId[p.id] = p; });
+  return byId;
 }
 
 // ---------------------------------------------------------------- storage helpers (Script Properties, chunked)

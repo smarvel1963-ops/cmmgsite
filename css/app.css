@@ -201,3 +201,6 @@ h1 { font-weight:800; letter-spacing:.01em; } h3, .side h3, .box h3 { font-weigh
 .tv .ic, .lockmsg .ic { width:1em; height:1em; }
 .when .ic, .chip .ic { color:#9fd2ff; }
 .layout.wide { grid-template-columns:220px 1fr; } @media (max-width:1150px) { .layout.wide { grid-template-columns:1fr; } }
+.rb { display:inline-block; min-width:28px; text-align:center; font-weight:900; border-radius:7px; padding:4px 6px; font-family:Saira, Inter, sans-serif; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
+.gm[data-go]:hover { background:rgba(127,216,255,.05); }

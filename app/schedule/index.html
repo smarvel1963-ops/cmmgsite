@@ -1,0 +1,118 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/schedule/index.html
+     Schedules & My Teams (storyboard pages 7 + 9): day tabs for the next 7 days, sport filter, every game with time (CT),
+     TV, records and the CMMG pick tag (today's board), a star to follow a team (saved on this device) and a "My teams
+     only" switch. Each game opens My Game Center. Data: ESPN public scoreboard per day in the browser (no date ranges
+     allowed); teams = abbreviation + team-colour badges (no logos). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedules & My Teams · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.days { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:12px; scrollbar-width:none; } .days::-webkit-scrollbar { display:none; }
+.days button { flex:0 0 auto; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:12px; padding:8px 14px; font-weight:800; text-align:center; }
+.days button b { display:block; font-family:Saira; font-size:18px; color:var(--text); } .days button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .days button.on b { color:#06101f; }
+.bar3 { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.bar3 select, .bar3 input[type=search] { padding:9px; border-radius:9px; border:1px solid var(--line); background:#081325; color:var(--text); font:inherit; }
+.bar3 label { display:flex; gap:6px; align-items:center; font-size:13px; color:var(--dim); }
+.ssec { margin-bottom:14px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); }
+.ssec .sh { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line); }
+.ssec .sh b { font-family:Saira; font-style:italic; font-size:20px; } .ssec .sh .ic { width:24px; height:24px; } .ssec .sh small { color:var(--dim); font-weight:800; font-size:12px; }
+.row4 { display:grid; grid-template-columns:96px minmax(0,1fr) minmax(0,auto); gap:12px; align-items:center; padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); cursor:pointer; }
+.row4:hover { background:rgba(127,216,255,.05); } .row4:last-child { border-bottom:0; }
+.row4 .tm2 { display:flex; align-items:center; gap:8px; margin:3px 0; min-width:0; } .row4 .tm2 span.n { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row4 .tm2 small { color:var(--dim); font-size:11px; }
+.star { background:none; border:0; color:#475569; font-size:18px; padding:0 2px; line-height:1; } .star.on { color:#ffd700; text-shadow:0 0 8px rgba(255,215,0,.6); }
+.when2 { font-family:Saira; font-weight:800; font-size:15px; } .when2 small { display:block; font-family:Inter; font-weight:600; font-size:11px; color:var(--dim); }
+.ex2 { display:flex; flex-direction:column; align-items:flex-end; gap:6px; font-size:12px; color:var(--dim); } .ex2 .tag { font-size:11px; padding:3px 8px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:640px) { .row4 { grid-template-columns:70px minmax(0,1fr); } .ex2 { grid-column:1 / -1; flex-direction:row; justify-content:space-between; } }
+.fav { display:flex; gap:8px; flex-wrap:wrap; } .fav span { display:inline-flex; gap:6px; align-items:center; background:rgba(10,22,40,.6); border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:13px; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <h1>Schedules &amp; My Teams</h1>
+    <p class="sub">Every game for the next week, where to watch it, and CMMG picks on today's slate. Tap ☆ to follow a team.</p>
+    <div class="days" id="days"></div>
+    <div class="bar3">
+      <select id="fSport"><option value="">All sports</option></select>
+      <input type="search" id="fQ" placeholder="Search teams">
+      <label><input type="checkbox" id="fMine"> My teams only</label>
+    </div>
+    <div class="box" id="favBox" style="display:none"><h3>MY TEAMS</h3><div class="fav" id="favs"></div></div>
+    <div id="list"><div class="empty">Loading…</div></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const LEAGUES = [["NFL", "football/nfl"], ["NCAAF", "football/college-football"], ["NBA", "basketball/nba"], ["NCAAB", "basketball/mens-college-basketball"],
+  ["WNBA", "basketball/wnba"], ["MLB", "baseball/mlb"], ["NHL", "hockey/nhl"], ["MLS", "soccer/usa.1"]];
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alt)}">${E(t.abbr)}</span>`;
+const norm = s => String(s || "").toLowerCase();
+const tm = iso => new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+let DAY = 0, GAMES = [], PICKS = [], FAV = {};
+try { FAV = JSON.parse(localStorage.getItem("cmmg.favs") || "{}") || {}; } catch (e) {}
+const saveFav = () => { try { localStorage.setItem("cmmg.favs", JSON.stringify(FAV)); } catch (e) {} };
+const dayOf = i => { const d = new Date(Date.now() + i * 864e5); return { key: d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, ""),
+  wd: i === 0 ? "Today" : i === 1 ? "Tomorrow" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short" }),
+  md: d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" }) }; };
+
+function days() { $("days").innerHTML = [...Array(7)].map((_, i) => { const d = dayOf(i); return `<button data-day="${i}" class="${i === DAY ? "on" : ""}">${d.wd}<b>${d.md}</b></button>`; }).join(""); }
+
+async function load() {
+  $("list").innerHTML = `<div class="empty">Loading…</div>`;
+  const key = dayOf(DAY).key;
+  const lists = await Promise.all(LEAGUES.map(async ([k, path]) => {
+    const extra = k === "NCAAF" ? "&groups=80&limit=300" : k === "NCAAB" ? "&groups=50&limit=400" : "";
+    try { const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/scoreboard?dates=${key}${extra}`)).json();
+      return (j.events || []).map(e => { const c = e.competitions[0], st = e.status.type;
+        return { league: k, id: e.id, date: e.date, state: st.state, detail: st.shortDetail,
+          tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", "),
+          teams: c.competitors.map(t => ({ side: t.homeAway, id: `${k}:${t.team.id}`, abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName,
+            color: t.team.color, alt: t.team.alternateColor, rec: (t.records || [{}])[0]?.summary || "", score: t.score }))
+            .sort((a, b) => (a.side === "away" ? 0 : 1) - (b.side === "away" ? 0 : 1)) }; });
+    } catch (e) { return []; } }));
+  GAMES = lists.flat();
+  const have = new Set(GAMES.map(g => g.league)), cur = $("fSport").value;
+  $("fSport").innerHTML = `<option value="">All sports</option>` + LEAGUES.filter(([k]) => have.has(k)).map(([k]) => `<option ${k === cur ? "selected" : ""}>${k}</option>`).join("");
+  draw();
+}
+
+function pickFor(g) { return DAY === 0 ? PICKS.find(p => p.sport === g.league && !p.locked && g.teams.every(t => norm(p.game).includes(norm(t.short)) || norm(p.game).includes(norm(t.name)))) : null; }
+
+function draw() {
+  const sp = $("fSport").value, q = norm($("fQ").value), mineOnly = $("fMine").checked;
+  const vis = GAMES.filter(g => (!sp || g.league === sp) && (!q || g.teams.some(t => norm(t.name).includes(q) || norm(t.abbr).includes(q))) && (!mineOnly || g.teams.some(t => FAV[t.id])));
+  const favs = Object.entries(FAV);
+  $("favBox").style.display = favs.length ? "" : "none";
+  $("favs").innerHTML = favs.map(([id, f]) => `<span>${ICON.sport(id.split(":")[0])} ${E(f.name)} <button class="star on" data-star="${E(id)}" title="Unfollow">★</button></span>`).join("");
+  const secs = LEAGUES.map(([k]) => [k, vis.filter(g => g.league === k).sort((a, b) => a.date.localeCompare(b.date))]).filter(([, gs]) => gs.length);
+  if (!secs.length) { $("list").innerHTML = `<div class="empty">${mineOnly ? "None of your teams play this day." : "No games on this day."}</div>`; return; }
+  $("list").innerHTML = secs.map(([k, gs]) => `<div class="ssec"><div class="sh">${ICON.sport(k)}<b>${E(k)}</b><small>${gs.length} game${gs.length === 1 ? "" : "s"}</small></div>` + gs.map(g => {
+    const p = pickFor(g);
+    return `<div class="row4" data-go="/app/game/?l=${g.league}&id=${encodeURIComponent(g.id)}">
+      <div class="when2">${g.state === "pre" ? tm(g.date) : g.state === "in" ? `<span style="color:#f87171">LIVE</span>` : "FINAL"}<small>${g.state === "pre" ? "CT" : E(g.detail)}</small></div>
+      <div>${g.teams.map(t => `<div class="tm2"><button class="star ${FAV[t.id] ? "on" : ""}" data-star="${E(t.id)}" data-name="${E(t.name)}" title="${FAV[t.id] ? "Unfollow" : "Follow"}">${FAV[t.id] ? "★" : "☆"}</button>${badge(t)}<span class="n">${E(t.short)}</span><small>${E(t.rec)}</small>${g.state !== "pre" ? `<b style="margin-left:auto;font-family:Saira">${E(t.score)}</b>` : ""}</div>`).join("")}</div>
+      <div class="ex2">${g.tv ? `<span>${ICON.ui("tv")} ${E(g.tv)}</span>` : ""}${p ? `<span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</div></div>`;
+  }).join("") + `</div>`).join("");
+}
+
+document.addEventListener("click", e => {
+  const s = e.target.closest("[data-star]");
+  if (s) { e.stopPropagation(); const id = s.dataset.star; if (FAV[id]) delete FAV[id]; else FAV[id] = { name: s.dataset.name || id }; saveFav(); draw(); return; }
+  const d = e.target.closest("[data-day]"); if (d) { DAY = Number(d.dataset.day); days(); load(); return; }
+  if (e.target.closest("a, button, input, select, label")) return;
+  const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go;
+});
+["fSport", "fMine"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
+SHELL.mount("teams"); days();
+CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); }).catch(() => {});
+load();
+</script>
+</body></html>

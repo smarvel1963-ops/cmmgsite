@@ -117,7 +117,7 @@ function draw() {
       + gs.map(g => {
         const [a, h] = g.teams, p = pickFor(g), mine = MINE.find(m => m.g && m.g.id === g.id);
         const hasScore = g.state !== "pre" && a && h;
-        return `<div class="gm"><div><div class="st ${g.state}">${g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "UPCOMING"}</div>
+        return `<div class="gm" data-go="/app/game/?l=${g.league}&id=${encodeURIComponent(g.id)}" style="cursor:pointer"><div><div class="st ${g.state}">${g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "UPCOMING"}</div>
             <div class="clk">${g.state === "pre" ? ct(g.date) : E(g.detail)}</div></div>
           <div class="mt"><div class="tm">${a ? badge(a) : ""}<div>${E(a?.short || "")}<span>${E(a?.rec || "")}</span></div></div>
             <div class="sc">${hasScore ? `<span class="${a.win ? "win" : h.win ? "lose" : ""}">${E(a.score)}</span> - <span class="${h.win ? "win" : a.win ? "lose" : ""}">${E(h.score)}</span>` : "vs"}</div>
@@ -153,7 +153,8 @@ async function load() {
   draw();
   clearTimeout(timer); timer = setTimeout(load, GAMES.some(g => g.state === "in") ? 30000 : 120000);
 }
-["fSport", "fSt"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
+["fSport", "fSt"].forEach(id => $(id).addEventListener("change", draw));
+document.addEventListener("click", e => { if (e.target.closest("a, button")) return; const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go; }); $("fQ").addEventListener("input", draw);
 SHELL.mount("scores"); load();
 </script>
 </body></html>

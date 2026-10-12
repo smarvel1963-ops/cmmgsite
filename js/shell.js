@@ -6,13 +6,13 @@ const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
     ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"],
-              ["game", "stadium", "My Game Center", "/app/soon/?p=game"]]],
+              ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
-                 ["teams", "star", "Teams · Players · Schedules", "/app/soon/?p=teams"]]],
+                 ["teams", "star", "Schedules & My Teams", "/app/schedule/"]]],
     ["COMMUNITY & ACCOUNT", [["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];
-  const SOON = { game: 1, teams: 1 };
+  const SOON = {};
   // STORE MODE (Google Play payments rule): when the app was opened from the Play Store build (start URL ?src=play, or
   // launched by the Android app), every link to the paid plans is hidden - members who pay elsewhere just sign in.
   // Remembered for the browser session so it holds on every page.

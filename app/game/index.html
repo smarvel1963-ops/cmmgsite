@@ -1,0 +1,131 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/game/index.html
+     My Game Center (storyboard page 4): one screen for a game - live scoreboard (status, clock, TV, venue), the CMMG pick
+     card(s) on it (locked picks stay locked), MY pick from My Tracker (edit on the tracker page), win probability, team
+     leaders, team stats, injuries. Open with ?l=NFL&id=<espn event id> (Live Scores / Schedules link here) or with no id to
+     choose from today's games that carry a CMMG pick or one of my tracked picks. Data: ESPN public scoreboard + game
+     summary in the browser (non-commercial terms - licensed swap is on ACTIVE_TODO); picks + tracker from the relay.
+     Teams = abbreviation + team-colour badges (no logos). Refreshes every 30 s while live. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Game Center · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.board { padding:22px; margin-bottom:14px; text-align:center; position:relative; overflow:hidden; }
+.board::before { content:""; position:absolute; inset:0; background:radial-gradient(600px 200px at 50% 0%, rgba(59,169,255,.18), transparent 70%); pointer-events:none; }
+.bt { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px; position:relative; }
+.side2 { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.side2 .tb { font-size:20px; min-width:70px; padding:12px 10px; border-width:3px; border-radius:12px; }
+.side2 b { font-family:Saira; font-size:18px; } .side2 span { color:var(--dim); font-size:12px; }
+.big { font-family:Saira; font-weight:800; font-size:clamp(40px, 7vw, 68px); letter-spacing:.04em; line-height:1; }
+.big .lose { color:#6d86a1; }
+.stat { margin-top:8px; display:inline-flex; gap:8px; align-items:center; font-weight:800; font-size:13px; letter-spacing:.08em; }
+.stat .st { font-size:12px; padding:4px 9px; border-radius:7px; }
+.st.in { background:#dc2626; color:#fff; box-shadow:0 0 12px rgba(220,38,38,.6); } .st.post { background:#334155; color:#e2e8f0; } .st.pre { background:#0c2a4a; color:#7fd8ff; border:1px solid rgba(127,216,255,.4); }
+.meta { color:var(--dim); font-size:13px; margin-top:6px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.wp { margin-top:16px; } .wp .bar { height:12px; border-radius:9px; overflow:hidden; display:flex; background:#1e293b; }
+.wp .bar i { display:block; height:100%; } .wp .lbl { display:flex; justify-content:space-between; font-size:12px; color:var(--dim); margin-top:4px; }
+.gc { display:grid; grid-template-columns:1fr 1fr; gap:14px; } @media (max-width:900px) { .gc { grid-template-columns:1fr; } } .gc > * { min-width:0; }
+.pc { border-radius:14px; padding:14px; margin-bottom:10px; border:1px solid var(--line); background:rgba(5,12,24,.55); }
+.pc .pk { font-family:Saira; font-weight:800; font-size:20px; margin:6px 0 2px; }
+.tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+.tabs button { background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:999px; padding:7px 14px; font-weight:800; font-size:13px; }
+.tabs button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; }
+.ld { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .ld > div { min-width:0; }
+.ld h4 { margin:0 0 6px; font-size:12px; letter-spacing:.1em; color:#bfe6ff; }
+.ld .row span:last-child { text-align:right; }
+.pickgame { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; text-decoration:none; padding:10px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; background:rgba(5,12,24,.55); }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main"><div id="root"><div class="empty">Loading…</div></div></main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), qs = new URLSearchParams(location.search);
+const PATHS = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
+  WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alternateColor || t.alt)}">${E(t.abbreviation || t.abbr)}</span>`;
+const ct = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" }) + " CT"; };
+const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const norm = s => String(s || "").toLowerCase();
+const ctDay = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
+let TAB = "lead", timer = null, PICKS = [], MINE = [];
+
+async function relayBits() {
+  const s = CMMG.session();
+  const [pj, mj] = await Promise.all([CMMG.relay({ task: "picks", session: s ? s.token : undefined }).catch(() => ({})),
+    s ? CMMG.relay({ task: "mytracker", session: s.token }).catch(() => ({})) : Promise.resolve({})]);
+  PICKS = pj && pj.ok ? pj.picks || [] : []; MINE = mj && mj.ok ? mj.rows || [] : [];
+}
+const onGame = (txt, comps) => comps.every(c => norm(txt).includes(norm(c.team.shortDisplayName)) || norm(txt).includes(norm(c.team.displayName)));
+
+async function chooser() {   // no id: today's games that carry a CMMG pick or one of my picks
+  await relayBits();
+  const leagues = [...new Set([...PICKS.map(p => p.sport), ...MINE.map(m => m.sport)])].filter(l => PATHS[l]);
+  const lists = await Promise.all(leagues.map(l => fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATHS[l]}/scoreboard?dates=${ctDay()}`).then(r => r.json()).then(j => (j.events || []).map(e => ({ l, e }))).catch(() => [])));
+  const rows = lists.flat().map(({ l, e }) => { const c = e.competitions[0].competitors.sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
+    const p = PICKS.find(x => x.sport === l && !x.locked && onGame(x.game, c)), m = MINE.find(x => x.sport === l && onGame(x.game, c));
+    return (p || m) ? { l, e, c, p, m } : null; }).filter(Boolean);
+  $("root").innerHTML = `<h1>My Game Center</h1><p class="sub">Pick a game: today's games with a CMMG pick or a pick you took.</p>`
+    + (rows.length ? rows.map(({ l, e, c, p, m }) => `<a class="pickgame" href="?l=${l}&id=${e.id}">${ICON.sport(l)}
+        <div><b>${E(c[0].team.shortDisplayName)} @ ${E(c[1].team.shortDisplayName)}</b><div class="game">${E(e.status.type.shortDetail)}${p ? ` · ${TIER_ICON[p.tier] || ""} ${E(p.bet)}` : ""}${m ? " · My pick" : ""}</div></div>
+        <span class="sc" style="font-family:Saira;font-weight:800">${e.status.type.state === "pre" ? "" : `${E(c[0].score)}-${E(c[1].score)}`}</span></a>`).join("")
+      : `<div class="empty">No games with a CMMG pick right now. Open any game from <a href="/app/scores/" style="color:var(--ice)">Live Scores</a>.</div>`);
+}
+
+async function game(l, id) {
+  const path = PATHS[l]; if (!path) { $("root").innerHTML = `<div class="empty">Unknown league.</div>`; return; }
+  let j; try { j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(id)}`)).json(); } catch (e) { j = null; }
+  if (!j || !j.header) { $("root").innerHTML = `<div class="empty">Couldn't load this game. Try again in a minute.</div>`; return; }
+  if (!PICKS.length && !MINE.length) await relayBits();
+  const comp = j.header.competitions[0], st = comp.status.type, cs = comp.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
+  const [a, h] = cs, live = st.state === "in", sc = st.state !== "pre";
+  const picks = PICKS.filter(p => p.sport === l && (p.locked ? false : onGame(p.game, cs)));
+  const mine = MINE.filter(m => m.sport === l && onGame(m.game, cs));
+  const tv = [...new Set((comp.broadcasts || []).map(b => b.media?.shortName).filter(Boolean))].join(", ");
+  const wp = (j.winprobability || []).slice(-1)[0];
+  const rec = c => (c.record || [])[0]?.summary || (c.record || [])[0]?.displayValue || "";
+  const t = c => ({ ...c.team, abbr: c.team.abbreviation });
+  let html = `<p style="margin:0 0 10px"><a href="/app/scores/" style="color:var(--ice);font-size:13px">← Live Scores</a></p>
+    <div class="box board"><div class="bt">
+      <div class="side2">${badge(t(a))}<b>${E(a.team.shortDisplayName)}</b><span>${E(rec(a))}</span></div>
+      <div><div class="big">${sc ? `<span class="${h.winner ? "lose" : ""}">${E(a.score)}</span> - <span class="${a.winner ? "lose" : ""}">${E(h.score)}</span>` : "vs"}</div>
+        <div class="stat"><span class="st ${st.state}">${live ? "LIVE" : st.state === "post" ? "FINAL" : "UPCOMING"}</span>${E(live ? st.shortDetail : st.state === "pre" ? ct(comp.date) : st.shortDetail)}</div></div>
+      <div class="side2">${badge(t(h))}<b>${E(h.team.shortDisplayName)}</b><span>${E(rec(h))}</span></div></div>
+      <div class="meta">${ICON.sport(l)} ${E(l)}${tv ? `<span>${ICON.ui("tv")} ${E(tv)}</span>` : ""}${j.gameInfo?.venue?.fullName ? `<span>${ICON.ui("stadium")} ${E(j.gameInfo.venue.fullName)}</span>` : ""}</div>
+      ${wp ? `<div class="wp"><div class="bar"><i style="width:${(100 - wp.homeWinPercentage * 100).toFixed(1)}%;background:${hex(a.team.color)}"></i><i style="width:${(wp.homeWinPercentage * 100).toFixed(1)}%;background:${hex(h.team.color)}"></i></div>
+        <div class="lbl"><span>${E(a.team.abbreviation)} ${(100 - wp.homeWinPercentage * 100).toFixed(0)}%</span><span>Win probability</span><span>${(wp.homeWinPercentage * 100).toFixed(0)}% ${E(h.team.abbreviation)}</span></div></div>` : ""}
+    </div><div class="gc"><div>`;
+  html += `<div class="box"><h3>CMMG PICK</h3>${picks.length ? picks.map(p => `<div class="pc"><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span>
+      <div class="pk">${E(p.bet)}</div><div class="game">${E(p.market || "")} · ${odds(p.odds)} · ${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>
+      ${p.result ? `<div style="margin-top:8px"><span class="rb ${E(p.result)}" style="padding:4px 10px;border-radius:7px;font-weight:900">${E(p.result)}</span></div>` : `<a class="btn go" style="margin-top:10px;display:inline-block;text-decoration:none" href="/app/">✓ I Took This Pick</a>`}</div>`).join("")
+      : `<p style="color:var(--dim);font-size:13px;margin:0">No CMMG pick you can see on this game.${PICKS.some(p => p.locked && p.sport === l) ? ` Members-only ${E(l)} picks are on <a href="/app/" style="color:var(--ice)">Today's Picks</a>.` : ""}</p>`}</div>`;
+  html += `<div class="box"><h3>MY PICK</h3>${!CMMG.session() ? `<p style="color:var(--dim);font-size:13px;margin:0">Sign in to see the picks you took.</p><button class="btn disc" data-signin style="margin-top:8px">Continue with Discord</button>`
+      : mine.length ? mine.map(m => `<div class="pc"><div class="pk">${E(m.bet || "Members-only pick")}</div><div class="game">My odds ${odds(m.myOdds)} · ${E(m.units)}u${m.myBook ? " · " + E(m.myBook) : ""}</div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center"><span class="res ${E(m.result)}">${E(m.result)}</span><a class="btn ghost" style="padding:5px 10px;text-decoration:none" href="/app/tracker/">Edit pick</a></div></div>`).join("")
+      : `<p style="color:var(--dim);font-size:13px;margin:0">You haven't tracked a pick on this game.</p>`}</div></div>`;
+  // right column: tabs
+  const leaders = (j.leaders || []).map(x => `<div><h4>${E(x.team?.abbreviation || "")}</h4>${(x.leaders || []).slice(0, 4).map(c => c.leaders?.[0] ? `<div class="row"><span>${E(c.displayName)}<div class="game">${E(c.leaders[0].athlete?.displayName || "")}</div></span><span>${E(c.leaders[0].displayValue || "")}</span></div>` : "").join("")}</div>`).join("");
+  const bt = j.boxscore?.teams || [];
+  const statRows = bt.length === 2 ? (bt[0].statistics || []).slice(0, 14).map((s, i) => `<tr><td>${E(s.displayValue)}</td><td style="text-align:center;color:var(--dim)">${E(s.label || s.name)}</td><td style="text-align:right">${E(bt[1].statistics?.[i]?.displayValue ?? "")}</td></tr>`).join("") : "";
+  const inj = (j.injuries || []).map(x => `<div><h4>${E(x.team?.abbreviation || "")}</h4>${(x.injuries || []).slice(0, 8).map(i => `<div class="row"><span>${E(i.athlete?.displayName || "")}<div class="game">${E(i.athlete?.position?.abbreviation || "")}</div></span><span>${E(i.status || i.type?.description || "")}</span></div>`).join("") || `<p class="game">None listed</p>`}</div>`).join("");
+  html += `<div><div class="box"><div class="tabs"><button data-tab="lead">Leaders</button><button data-tab="stats">Team stats</button><button data-tab="inj">Injuries</button></div>
+      <div data-pane="lead">${leaders ? `<div class="ld">${leaders}</div>` : `<p class="game">Leaders show once the game starts.</p>`}</div>
+      <div data-pane="stats">${statRows ? `<table class="rt"><tr><th>${E(bt[0].team?.abbreviation || "")}</th><th style="text-align:center">STAT</th><th style="text-align:right">${E(bt[1].team?.abbreviation || "")}</th></tr>${statRows}</table>` : `<p class="game">Team stats show once the game starts.</p>`}</div>
+      <div data-pane="inj">${inj ? `<div class="ld">${inj}</div>` : `<p class="game">No injury report.</p>`}</div></div></div></div>`;
+  $("root").innerHTML = html; tabs();
+  document.title = `${a.team.abbreviation} @ ${h.team.abbreviation} · CMMG Game Center`;
+  clearTimeout(timer); if (live) timer = setTimeout(() => game(l, id), 30000);
+}
+function tabs() { document.querySelectorAll("[data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === TAB)); document.querySelectorAll("[data-pane]").forEach(p => p.style.display = p.dataset.pane === TAB ? "" : "none"); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { TAB = b.dataset.tab; tabs(); } });
+SHELL.mount("game");
+qs.get("id") && qs.get("l") ? game(qs.get("l"), qs.get("id")) : chooser();
+</script>
+</body></html>

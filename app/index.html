@@ -60,6 +60,12 @@ const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
 const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
 const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alt)}" title="${E(t.name)}">${E(t.abbr)}</span>`;
 const matchup = p => p.teams && p.teams.length === 2 ? `<span class="mu">${badge(p.teams[0])}<i>@</i>${badge(p.teams[1])}</span>` : "";
+// Sport banner sections (WEB_DESIGNS #8, Scott 10/11 "i like number 3"): one family per sport for colour + the
+// CSS-drawn field / rink / pitch / court behind the section header (our own drawing - no league marks).
+const FAMILY = { NFL: "fb", NCAAF: "fb", CFL: "fb", NBA: "bb", NCAAB: "bb", WNBA: "bb", NHL: "hk", MLB: "base", KBO: "base",
+  NPB: "base", NCAABB: "base", MLS: "soc", SOCCER: "soc", TENNIS: "ten", UFC: "fight", MMA: "fight", GOLF: "golf" };
+const fam = x => FAMILY[String(x || "").toUpperCase()] || "other";
+const sid = x => "sec-" + String(x || "other").toLowerCase().replace(/[^a-z0-9]/g, "");
 const watch = p => p.tv ? `<div class="tv">📺 ${E(p.tv)}</div>` : "";
 const UPGRADE = SHELL.UPGRADE;
 let PICKS = [], SPORT = "ALL", TIER = "ALL", VIEW = "simple", TOOK = null;
@@ -93,7 +99,7 @@ function draw() {
   document.getElementById("tiles").innerHTML = ["ICE", "EDGE", "FIRE"].map(t => `<div class="tile ${t.toLowerCase()}"><div class="l">${TIER_ICON[t]} ${t} PICKS</div><div class="n">${count(t)}</div></div>`).join("")
     + `<div class="tile"><div class="l">TOTAL PICKS</div><div class="n">${PICKS.length}</div></div>`;
   const sports = ["ALL", ...new Set(PICKS.map(p => p.sport).filter(Boolean))];
-  document.getElementById("sports").innerHTML = sports.map(x => `<button class="chip ${x === SPORT ? "on" : ""}" data-sport="${E(x)}">${x === "ALL" ? "All Sports" : E(x)}</button>`).join("");
+  document.getElementById("sports").innerHTML = sports.map(x => `<button class="chip ${x === SPORT ? "on" : ""}" data-sport="${E(x)}">${x === "ALL" ? "All Sports" : sp(x)}</button>`).join("");
   document.getElementById("tiers").innerHTML = ["ALL", "ICE", "EDGE", "FIRE"].map(x => `<button class="chip ${x === TIER ? "on" : ""}" data-tier="${x}">${x === "ALL" ? "All Picks" : TIER_ICON[x] + " " + x}</button>`).join(" ");
   document.querySelectorAll("[data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === VIEW));
   const list = PICKS.filter(p => (SPORT === "ALL" || p.sport === SPORT) && (TIER === "ALL" || p.tier === TIER));
@@ -107,18 +113,27 @@ function draw() {
          <td><button class="btn go" data-took="${E(p.id)}">I Took This</button></td></tr>`).join("") + `</table>`;
     return;
   }
-  el.innerHTML = `<div class="cards">` + list.map(p => p.locked
-    ? `<div class="card locked"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}</span></div>
+  const card = p => p.locked
+    ? `<div class="card locked sp-${fam(p.sport)}"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}</span></div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="pick">Premium pick hidden</div>
         <div class="lockmsg">🔒 Members only — your access comes from your CMMG Discord membership.</div></div>
         <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">Unlock on Discord</a></div></div>`
-    : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}${p.market ? " · " + E(p.market) : ""}</span>${watch(p)}</div>
+    : `<div class="card sp-${fam(p.sport)}"><div class="when"><b>${ct(p.time)}</b><span>${p.market ? E(p.market) : sp(p.sport)}</span>${watch(p)}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
           <div class="pick" style="margin-top:6px">${E(p.bet)}</div><div class="game">${matchup(p)} ${E(p.game)}</div>
           ${p.note ? `<div class="why">${E(p.note)}</div>` : ""}
           ${p.confidence ? `<div style="font-size:12px;color:var(--dim);margin-top:6px">${E(p.confidence)}% confidence<div class="conf"><i style="width:${Math.max(0, Math.min(100, Number(p.confidence)))}%"></i></div></div>` : ""}</div>
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>
-          <button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button></div></div>`).join("") + `</div>`;
+          <button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button></div></div>`;
+  // one section per sport; sections ordered by their best tier, then their earliest game (list is already ICE>EDGE>FIRE, time)
+  const groups = [];
+  list.forEach(p => { let g = groups.find(x => x.sport === p.sport); if (!g) groups.push(g = { sport: p.sport, picks: [] }); g.picks.push(p); });
+  const best = g => Math.min(...g.picks.map(p => TIER_ORDER[p.tier] ?? 9)), first = g => g.picks.map(p => String(p.time)).sort()[0];
+  groups.sort((a, b) => best(a) - best(b) || first(a).localeCompare(first(b)));
+  el.innerHTML = groups.map(g => `<section class="sportsec" id="${sid(g.sport)}">
+      <div class="sbanner sb-${fam(g.sport)}"><span class="sic">${SPORT_ICON[String(g.sport).toUpperCase()] || "🎯"}</span><b>${E(g.sport || "Other")}</b>
+        <span class="scount">${g.picks.length} pick${g.picks.length === 1 ? "" : "s"}</span></div>
+      <div class="cards">${g.picks.map(card).join("")}</div></section>`).join("");
   if (!signedIn) el.insertAdjacentHTML("afterbegin", `<p style="color:var(--dim);font-size:13px">Sign in with Discord to see the picks your membership includes and to track the ones you take.</p>`);
 }
 
@@ -135,7 +150,12 @@ async function loadTracker() {
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button, a"); if (!t) return;
-  if (t.dataset.sport) { SPORT = t.dataset.sport; draw(); return; }
+  if (t.dataset.sport) {
+    if (VIEW === "simple" && TIER === "ALL" && t.dataset.sport !== "ALL") {        // banner sections: jump, keep the rest
+      SPORT = "ALL"; draw(); document.getElementById(sid(t.dataset.sport))?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
+    }
+    SPORT = t.dataset.sport; draw(); return;
+  }
   if (t.dataset.tier) { TIER = t.dataset.tier; draw(); return; }
   if (t.dataset.view) { VIEW = t.dataset.view; try { localStorage.setItem("cmmg.view", VIEW); } catch (e) {} draw(); return; }
   if (t.dataset.took) {

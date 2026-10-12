@@ -248,3 +248,4 @@ body.theme-ten::before { background: linear-gradient(0deg, transparent 20%, rgba
 .bell { position:relative; display:grid; place-items:center; width:38px; height:38px; margin-right:8px; border-radius:10px; color:#ffd700; text-decoration:none; }
 .bell .ic { width:24px; height:24px; filter:drop-shadow(0 0 6px rgba(255,215,0,.5)); }
 .bell b { position:absolute; top:2px; right:0; min-width:17px; height:17px; padding:0 4px; border-radius:99px; background:#ef4444; color:#fff; font:800 10px/17px Inter, sans-serif; text-align:center; box-shadow:0 0 8px #ef4444; }
+.btn.pro { background:linear-gradient(180deg,#ffe45c,#e6b800); color:#241a00; box-shadow:0 0 18px rgba(255,215,0,.3); }

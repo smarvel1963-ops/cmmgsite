@@ -48,7 +48,7 @@ const SHELL = (() => {
       <p style="margin:10px 0 0"><a href="/app/account/" style="color:var(--ice);font-size:13px">Manage membership →</a></p>`;
   }
   function splash() {
-    let seen = false; try { seen = sessionStorage.getItem("cmmg.splash") === "1"; sessionStorage.setItem("cmmg.splash", "1"); } catch (e) {}
+    let seen = false; try { seen = sessionStorage.getItem("cmmg.splash") === "1" || localStorage.getItem("cmmg.nosplash") === "1"; sessionStorage.setItem("cmmg.splash", "1"); } catch (e) {}
     if (seen) return;
     document.body.insertAdjacentHTML("beforeend", `<div class="splash" aria-label="CMMG Sports Edge loading"><div class="art"><div class="track"><div class="fill"></div></div></div></div>`);
     const el = document.querySelector(".splash"), fill = el.querySelector(".fill"), t0 = Date.now();

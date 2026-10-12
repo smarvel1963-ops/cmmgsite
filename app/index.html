@@ -170,7 +170,7 @@ function draw() {
     return w + l + pu ? `<span class="stally"><i class="tw">${w}W</i><i class="tl">${l}L</i><i class="tp">${pu}P</i></span>` : "";
   };
   el.innerHTML = groups.map(g => `<section class="sportsec" id="${sid(g.sport)}">
-      <div class="sbanner sb-${fam(g.sport)}"><span class="sic">${SPORT_ICON[String(g.sport).toUpperCase()] || "🎯"}</span><b>${E(g.sport || "Other")}</b>
+      <div class="sbanner sb-${fam(g.sport)}"><span class="sic">${SPORT_ICON[String(g.sport).toUpperCase()] || "🎯"}</span><b><a href="/app/sport/?l=${encodeURIComponent(g.sport)}" style="text-decoration:none;color:inherit">${E(g.sport || "Other")}</a></b>
         <span class="scount">${g.picks.length} pick${g.picks.length === 1 ? "" : "s"}</span>${tally(g.picks)}</div>
       <div class="cards">${g.picks.map(card).join("")}</div></section>`).join("");
   if (!signedIn) el.insertAdjacentHTML("afterbegin", `<p style="color:var(--dim);font-size:13px">Sign in with Discord to see the picks your membership includes and to track the ones you take.</p>`);

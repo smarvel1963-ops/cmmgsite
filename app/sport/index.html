@@ -1,0 +1,105 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/sport/index.html
+     Sport Hub (Scott 10/11 "NFL · CMMG Sports Edge" panel): one page per sport (?l=NFL). Sport-themed banner (CSS playing
+     surface - no league logo, no player art), tabs Games / Standings / Teams links, week tabs for NFL + NCAAF (ESPN
+     ?week=N&seasontype=2), day tabs for other sports, filter + search, and each game with time (CT), TV, spread /
+     moneyline / total WHEN ESPN posts them (shown as listed info, no "bet now"), and the CMMG pick tag on today's board.
+     Teams = abbreviation badges. Rows open My Game Center. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sport Hub · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.shero { border-radius:18px; padding:26px 22px; margin-bottom:12px; border:1px solid rgba(255,255,255,.12); display:flex; gap:16px; align-items:center; }
+.shero .ic { width:58px; height:58px; color:#fff; filter:drop-shadow(0 0 10px rgba(255,255,255,.5)); }
+.shero h1 { margin:0; font-size:clamp(34px, 6vw, 60px); font-style:italic; line-height:.95; text-shadow:0 3px 10px rgba(0,0,0,.6); } .shero p { margin:6px 0 0; letter-spacing:.2em; font-weight:800; font-size:12px; }
+.sps { display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; scrollbar-width:none; } .sps::-webkit-scrollbar { display:none; }
+.sps a { flex:0 0 auto; display:flex; gap:6px; align-items:center; text-decoration:none; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:12px; padding:8px 13px; font-weight:800; font-size:13px; }
+.sps a.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); color:#fff; border-color:#3b82f6; }
+.wk { display:flex; gap:6px; overflow-x:auto; margin-bottom:12px; scrollbar-width:none; } .wk::-webkit-scrollbar { display:none; }
+.wk button { flex:0 0 auto; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:10px; padding:7px 13px; font-weight:800; font-size:13px; }
+.wk button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; }
+.bar4 { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; } .bar4 input, .bar4 select { padding:9px; border-radius:9px; border:1px solid var(--line); background:#081325; color:var(--text); font:inherit; } .bar4 input { flex:1; min-width:160px; }
+.gt td, .gt th { padding:9px 8px; font-size:13px; white-space:nowrap; } .gt tr[data-go] { cursor:pointer; } .gt tr[data-go]:hover td { background:rgba(127,216,255,.05); }
+.gt .mu2 { display:flex; flex-direction:column; gap:4px; } .gt .mu2 span { display:flex; align-items:center; gap:6px; }
+.ln { display:inline-block; min-width:70px; text-align:center; border:1px solid var(--line); border-radius:7px; padding:3px 6px; background:rgba(5,12,24,.6); font-weight:700; }
+.bye { color:var(--dim); font-size:13px; margin-top:8px; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="shero" id="hero"></div>
+    <div class="sps" id="sps"></div>
+    <div class="wk" id="wk"></div>
+    <div class="bar4"><select id="fSt"><option value="">All games</option><option value="in">Live</option><option value="pre">Upcoming</option><option value="post">Final</option></select><input id="fQ" placeholder="Search teams">
+      <a class="btn ghost" id="stLink" style="text-decoration:none">Standings →</a></div>
+    <div class="box"><div style="overflow-x:auto"><table class="rt gt" id="tbl"><tr><td class="game">Loading…</td></tr></table></div><div class="bye" id="bye"></div></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id), qs = new URLSearchParams(location.search);
+const SP = { NFL: ["football/nfl", "fb", "Football", true], NCAAF: ["football/college-football", "fb", "College Football", true], NBA: ["basketball/nba", "bb", "Basketball"],
+  NCAAB: ["basketball/mens-college-basketball", "bb", "College Basketball"], WNBA: ["basketball/wnba", "bb", "Women's Basketball"], MLB: ["baseball/mlb", "base", "Baseball"],
+  NHL: ["hockey/nhl", "hk", "Hockey"], MLS: ["soccer/usa.1", "soc", "Soccer"] };
+const L = SP[qs.get("l")] ? qs.get("l") : "NFL", [PATH, FAM, NAME, WEEKLY] = SP[L];
+const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alternateColor)}">${E(t.abbreviation)}</span>`;
+const norm = s => String(s || "").toLowerCase();
+const ctDay = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+let SEL = null, CUR = null, EVENTS = [], BYES = [], PICKS = [], NWEEKS = 18;
+$("hero").className = "shero sb-" + FAM;
+$("hero").innerHTML = `${ICON.sport(L)}<div><h1>${E(L === "MLS" ? "SOCCER" : L)}</h1><p>CMMG SPORTS EDGE · ${E(NAME.toUpperCase())} · GAMES. PICKS. STANDINGS.</p></div>`;
+$("sps").innerHTML = Object.keys(SP).map(k => `<a href="?l=${k}" class="${k === L ? "on" : ""}">${ICON.sport(k)}${k === "MLS" ? "SOCCER" : k}</a>`).join("");
+$("stLink").href = "/app/standings/"; document.title = `${L} · CMMG Sports Edge`;
+try { localStorage.setItem("cmmg.stsport", L); } catch (e) {}
+
+async function load() {
+  $("tbl").innerHTML = `<tr><td class="game">Loading…</td></tr>`;
+  const q = WEEKLY ? (SEL ? `week=${SEL}&seasontype=2` : "") : `dates=${SEL || ctDay().replace(/-/g, "")}`;
+  const extra = L === "NCAAF" ? "&groups=80&limit=300" : L === "NCAAB" ? "&groups=50&limit=400" : "";
+  let j = {}; try { j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATH}/scoreboard?${q}${extra}`)).json(); } catch (e) {}
+  if (WEEKLY && !SEL) { CUR = j.week?.number || 1; SEL = CUR; NWEEKS = (j.leagues?.[0]?.calendar?.find?.(c => /regular/i.test(c.label || ""))?.entries || []).length || (L === "NFL" ? 18 : 15); }
+  EVENTS = (j.events || []).map(e => { const c = e.competitions[0], o = (c.odds || [])[0] || {}, st = e.status.type;
+    const cs = c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
+    return { id: e.id, date: e.date, state: st.state, detail: st.shortDetail, teams: cs.map(x => ({ ...x.team, score: x.score, rec: (x.records || [{}])[0]?.summary || "" })),
+      spread: o.details || "", total: o.overUnder != null ? String(o.overUnder) : "",
+      ml: o.moneyline ? [o.moneyline.away, o.moneyline.home].map(m => m?.close?.odds || m?.open?.odds || "") : ["", ""],
+      tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", ") }; });
+  BYES = j.week?.teamsOnBye || [];
+  tabs(); draw();
+}
+function tabs() {
+  if (WEEKLY) $("wk").innerHTML = Array.from({ length: NWEEKS }, (_, i) => i + 1).map(w => `<button data-w="${w}" class="${w === SEL ? "on" : ""}">${w === CUR ? "This week" : "Week " + w}</button>`).join("");
+  else $("wk").innerHTML = Array.from({ length: 7 }, (_, i) => { const d = new Date(Date.now() + (i - 1) * 864e5), k = ctDay(d).replace(/-/g, "");
+    return `<button data-d="${k}" class="${k === (SEL || ctDay().replace(/-/g, "")) ? "on" : ""}">${i === 1 ? "Today" : i === 0 ? "Yesterday" : i === 2 ? "Tomorrow" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", day: "numeric" })}</button>`; }).join("");
+  const on = $("wk").querySelector(".on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+}
+const pickFor = g => PICKS.find(p => p.sport === L && !p.locked && g.teams.every(t => [t.displayName, t.shortDisplayName, t.name].filter(n => n && n.length > 2).some(n => norm(p.game).includes(norm(n)))));
+function draw() {
+  const sf = $("fSt").value, q = norm($("fQ").value);
+  const vis = EVENTS.filter(g => (!sf || g.state === sf) && (!q || g.teams.some(t => norm(t.displayName).includes(q) || norm(t.abbreviation).includes(q)))).sort((a, b) => a.date.localeCompare(b.date));
+  $("tbl").innerHTML = `<tr><th>TIME (CT)</th><th>MATCHUP</th><th>SPREAD</th><th>MONEYLINE</th><th>TOTAL</th><th>TV</th><th>CMMG PICK</th></tr>` + (vis.length ? vis.map(g => { const [a, h] = g.teams, p = pickFor(g), sc = g.state !== "pre";
+    return `<tr data-go="/app/game/?l=${L}&id=${encodeURIComponent(g.id)}">
+      <td>${g.state === "pre" ? new Date(g.date).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" }) : `<b style="color:${g.state === "in" ? "#f87171" : "var(--dim)"}">${g.state === "in" ? "LIVE" : "FINAL"}</b> ${/^final$/i.test(g.detail) ? "" : ` <span class="game">${E(g.detail)}</span>`}`}</td>
+      <td><div class="mu2"><span>${badge(a)} ${E(a.shortDisplayName)} <small class="game">${E(a.rec)}</small>${sc ? ` <b style="margin-left:auto;font-family:Saira">${E(a.score)}</b>` : ""}</span><span>${badge(h)} ${E(h.shortDisplayName)} <small class="game">${E(h.rec)}</small>${sc ? ` <b style="margin-left:auto;font-family:Saira">${E(h.score)}</b>` : ""}</span></div></td>
+      <td>${g.spread ? `<span class="ln">${E(g.spread)}</span>` : "—"}</td><td>${g.ml[0] || g.ml[1] ? `<span class="ln">${E(g.ml[0] || "—")} / ${E(g.ml[1] || "—")}</span>` : "—"}</td>
+      <td>${g.total ? `<span class="ln">O/U ${E(g.total)}</span>` : "—"}</td><td class="game">${E(g.tv)}</td>
+      <td>${p ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</td></tr>`; }).join("") : `<tr><td colspan="7" class="game" style="text-align:center;padding:24px">No ${E(L)} games ${WEEKLY ? "this week" : "this day"}.</td></tr>`);
+  $("bye").innerHTML = BYES.length ? `Bye: ${BYES.map(t => E(t.abbreviation)).join(", ")}` : "";
+}
+document.addEventListener("click", e => {
+  const w = e.target.closest("[data-w]"); if (w) { SEL = Number(w.dataset.w); load(); return; }
+  const d = e.target.closest("[data-d]"); if (d) { SEL = d.dataset.d; load(); return; }
+  if (e.target.closest("a, button, input, select")) return; const r = e.target.closest("[data-go]"); if (r) location.href = r.dataset.go;
+});
+["fSt"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
+SHELL.mount("sport");
+CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); }).catch(() => {});
+load();
+</script>
+</body></html>

@@ -8,7 +8,7 @@ const SHELL = (() => {
     ["MAIN", [["dashboard", "home", "Dashboard", "/app/dashboard/"], ["picks", "target", "Today's Picks", "/app/"], ["scores", "clock", "Live Scores", "/app/scores/"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
-                 ["teams", "star", "Schedules & My Teams", "/app/schedule/"]]],
+                 ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
     ["COMMUNITY & ACCOUNT", [["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];

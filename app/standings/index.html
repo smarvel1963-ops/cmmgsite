@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/standings/index.html
+     Standings (Scott 10/11: "need standings for each sport for conferences page for non gambling"): sport tabs, every
+     conference and division with that sport's own columns (NFL W-L-T PCT PF PA DIFF STRK, NHL GP W L OTL PTS, MLS W D L
+     PTS GD...). Pure sports info - no picks, no odds - so it is useful to members who don't bet. Team names open the team
+     page; followed teams are starred and the theme team is highlighted. Data: ESPN public standings (level=3) in the
+     browser; teams = abbreviation + team-colour badge (no logos). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standings · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.sp { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .sp::-webkit-scrollbar { display:none; }
+.sp button { flex:0 0 auto; display:flex; gap:6px; align-items:center; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:12px; padding:9px 14px; font-weight:800; font-size:13px; }
+.sp button.on { background:linear-gradient(180deg,#2563eb,#1d4ed8); color:#fff; border-color:#3b82f6; box-shadow:0 0 14px rgba(59,130,246,.45); }
+.conf { font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; margin:18px 0 8px; color:#bfe6ff; }
+.cols2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px, 1fr)); gap:12px; } @media (max-width:520px) { .cols2 { grid-template-columns:1fr; } } .cols2 > * { min-width:0; }
+.st2 td, .st2 th { padding:8px 8px; font-size:13px; text-align:right; white-space:nowrap; } .st2 td:first-child, .st2 th:first-child { text-align:left; }
+.st2 .tn { display:flex; align-items:center; gap:7px; text-decoration:none; } .st2 .tn span { overflow:hidden; text-overflow:ellipsis; }
+.st2 tr.fav td { background:rgba(255,215,0,.07); } .st2 .seed { color:var(--dim); font-size:11px; width:14px; display:inline-block; }
+.st2 .pos { color:#86efac; } .st2 .neg { color:#fca5a5; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <h1>Standings</h1>
+    <p class="sub">Conferences and divisions for every sport. Tap a team for its page.</p>
+    <div class="sp" id="sp"></div>
+    <div id="body"><div class="empty">Loading…</div></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const SPORTS = [  // [key, espn path, columns [label, stat abbreviation]]
+  ["NFL", "football/nfl", [["W", "W"], ["L", "L"], ["T", "T"], ["PCT", "PCT"], ["PF", "PF"], ["PA", "PA"], ["DIFF", "DIFF"], ["STRK", "STRK"]]],
+  ["NBA", "basketball/nba", [["W", "W"], ["L", "L"], ["PCT", "PCT"], ["GB", "GB"], ["PPG", "PPG"], ["OPP", "OPP PPG"], ["STRK", "STRK"]]],
+  ["NHL", "hockey/nhl", [["GP", "GP"], ["W", "W"], ["L", "L"], ["OTL", "OTL"], ["PTS", "PTS"], ["GF", "GF"], ["GA", "GA"], ["STRK", "STRK"]]],
+  ["MLB", "baseball/mlb", [["W", "W"], ["L", "L"], ["PCT", "PCT"], ["GB", "GB"], ["DIFF", "DIFF"], ["STRK", "STRK"]]],
+  ["NCAAF", "football/college-football", [["CONF", "CONF"], ["OVR", "overall"], ["PF", "PF"], ["PA", "PA"], ["STRK", "STRK"]]],
+  ["NCAAB", "basketball/mens-college-basketball", [["CONF", "CONF"], ["OVR", "overall"], ["STRK", "STRK"]]],
+  ["WNBA", "basketball/wnba", [["W", "W"], ["L", "L"], ["PCT", "PCT"], ["GB", "GB"], ["PPG", "PPG"], ["OPP", "OPP PPG"], ["STRK", "STRK"]]],
+  ["MLS", "soccer/usa.1", [["GP", "GP"], ["W", "W"], ["D", "D"], ["L", "L"], ["PTS", "P"], ["GF", "F"], ["GA", "A"], ["GD", "GD"]]],
+];
+let CUR = "NFL", CACHE = {}, FAV = {}, THEME = SHELL.theme();
+try { CUR = localStorage.getItem("cmmg.stsport") || "NFL"; FAV = JSON.parse(localStorage.getItem("cmmg.favs") || "{}") || {}; } catch (e) {}
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alternateColor)}">${E(t.abbreviation)}</span>`;
+
+function tree(node, parent) {   // -> [{conf: parent group name, name, entries}] for every group that has teams
+  const out = [];
+  if ((node.standings?.entries || []).length) out.push({ conf: parent, name: node.name, entries: node.standings.entries });
+  (node.children || []).forEach(c => out.push(...tree(c, node.name)));
+  return out;
+}
+
+async function load() {
+  $("sp").innerHTML = SPORTS.map(([k]) => `<button data-sp="${k}" class="${k === CUR ? "on" : ""}">${ICON.sport(k)}${k === "MLS" ? "SOCCER" : k}</button>`).join("");
+  const [key, path, cols] = SPORTS.find(s => s[0] === CUR) || SPORTS[0];
+  const el = $("body");
+  if (!CACHE[key]) {
+    el.innerHTML = `<div class="empty">Loading ${E(key)} standings…</div>`;
+    try { CACHE[key] = await (await fetch(`https://site.api.espn.com/apis/v2/sports/${path}/standings?level=3`)).json(); } catch (e) { CACHE[key] = null; }
+  }
+  const j = CACHE[key];
+  if (!j) { el.innerHTML = `<div class="empty">Couldn't load standings. Try again in a minute.</div>`; return; }
+  const groups = tree(j, "");
+  if (!groups.length) { el.innerHTML = `<div class="empty">No ${E(key)} standings right now (off-season).</div>`; return; }
+  const confs = [...new Set(groups.map(g => g.conf))];
+  el.innerHTML = confs.map(cf => `${confs.length > 1 || groups.length > 1 ? `<div class="conf">${E(cf || "")}</div>` : ""}<div class="cols2">` + groups.filter(g => g.conf === cf).map(g => {
+    const rows = g.entries.slice().sort((a, b) => (Number(stat(a, "SEED")) || 99) - (Number(stat(b, "SEED")) || 99));
+    return `<div class="box"><h3>${E(g.name)}</h3><div style="overflow-x:auto"><table class="rt st2"><tr><th>TEAM</th>${cols.map(([l]) => `<th>${l}</th>`).join("")}</tr>` +
+      rows.map(en => { const t = en.team, id = `${key}:${t.id}`, fav = FAV[id] || (THEME && THEME.key === id);
+        return `<tr class="${fav ? "fav" : ""}"><td><a class="tn" href="/app/team/?l=${key}&id=${encodeURIComponent(t.id)}">${FAV[id] ? "★" : ""}${badge(t)}<span>${E(t.shortDisplayName || t.displayName)}</span></a></td>` +
+          cols.map(([l, ab]) => { const v = stat(en, ab); return `<td class="${(l === "DIFF" || l === "GD") ? (String(v).startsWith("+") ? "pos" : String(v).startsWith("-") ? "neg" : "") : ""}">${E(v)}</td>`; }).join("") + `</tr>`; }).join("") + `</table></div></div>`;
+  }).join("") + `</div>`).join("");
+}
+function stat(en, ab) { const s = (en.stats || []).find(x => x.abbreviation === ab || x.name === ab || x.type === ab); return s ? (s.displayValue ?? s.summary ?? "") : "—"; }
+document.addEventListener("click", e => { const b = e.target.closest("[data-sp]"); if (b) { CUR = b.dataset.sp; try { localStorage.setItem("cmmg.stsport", CUR); } catch (err) {} load(); } });
+SHELL.mount("standings"); load();
+</script>
+</body></html>

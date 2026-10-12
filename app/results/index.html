@@ -30,13 +30,18 @@
 .rb { display:inline-block; min-width:28px; text-align:center; font-weight:900; border-radius:7px; padding:4px 6px; font-family:Saira, Inter; }
 .rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
 .pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px; font-size:13px; color:var(--dim); }
+.r3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; } @media (max-width:900px) { .r3 { grid-template-columns:minmax(0,1fr); } }
+.donut { display:flex; gap:12px; align-items:center; } .donut .lg { font-size:12px; display:grid; gap:4px; } .donut .lg i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; }
+.ub { display:grid; grid-template-columns:70px minmax(0,1fr) 70px; gap:8px; align-items:center; margin:8px 0; font-size:13px; } .ub .bar3 { height:10px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; } .ub .bar3 i { display:block; height:100%; }
+.stk { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .stk div { background:var(--panel2); border-radius:10px; padding:10px; text-align:center; } .stk b { display:block; font-family:Saira; font-size:22px; } .stk span { font-size:11px; color:var(--dim); }
+.pt { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; } @media (max-width:640px) { .pt { grid-template-columns:repeat(2,1fr); } } .pt div { background:var(--panel2); border-radius:10px; padding:8px; text-align:center; } .pt b { display:block; font-family:Saira; font-size:18px; } .pt span { font-size:11px; color:var(--dim); }
 .soonbar { padding:16px 18px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; }
 .soonbar b { color:#ffd700; } .muted { opacity:.45; filter:grayscale(.4); pointer-events:none; }
 </style></head>
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>VERIFIED <span>RESULTS</span></h1><p>REAL PICKS. REAL RESULTS. WINS AND LOSSES.</p></div>
+    <div class="vhero"><h1>RESULTS <span>&amp; STATS</span></h1><p>REAL PICKS. REAL RESULTS. WINS AND LOSSES.</p></div>
     <div id="soon"></div>
     <div id="body">
       <div class="filters">
@@ -48,6 +53,13 @@
         <button class="btn ghost" id="clear">Clear</button>
       </div>
       <div class="kp" id="kpis"></div>
+      <div class="box" id="trendBox"><h3>DAILY UNITS &amp; WIN RATE</h3><div id="trend"></div></div>
+      <div class="r3">
+        <div class="box"><h3>RESULT DISTRIBUTION</h3><div id="dist"></div></div>
+        <div class="box"><h3>UNITS BY TIER</h3><div id="utier"></div></div>
+        <div class="box"><h3>STREAKS</h3><div id="streaks"></div></div>
+      </div>
+      <div class="box"><h3>PROFIT TRACKER</h3><div id="profit"></div></div>
       <div class="vgrid">
         <div class="box"><h3>RESULTS <span id="cnt" style="font-weight:500;color:var(--dim);letter-spacing:0"></span></h3>
           <div style="overflow-x:auto"><table class="rt" id="tbl"></table></div>
@@ -110,9 +122,50 @@ function draw() {
       <td><span class="rb ${E(p.result)}">${E(p.result[0])}</span></td></tr>`).join("") : `<tr><td colspan="7" style="color:var(--dim);text-align:center;padding:26px">No graded picks match.</td></tr>`);
   $("pg").textContent = VIEW.length ? `Showing ${PAGE * PER + 1}-${Math.min(VIEW.length, PAGE * PER + PER)} of ${VIEW.length}` : "";
   const sports = [...new Set(VIEW.map(p => p.sport))];
+  extras();
   $("bySport").innerHTML = `<tr><th>SPORT</th><th>RECORD</th><th>WIN %</th><th>UNITS</th></tr>` + sports.map(sp => { const x = stats(VIEW.filter(p => p.sport === sp)); return x.n || x.push ? `<tr>
       <td style="white-space:nowrap">${ICON.sport(sp)} ${E(sp)}</td><td>${x.w}-${x.l}${x.push ? "-" + x.push : ""}</td><td>${x.n ? (100 * x.wr).toFixed(1) + "%" : "—"}</td>
       <td class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${sgn(x.net)}</td></tr>` : ""; }).join("");
+}
+
+function extras() {
+  const done = VIEW.filter(p => p.result && p.result !== "VOID");
+  // daily units (bars) + daily win rate (line)
+  const days = {}; done.forEach(p => { const d = days[p.date] = days[p.date] || { u: 0, w: 0, l: 0 }; d.u += pl(p); if (p.result === "WIN") d.w++; if (p.result === "LOSS") d.l++; });
+  const keys = Object.keys(days).sort();
+  if (keys.length < 2) { $("trend").innerHTML = `<p class="game" style="margin:0">The trend shows once there are two days of results.</p>`; }
+  else {
+    const W = 760, H = 200, P = 26, mx = Math.max(1, ...keys.map(k => Math.abs(days[k].u))), bw = (W - 2 * P) / keys.length;
+    const Yu = v => H / 2 - v / mx * (H / 2 - P), Yr = r => H - P - r * (H - 2 * P);
+    const bars = keys.map((k, i) => { const v = days[k].u, y = Math.min(Yu(v), H / 2); return `<rect x="${P + i * bw + bw * .15}" y="${y}" width="${bw * .7}" height="${Math.abs(Yu(v) - H / 2)}" fill="${v >= 0 ? "#22c55e" : "#ef4444"}" opacity=".85"/>`; }).join("");
+    const pts = keys.map((k, i) => { const d = days[k], n = d.w + d.l; return n ? [P + i * bw + bw / 2, Yr(d.w / n)] : null; }).filter(Boolean);
+    $("trend").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="${P}" x2="${W - P}" y1="${H / 2}" y2="${H / 2}" stroke="rgba(143,176,204,.35)"/>${bars}
+      <path d="${pts.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ")}" fill="none" stroke="#facc15" stroke-width="2"/>${pts.map(q => `<circle cx="${q[0]}" cy="${q[1]}" r="2.5" fill="#facc15"/>`).join("")}
+      <text x="${P}" y="${H - 6}" font-size="11" fill="#8fb0cc">${E(nice(keys[0]))}</text><text x="${W - P}" y="${H - 6}" font-size="11" fill="#8fb0cc" text-anchor="end">${E(nice(keys[keys.length - 1]))}</text></svg>
+      <div class="legend" style="font-size:12px;color:var(--dim)"><span style="color:#22c55e">■</span> units won · <span style="color:#ef4444">■</span> units lost · <span style="color:#facc15">●</span> win rate that day</div>`;
+  }
+  // distribution donut
+  const c = r => VIEW.filter(p => p.result === r).length, parts = [["Wins", c("WIN"), "#22c55e"], ["Losses", c("LOSS"), "#ef4444"], ["Pushes", c("PUSH"), "#facc15"], ["Voids", c("VOID"), "#64748b"]];
+  const tot = parts.reduce((a, x) => a + x[1], 0), R = 38, C = 2 * Math.PI * R; let acc = 0;
+  $("dist").innerHTML = tot ? `<div class="donut"><svg viewBox="0 0 100 100" width="110" height="110">${parts.filter(x => x[1]).map(([, v, col]) => { const len = v / tot * C, seg = `<circle r="${R}" cx="50" cy="50" fill="none" stroke="${col}" stroke-width="14" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-acc}" transform="rotate(-90 50 50)"/>`; acc += len; return seg; }).join("")}
+      <text x="50" y="50" text-anchor="middle" font-family="Saira" font-weight="800" font-size="20" fill="#e8f4ff">${tot}</text><text x="50" y="62" text-anchor="middle" font-size="8" fill="#8fb0cc">PICKS</text></svg>
+      <div class="lg">${parts.map(([l, v, col]) => `<span><i style="background:${col}"></i>${l} · ${v} (${(100 * v / tot).toFixed(1)}%)</span>`).join("")}</div></div>` : `<p class="game">No graded picks in range.</p>`;
+  // units by tier
+  const tu = TIERS.map(t => [t, stats(VIEW.filter(p => p.tier === t)).net]), mxu = Math.max(1, ...tu.map(x => Math.abs(x[1])));
+  $("utier").innerHTML = tu.map(([t, v]) => `<div class="ub"><span>${ICON.tier(t)} ${t}</span><span class="bar3"><i style="width:${Math.abs(v) / mxu * 100}%;background:${t === "ICE" ? "#38bdf8" : t === "EDGE" ? "#22c55e" : "#ef4444"}"></i></span><b class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}" style="text-align:right">${sgn(v)}</b></div>`).join("");
+  // streaks (chronological)
+  const seq = VIEW.filter(p => p.result === "WIN" || p.result === "LOSS").slice().reverse();
+  let lw = 0, ll = 0, cw = 0, cl = 0; seq.forEach(p => { if (p.result === "WIN") { cw++; cl = 0; } else { cl++; cw = 0; } lw = Math.max(lw, cw); ll = Math.max(ll, cl); });
+  $("streaks").innerHTML = `<div class="stk"><div><b class="pos">${cw}</b><span>Current win streak</span></div><div><b>${lw}</b><span>Longest win streak</span></div><div><b class="neg">${cl}</b><span>Current loss streak</span></div><div><b>${ll}</b><span>Longest loss streak</span></div></div>`;
+  // profit tracker (cumulative by day)
+  if (keys.length < 2) { $("profit").innerHTML = `<p class="game" style="margin:0">Shows once there are two days of results.</p>`; return; }
+  let cum = 0; const cp = keys.map(k => (cum += days[k].u));
+  const W = 760, H = 170, P = 22, lo = Math.min(0, ...cp), hi = Math.max(0, ...cp), sp2 = hi - lo || 1, X = i => P + i * (W - 2 * P) / (cp.length - 1), Y = v => H - P - (v - lo) * (H - 2 * P) / sp2;
+  const d = cp.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join(" "), col = cum >= 0 ? "#22c55e" : "#ef4444";
+  const best = keys.reduce((a, k) => days[k].u > days[a].u ? k : a, keys[0]), worst = keys.reduce((a, k) => days[k].u < days[a].u ? k : a, keys[0]);
+  $("profit").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%"><line x1="${P}" x2="${W - P}" y1="${Y(0)}" y2="${Y(0)}" stroke="rgba(143,176,204,.35)" stroke-dasharray="4 4"/><path d="${d} L ${X(cp.length - 1)} ${Y(0)} L ${X(0)} ${Y(0)} Z" fill="${col}" opacity=".12"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.6"/></svg>
+    <div class="pt"><div><b class="${cum > 0 ? "pos" : cum < 0 ? "neg" : ""}">${sgn(cum)}u</b><span>Net in range</span></div><div><b>${sgn(cum / keys.length)}u</b><span>Daily average</span></div>
+      <div><b class="pos">${sgn(days[best].u)}u</b><span>Best day · ${E(nice(best))}</span></div><div><b class="neg">${sgn(days[worst].u)}u</b><span>Worst day · ${E(nice(worst))}</span></div></div>`;
 }
 
 async function load() {

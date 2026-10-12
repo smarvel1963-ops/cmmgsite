@@ -51,9 +51,10 @@ const SHELL = (() => {
     el.addEventListener("click", done);
   }
   function mount(active) {
+    if (!document.querySelector('link[rel="icon"]')) document.head.insertAdjacentHTML("beforeend", `<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/lion_192.png">`);
     splash();
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">
-      <a class="logo" href="/"><b>CMMG</b><span>SPORTS EDGE</span></a><div class="grow"></div><div id="who"></div></header>`);
+      <a class="logo" href="/" style="display:flex;align-items:center;gap:8px"><img src="/img/lion_64.png" alt="" width="34" height="34"><span style="display:block"><b>CMMG</b><span>SPORTS EDGE</span></span></a><div class="grow"></div><div id="who"></div></header>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${ic} ${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
     const layout = document.querySelector(".layout"); if (layout) layout.insertAdjacentHTML("afterbegin", rail);

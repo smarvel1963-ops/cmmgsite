@@ -11,17 +11,18 @@
 <title>CMMG Sports Edge</title>
 <meta name="description" content="CMMG Sports Edge: sports picks built on data and discipline. Free picks in our Discord, every result posted, wins and losses. Analyze. Execute. Profit.">
 <meta property="og:title" content="CMMG Sports Edge">
+<meta property="og:image" content="https://cmmgsports.com/img/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <meta property="og:description" content="Sports picks built on data and discipline. Every result posted - wins and losses.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23060d1a'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Arial' font-weight='900' font-size='26' fill='%23ffd700'%3ECM%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="img/lion_64.png"><link rel="apple-touch-icon" href="img/lion_192.png">
 <style>
 :root { --bg: #060d1a; --panel: #0c1929; --navy: #0a1a3a; --steel: #4da8da; --ice: #7fd8ff; --cyan: #00bfff; --text: #e8f4ff; --dim: #8fb0cc; --gold: #ffd700; --fire: #ff4400; --edge: #00bf63; --line: rgba(127,216,255,.18); }
 * { box-sizing: border-box; }
 body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #12305e 0%, var(--bg) 60%) fixed, var(--bg); color: var(--text); font-family: Arial, "Segoe UI", system-ui, sans-serif; line-height: 1.55; }
 a { color: inherit; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
-header { padding: 54px 0 30px; text-align: center; }
-.mark { font-weight: 900; letter-spacing: .06em; font-size: clamp(2.6rem, 9vw, 4.6rem); line-height: 1; background: linear-gradient(180deg, #fff6c2, var(--gold) 55%, #b98a00); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.sub { font-weight: 900; letter-spacing: .32em; font-size: clamp(1rem, 3.2vw, 1.5rem); color: var(--ice); margin-top: 6px; }
+header { padding: 20px 0 30px; text-align: center; }
+.crest { display: block; width: min(560px, 92vw); height: auto; margin: 0 auto -6px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 14%, #000 94%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 14%, #000 94%, transparent); mask-composite: intersect; }
 .tag { margin-top: 14px; letter-spacing: .28em; text-transform: uppercase; font-size: .85rem; color: var(--dim); }
 h1 { font-size: clamp(1.5rem, 4.5vw, 2.3rem); margin: 30px auto 10px; max-width: 760px; }
 .lead { color: var(--dim); max-width: 640px; margin: 0 auto; font-size: 1.08rem; }
@@ -67,8 +68,7 @@ footer p { margin: 6px 0; }
 </head>
 <body>
 <header class="wrap">
-  <div class="mark">CMMG</div>
-  <div class="sub">SPORTS EDGE</div>
+  <img class="crest" src="img/crest.jpg" width="760" height="659" alt="CMMG Sports Edge - crowned lion crest">
   <div class="tag">Analyze. Execute. Profit.</div>
   <h1>Sports picks built on data and discipline.</h1>
   <p class="lead">Every pick comes from our models, gets a confidence tier, and gets graded when the game ends. Win or lose, the result is posted.</p>

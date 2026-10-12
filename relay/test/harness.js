@@ -107,4 +107,6 @@ const r9 = mt2.rows.find(r => r.pick === "p9");
 check("v1.1: My Tracker hides a locked, ungraded pick's game/bet", r9 && r9.game === "" && r9.bet === "", r9);
 check("remove works even for a pick no longer on the board", post({ task: "track", session: proS, pick: "gone123", remove: true }).ok);
 check("v1.3: tracker rows carry the game date + my book", post({ task: "mytracker", session: proS }).rows.every(r => "date" in r && "myBook" in r));
+check("forget needs sign-in", /sign in/.test(post({ task: "forget" }).error));
+check("forget deletes my tracked picks", post({ task: "forget", session: proS }).ok && post({ task: "mytracker", session: proS }).rows.length === 0);
 console.log(`\n${ok} passed, ${bad} failed`);

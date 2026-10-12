@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
+ * CMMG SPORTS EDGE RELAY v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
+ * was v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
  * was v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
  * v1.1: "I Took This Pick" only for picks the member may see; My Tracker never shows a locked pick (reviewer finding).
  * One small server for cmmgsports.com (and later the phone app):
@@ -53,6 +54,7 @@ function doPost(e) {
       case "record": return out(records(P));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
+      case "forget": return out(forget(P, session(P, req.session)));
       default: return out({ ok: false, error: "unknown task" });
     }
   } catch (err) {
@@ -167,6 +169,19 @@ function track(P, s, req) {
     return { ok: true, count: list.length };
   } finally { lock.releaseLock(); }
 }
+// v1.4 (Google Play account-deletion rule): delete everything this relay keeps about the signed-in member - their
+// tracked picks (the only per-member data; sessions are signed tokens and are not stored). Discord itself is untouched.
+function forget(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  const lock = LockService.getScriptLock(); lock.waitLock(5000);
+  try {
+    const key = "T_" + s.uid, n = Number(P.getProperty(key + "#n") || 0);
+    for (let i = 0; i < n; i++) P.deleteProperty(key + "#" + i);
+    P.deleteProperty(key + "#n");
+    return { ok: true, deleted: n > 0 };
+  } finally { lock.releaseLock(); }
+}
+
 // The member's tracked picks with the result from the feed's graded history (their own odds decide their units).
 function myTracker(P, s) {
   if (!s) return { ok: false, error: "sign in with Discord first" };

@@ -25,6 +25,11 @@
 .gt td, .gt th { padding:9px 8px; font-size:13px; white-space:nowrap; } .gt tr[data-go] { cursor:pointer; } .gt tr[data-go]:hover td { background:rgba(127,216,255,.05); }
 .gt .mu2 { display:flex; flex-direction:column; gap:4px; } .gt .mu2 span { display:flex; align-items:center; gap:6px; }
 .ln { display:inline-block; min-width:70px; text-align:center; border:1px solid var(--line); border-radius:7px; padding:3px 6px; background:rgba(5,12,24,.6); font-weight:700; }
+.hub2 { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:12px; } @media (max-width:820px) { .hub2 { grid-template-columns:minmax(0,1fr); } }
+.tpr { display:grid; grid-template-columns:26px minmax(0,1fr) minmax(60px,140px) auto; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); }
+.tpr .n { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-weight:900; font-family:Saira; background:#ffd700; color:#241a00; }
+.tpr b { color:var(--text); font-size:14px; } .tpr .bar5 { height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; } .tpr .bar5 i { display:block; height:100%; }
+.ql { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .ql a { display:flex; gap:8px; align-items:center; text-decoration:none; padding:10px; border:1px solid var(--line); border-radius:10px; background:rgba(5,12,24,.55); font-weight:700; font-size:13px; } .ql .ic { width:18px; height:18px; color:#9fd2ff; }
 .bye { color:var(--dim); font-size:13px; margin-top:8px; }
 </style></head>
 <body>
@@ -35,6 +40,8 @@
     <div class="wk" id="wk"></div>
     <div class="bar4"><select id="fSt"><option value="">All games</option><option value="in">Live</option><option value="pre">Upcoming</option><option value="post">Final</option></select><input id="fQ" placeholder="Search teams">
       <a class="btn ghost" id="stLink" style="text-decoration:none">Standings →</a></div>
+    <div class="hub2"><div class="box"><h3 id="topT">CMMG TOP PICKS</h3><div id="topSport" class="game">Loading…</div></div>
+      <div class="box"><h3>QUICK LINKS</h3><div class="ql" id="ql"></div></div></div>
     <div class="box"><div style="overflow-x:auto"><table class="rt gt" id="tbl"><tr><td class="game">Loading…</td></tr></table></div><div class="bye" id="bye"></div></div>
   </main>
 </div>
@@ -55,7 +62,9 @@ let SEL = null, CUR = null, EVENTS = [], BYES = [], PICKS = [], NWEEKS = 18;
 $("hero").className = "shero sb-" + FAM;
 $("hero").innerHTML = `${ICON.sport(L)}<div><h1>${E(L === "MLS" ? "SOCCER" : L)}</h1><p>CMMG SPORTS EDGE · ${E(NAME.toUpperCase())} · GAMES. PICKS. STANDINGS.</p></div>`;
 $("sps").innerHTML = Object.keys(SP).map(k => `<a href="?l=${k}" class="${k === L ? "on" : ""}">${ICON.sport(k)}${k === "MLS" ? "SOCCER" : k}</a>`).join("");
-$("stLink").href = "/app/standings/"; document.title = `${L} · CMMG Sports Edge`;
+$("stLink").href = "/app/standings/";
+$("ql").innerHTML = [["target", "CMMG picks", "/app/"], ["clock", "Live scores", "/app/scores/"], ["chart", "Standings", "/app/standings/"], ["star", "Schedules & teams", "/app/schedule/"],
+  ["stadium", "Game Center", "/app/game/"], ["calc", "Strategy tools", "/app/tools/"]].map(([i, l, h]) => `<a href="${h}">${ICON.ui(i)}${l}</a>`).join(""); document.title = `${L} · CMMG Sports Edge`;
 try { localStorage.setItem("cmmg.stsport", L); } catch (e) {}
 
 async function load() {
@@ -80,7 +89,17 @@ function tabs() {
   const on = $("wk").querySelector(".on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
 }
 const pickFor = g => PICKS.find(p => p.sport === L && !p.locked && g.teams.every(t => [t.displayName, t.shortDisplayName, t.name].filter(n => n && n.length > 2).some(n => norm(p.game).includes(norm(n)))));
+function topPicks() {
+  $("topT").textContent = `CMMG TOP ${L === "MLS" ? "SOCCER" : L} PICKS TODAY`;
+  const ord = { ICE: 0, EDGE: 1, FIRE: 2 }, mine = PICKS.filter(p => p.sport === L);
+  const vis = mine.filter(p => !p.locked).sort((a, b) => (ord[a.tier] ?? 9) - (ord[b.tier] ?? 9) || (Number(b.units) || 0) - (Number(a.units) || 0)).slice(0, 5);
+  const col = { ICE: "#38bdf8", EDGE: "#22c55e", FIRE: "#ef4444" }, wid = { ICE: 100, EDGE: 75, FIRE: 50 };
+  $("topSport").innerHTML = vis.length ? vis.map((p, i) => `<div class="tpr"><span class="n">${i + 1}</span><span><b>${E(p.bet)}</b><div class="game">${E(p.game)} · ${E(p.odds > 0 ? "+" + p.odds : p.odds)}${p.result ? ` · <span class="rb ${E(p.result)}">${E(p.result[0])}</span>` : ""}</div></span>
+      <span class="bar5"><i style="width:${wid[p.tier] || 30}%;background:${col[p.tier] || "#64748b"}"></i></span><span class="tag ${E(p.tier)}" style="font-size:11px">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></div>`).join("")
+    : mine.length ? `${mine.length} members-only ${E(L)} pick${mine.length > 1 ? "s" : ""} today. <a href="/app/" style="color:var(--ice)">Today's Picks →</a>` : `No CMMG ${E(L)} picks posted today.`;
+}
 function draw() {
+  topPicks();
   const sf = $("fSt").value, q = norm($("fQ").value);
   const vis = EVENTS.filter(g => (!sf || g.state === sf) && (!q || g.teams.some(t => norm(t.displayName).includes(q) || norm(t.abbreviation).includes(q)))).sort((a, b) => a.date.localeCompare(b.date));
   $("tbl").innerHTML = `<tr><th>TIME (CT)</th><th>MATCHUP</th><th>SPREAD</th><th>MONEYLINE</th><th>TOTAL</th><th>TV</th><th>CMMG PICK</th></tr>` + (vis.length ? vis.map(g => { const [a, h] = g.teams, p = pickFor(g), sc = g.state !== "pre";

@@ -47,6 +47,16 @@
 <script>
 const TIER_ORDER = { ICE: 0, EDGE: 1, FIRE: 2 };                       // locked hierarchy: ICE > EDGE > FIRE
 const TIER_ICON = { ICE: "❄️", EDGE: "🗡️", FIRE: "🔥" };
+// Sport icons (league logos are trademarks - Scott 10/11 "and sport logo"). Team badges = abbreviation on the team's
+// own colour from the feed; real team logos only with a licence (App Store 5.2.1).
+const SPORT_ICON = { NFL: "🏈", NCAAF: "🏈", NBA: "🏀", NCAAB: "🏀", WNBA: "🏀", MLB: "⚾", KBO: "⚾", NPB: "⚾", NCAABB: "⚾", NHL: "🏒",
+  MLS: "⚽", SOCCER: "⚽", TENNIS: "🎾", UFC: "🥊", MMA: "🥊", GOLF: "⛳", HORSES: "🏇", NASCAR: "🏁", F1: "🏎️" };
+const sp = x => `${SPORT_ICON[String(x || "").toUpperCase()] || "🎯"} ${E(x)}`;
+const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
+const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
+const badge = t => `<span class="tb" style="background:${hex(t.color)};color:${lum(t.color) > 150 ? "#0b1220" : "#fff"};border-color:${hex(t.alt)}" title="${E(t.name)}">${E(t.abbr)}</span>`;
+const matchup = p => p.teams && p.teams.length === 2 ? `<span class="mu">${badge(p.teams[0])}<i>@</i>${badge(p.teams[1])}</span>` : "";
+const watch = p => p.tv ? `<div class="tv">📺 ${E(p.tv)}</div>` : "";
 const UPGRADE = SHELL.UPGRADE;
 let PICKS = [], SPORT = "ALL", TIER = "ALL", VIEW = "simple", TOOK = null;
 try { VIEW = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
@@ -88,19 +98,19 @@ function draw() {
   const signedIn = !!CMMG.session();
   if (VIEW === "advanced") {
     el.innerHTML = `<table><tr><th>TIME (CT)</th><th>SPORT</th><th>MATCHUP</th><th>PICK</th><th>ODDS</th><th>BOOK</th><th>TAG</th><th></th></tr>` + list.map(p => p.locked
-      ? `<tr><td>${ct(p.time)}</td><td>${E(p.sport)}</td><td colspan="4" class="lockmsg">🔒 Premium pick — <a href="${UPGRADE}">unlock on Discord</a></td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td><td></td></tr>`
-      : `<tr><td>${ct(p.time)}</td><td>${E(p.sport)}</td><td>${E(p.game)}</td><td><b>${E(p.bet)}</b></td><td>${odds(p.odds)}</td><td>${E(p.book)}</td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td>
+      ? `<tr><td>${ct(p.time)}</td><td>${sp(p.sport)}</td><td colspan="4" class="lockmsg">🔒 Premium pick — <a href="${UPGRADE}">unlock on Discord</a></td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td><td></td></tr>`
+      : `<tr><td>${ct(p.time)}${p.tv ? `<div class="game">📺 ${E(p.tv)}</div>` : ""}</td><td>${sp(p.sport)}</td><td>${matchup(p) || ""} <span class="game">${E(p.game)}</span></td><td><b>${E(p.bet)}</b></td><td>${odds(p.odds)}</td><td>${E(p.book)}</td><td><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span></td>
          <td><button class="btn go" data-took="${E(p.id)}">I Took This</button></td></tr>`).join("") + `</table>`;
     return;
   }
   el.innerHTML = `<div class="cards">` + list.map(p => p.locked
-    ? `<div class="card locked"><div class="when"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div>
+    ? `<div class="card locked"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}</span></div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="pick">Premium pick hidden</div>
         <div class="lockmsg">🔒 Members only — your access comes from your CMMG Discord membership.</div></div>
         <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">Unlock on Discord</a></div></div>`
-    : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${E(p.sport)}${p.market ? " · " + E(p.market) : ""}</span></div>
+    : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${sp(p.sport)}${p.market ? " · " + E(p.market) : ""}</span>${watch(p)}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
-          <div class="pick" style="margin-top:6px">${E(p.bet)}</div><div class="game">${E(p.game)}</div>
+          <div class="pick" style="margin-top:6px">${E(p.bet)}</div><div class="game">${matchup(p)} ${E(p.game)}</div>
           ${p.note ? `<div class="why">${E(p.note)}</div>` : ""}
           ${p.confidence ? `<div style="font-size:12px;color:var(--dim);margin-top:6px">${E(p.confidence)}% confidence<div class="conf"><i style="width:${Math.max(0, Math.min(100, Number(p.confidence)))}%"></i></div></div>` : ""}</div>
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>

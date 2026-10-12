@@ -102,3 +102,7 @@ dialog input { width:100%; padding:9px; border-radius:8px; border:1px solid var(
 @media (prefers-reduced-motion: reduce) { .splash .fill { transition:none; } }
 .splash::before { content:""; position:absolute; inset:-40px; background:url(/img/splash.jpg) center / cover; filter:blur(28px) brightness(.45); }
 .splash .art { z-index:1; }
+/* team badges + where to watch (feed: ESPN abbr/colour/TV) */
+.tb { display:inline-block; min-width:38px; text-align:center; font:900 11px/1 Arial, sans-serif; letter-spacing:.04em; padding:5px 6px; border-radius:6px; border:2px solid; }
+.mu { display:inline-flex; align-items:center; gap:5px; margin-right:6px; vertical-align:middle; } .mu i { font-style:normal; color:var(--dim); font-size:11px; }
+.tv { margin-top:6px; font-size:12px; color:#c9dcef; background:rgba(127,216,255,.08); border:1px solid var(--line); border-radius:6px; padding:3px 7px; display:inline-block; }

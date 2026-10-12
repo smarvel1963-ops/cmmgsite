@@ -1,0 +1,78 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/ask/index.html
+     Ask CMMG (Scott's final-review #7, 10/11 "go ahead build away"). Instant-answer help centre: type a question, the
+     closest answers show as you type (plain keyword match, no AI, no API cost). Topics: the app, picks + tiers, units +
+     breakeven, tracking, membership + Discord sign-in, install on phone, responsible gambling. Nothing found -> one tap
+     to ask in the CMMG Discord. An AI answer box would be a NEW money path (Rule #12) - not built; Scott's call later. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask CMMG · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.askbox { display:flex; gap:10px; margin-bottom:14px; } .askbox input { flex:1; min-width:0; font:inherit; font-size:17px; padding:14px 16px; border-radius:12px; color:var(--text);
+  background:rgba(5,12,24,.85); border:1px solid rgba(59,169,255,.6); box-shadow:0 0 18px rgba(59,169,255,.2); outline:none; } .askbox input:focus { box-shadow:0 0 24px rgba(59,169,255,.45); }
+.topics { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.qa { border-bottom:1px solid var(--line); } .qa:last-child { border-bottom:0; }
+.qa summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; gap:10px; padding:13px 2px; font-weight:800; font-size:16px; }
+.qa summary::-webkit-details-marker { display:none; } .qa summary::after { content:"+"; color:#3ba9ff; font-size:20px; line-height:1; } .qa[open] summary::after { content:"–"; }
+.qa .a { padding:0 2px 14px; color:#dbe8f5; font-size:15px; line-height:1.55; } .qa .a a { color:var(--ice); } .qa .t { font-size:11px; letter-spacing:.12em; color:#7fd8ff; font-weight:800; margin-right:8px; }
+.none { text-align:center; padding:22px; } .none p { color:#c3d6ea; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>ASK CMMG</h1><p>QUICK ANSWERS. ANY TIME.</p></div>
+    <form class="askbox" id="f" role="search"><input id="q" placeholder="Ask a question… e.g. what does EDGE mean?" aria-label="Ask a question" autocomplete="off"><button class="btn go">Ask</button></form>
+    <div class="topics" id="topics"></div>
+    <div class="box"><h3 id="hd">POPULAR QUESTIONS</h3><div id="list"></div></div>
+    <div class="box none" id="none" hidden><p>No answer for that yet. Ask the CMMG team and members in Discord — real people answer.</p><a class="btn disc" id="dlink" href="#">Ask in Discord</a></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const QA = [
+  ["Picks", "What do ICE, EDGE and FIRE mean?", "They are our three pick tiers, strongest first. <b>ICE</b> is our top tier, <b>EDGE</b> is next, <b>FIRE</b> is the third. Each pick card shows its tier badge.", "tier ice edge fire meaning badge level strongest"],
+  ["Picks", "When are picks posted?", "Picks post through the day as our models finish each slate. Today's Picks updates on its own every few minutes — pull down or reopen the app to refresh.", "when time post posted daily today new"],
+  ["Picks", "What information does every pick show?", "Date, start time (Central Time), the game, the pick, its tier, the odds, the book the price came from, the stake in units and the sport. Once graded it shows WON, LOST, PUSH or VOID.", "card info show odds book units date time"],
+  ["Picks", "Why can't I see some picks?", "Some picks are for members only. Sign in with Discord — your Discord membership decides what you see, so you never pay twice. Free picks are open to everyone.", "locked members only hidden cant see blurred"],
+  ["Picks", "What does PUSH or VOID mean?", "<b>PUSH</b>: the result landed exactly on the line, so the stake comes back. <b>VOID</b>: the game was postponed or cancelled. Neither counts as a win or a loss.", "push void tie cancelled postponed refund"],
+  ["Results", "What is a unit?", "A unit is one standard stake — pick a size you're comfortable with (many people use 1% of their bankroll). A 1u pick risks one unit; results are shown in units so they compare no matter your bet size.", "unit units stake size bankroll 1u"],
+  ["Results", "What is breakeven?", "The win rate the odds need just to break even. At -110 that's 52.4%; at -150 it's 60%. We show it next to every win rate so you can tell if a record is actually making money.", "breakeven break even win rate percent odds need"],
+  ["Results", "Are losses shown?", "Yes. Verified Results and the Weekly Report list every graded pick — wins and losses — with the date range and breakeven shown.", "losses honest losing record verified real"],
+  ["Results", "What is ROI?", "Return on investment: units won divided by units risked. +5% ROI means +5 units for every 100 units staked.", "roi return investment profit percent"],
+  ["Tracking", "How do I track the picks I take?", "Tap <b>I Took This Pick</b> on any pick card and enter your own odds if they differ. Your record then shows in <a href='/app/tracker/'>My Tracker</a>, <a href='/app/mygames/'>My Games</a> and the Weekly Report.", "track took this pick my tracker record mine log"],
+  ["Tracking", "Why is my record different from CMMG's?", "Your record uses the odds you entered and only the picks you took. Different prices and different picks give a different result — that's why both are shown.", "different my record mine vs odds price"],
+  ["Tracking", "How do I build a parlay?", "Tap <b>+ Parlay</b> on any open pick. The slip on Today's Picks builds the combined odds. Never the same bet twice in one parlay.", "parlay slip combine legs multi"],
+  ["Account", "How do I sign in?", "Tap <b>Continue with Discord</b> and use the same Discord account you use in the CMMG server. No new password needed.", "sign in login log in account discord password"],
+  ["Account", "How do I get membership?", "Membership is through the CMMG Discord — join, pick a plan, and your Discord role unlocks the matching picks here automatically.", "membership join buy upgrade vip elite plan price subscribe"],
+  ["Account", "I paid but picks are still locked", "Sign out and back in so the app re-reads your Discord role. Make sure it's the same Discord account that has the role. Still locked? Ask in Discord and we'll sort it.", "paid locked still role not working access"],
+  ["Account", "How do I delete my account?", "Go to <a href='/delete-account/'>Delete account</a>. It removes your tracked picks and sign-in from CMMG.", "delete remove account data privacy"],
+  ["App", "How do I put the app on my phone?", "Open <b>cmmgsports.com/app/</b> on your phone. iPhone (Safari): Share → <b>Add to Home Screen</b>. Android (Chrome): ⋮ menu → <b>Install app</b>. It opens full screen and updates itself.", "install phone app download iphone android home screen"],
+  ["App", "The app looks out of date", "Close the app fully and reopen it — it grabs the newest version on launch. On a browser, refresh the page.", "old update refresh stale out of date"],
+  ["App", "Where do I see live scores?", "<a href='/app/scores/'>Live Scores</a> has every game, live momentum and scoring plays. Tap ☆ to watch a game in My Games.", "live scores score game momentum watch"],
+  ["App", "Do you take bets?", "No. CMMG never takes bets or holds money. We share picks and data; you bet only where it's legal for you, with your own book.", "bet place wager deposit take bets sportsbook"],
+  ["Responsible", "I need help with gambling", "Call or text <b>1-800-GAMBLER</b> any time — free and confidential. Set limits, never chase losses, and only bet what you can afford to lose.", "help problem addiction gambler limit responsible"],
+];
+if (SHELL.STORE) QA.splice(0, QA.length, ...QA.filter(x => !/membership|paid/i.test(x[1])));   // Play build: no purchase talk
+const TOPICS = [...new Set(QA.map(x => x[0]))]; let TOPIC = "";
+$("topics").innerHTML = `<button class="chip on" data-t="">All</button>` + TOPICS.map(t => `<button class="chip" data-t="${E(t)}">${E(t)}</button>`).join("");
+const words = s => s.toLowerCase().replace(/[^a-z0-9% ]/g, " ").split(/\s+/).filter(w => w.length > 1 && !["the", "do", "is", "what", "how", "my", "an", "of", "to", "does", "can", "why", "and", "for", "on", "in", "it", "me", "you", "are"].includes(w));
+function score(item, ws) { const hay = (item[1] + " " + item[3] + " " + item[0]).toLowerCase(); return ws.reduce((a, w) => a + (hay.includes(w) ? (item[3].includes(w) ? 2 : 1) : 0), 0); }
+function show() {
+  const ws = words($("q").value); let rows = QA.filter(x => !TOPIC || x[0] === TOPIC);
+  if (ws.length) rows = rows.map(x => [score(x, ws), x]).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0]).map(([, x]) => x);
+  $("hd").textContent = ws.length ? (rows.length ? "BEST ANSWERS" : "NO MATCH") : TOPIC ? TOPIC.toUpperCase() : "POPULAR QUESTIONS";
+  $("list").innerHTML = rows.map((x, i) => `<details class="qa"${ws.length && i === 0 ? " open" : ""}><summary><span><span class="t">${E(x[0].toUpperCase())}</span>${E(x[1])}</span></summary><div class="a">${x[2]}</div></details>`).join("");
+  $("none").hidden = !!rows.length || !ws.length;
+}
+$("topics").addEventListener("click", e => { const b = e.target.closest("[data-t]"); if (!b) return; TOPIC = b.dataset.t; document.querySelectorAll("#topics .chip").forEach(c => c.classList.toggle("on", c === b)); show(); });
+$("q").addEventListener("input", show); $("f").addEventListener("submit", e => { e.preventDefault(); show(); });
+SHELL.mount("ask");
+$("dlink").href = SHELL.DISCORD;
+const q0 = new URLSearchParams(location.search).get("q"); if (q0) $("q").value = q0;
+show();
+</script>
+</body></html>

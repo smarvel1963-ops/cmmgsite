@@ -135,3 +135,23 @@ dialog input { width:100%; padding:9px; border-radius:8px; border:1px solid var(
 
 /* STORE MODE (Play build): no links to paid plans anywhere in the app */
 html.store-play a[href*="winible.com"], html.store-play .buy { display:none !important; }
+
+/* Grades (WEB_DESIGNS #9): W / L / P / V */
+.card.graded { opacity:.97; }
+.card.r-WIN  { border-color:rgba(34,197,94,.65); box-shadow:0 0 0 1px rgba(34,197,94,.25), 0 0 18px rgba(34,197,94,.12); }
+.card.r-LOSS { border-color:rgba(239,68,68,.65); box-shadow:0 0 0 1px rgba(239,68,68,.25), 0 0 18px rgba(239,68,68,.12); }
+.card.r-PUSH { border-color:rgba(250,204,21,.65); box-shadow:0 0 0 1px rgba(250,204,21,.25); }
+.card.r-VOID { border-color:rgba(148,163,184,.5); }
+.final { display:block; color:#86efac; font-size:11px; letter-spacing:.14em; margin-bottom:2px; }
+.card.r-LOSS .final { color:#fca5a5; } .card.r-PUSH .final { color:#fde047; } .card.r-VOID .final { color:#cbd5e1; }
+.grade { display:inline-flex; flex-direction:column; align-items:center; margin-top:8px; }
+.grade .hex { width:54px; height:60px; display:grid; place-items:center; font:900 28px/1 Arial, sans-serif;
+  clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.grade b { font-size:13px; letter-spacing:.12em; margin-top:3px; }
+.g-WIN .hex  { background:linear-gradient(160deg,#4ade80,#15803d); color:#04140a; box-shadow:0 0 16px #22c55e; } .g-WIN b  { color:#4ade80; }
+.g-LOSS .hex { background:linear-gradient(160deg,#f87171,#b91c1c); color:#1f0505; } .g-LOSS b { color:#f87171; }
+.g-PUSH .hex { background:linear-gradient(160deg,#fde047,#ca8a04); color:#1f1600; } .g-PUSH b { color:#fde047; }
+.g-VOID .hex { background:linear-gradient(160deg,#cbd5e1,#64748b); color:#0f172a; } .g-VOID b { color:#cbd5e1; }
+.stally { display:flex; gap:5px; margin-left:8px; } .stally i { font-style:normal; font-weight:900; font-size:12px; padding:4px 8px; border-radius:7px; background:rgba(0,0,0,.4); }
+.stally .tw { color:#4ade80; border:1px solid rgba(74,222,128,.6); } .stally .tl { color:#f87171; border:1px solid rgba(248,113,113,.6); } .stally .tp { color:#fde047; border:1px solid rgba(253,224,71,.5); }
+@media (max-width:640px) { .stally i { padding:3px 6px; font-size:11px; } .grade .hex { width:46px; height:52px; font-size:24px; } }

@@ -65,6 +65,11 @@ const matchup = p => p.teams && p.teams.length === 2 ? `<span class="mu">${badge
 const FAMILY = { NFL: "fb", NCAAF: "fb", CFL: "fb", NBA: "bb", NCAAB: "bb", WNBA: "bb", NHL: "hk", MLB: "base", KBO: "base",
   NPB: "base", NCAABB: "base", MLS: "soc", SOCCER: "soc", TENNIS: "ten", UFC: "fight", MMA: "fight", GOLF: "golf" };
 const fam = x => FAMILY[String(x || "").toUpperCase()] || "other";
+// Grades (WEB_DESIGNS #9, Scott 10/11 "thoughts on wins and losses"): a graded card turns green / red / gold / grey with a
+// big W / L / P / V badge where the button was; each sport banner gets its tally. Results only come from the feed's
+// grades (MasterHub). Locked premium picks stay locked after grading (their results are VIP receipts).
+const RES = { WIN: ["W", "WON"], LOSS: ["L", "LOST"], PUSH: ["P", "PUSH"], VOID: ["V", "VOID"] };
+const gradeBadge = r => RES[r] ? `<div class="grade g-${r}"><span class="hex">${RES[r][0]}</span><b>${RES[r][1]}</b></div>` : "";
 const sid = x => "sec-" + String(x || "other").toLowerCase().replace(/[^a-z0-9]/g, "");
 const watch = p => p.tv ? `<div class="tv">📺 ${E(p.tv)}</div>` : "";
 const UPGRADE = SHELL.UPGRADE;
@@ -118,21 +123,25 @@ function draw() {
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="pick">Premium pick hidden</div>
         <div class="lockmsg">🔒 Members only — your access comes from your CMMG Discord membership.</div></div>
         <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${UPGRADE}">Unlock on Discord</a></div></div>`
-    : `<div class="card sp-${fam(p.sport)}"><div class="when"><b>${ct(p.time)}</b><span>${p.market ? E(p.market) : sp(p.sport)}</span>${watch(p)}</div>
+    : `<div class="card sp-${fam(p.sport)} ${RES[p.result] ? "graded r-" + p.result : ""}"><div class="when"><b>${RES[p.result] ? '<span class="final">FINAL</span> ' : ""}${ct(p.time)}</b><span>${p.market ? E(p.market) : sp(p.sport)}</span>${watch(p)}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
           <div class="pick" style="margin-top:6px">${E(p.bet)}</div><div class="game">${matchup(p)} ${E(p.game)}</div>
           ${p.note ? `<div class="why">${E(p.note)}</div>` : ""}
           ${p.confidence ? `<div style="font-size:12px;color:var(--dim);margin-top:6px">${E(p.confidence)}% confidence<div class="conf"><i style="width:${Math.max(0, Math.min(100, Number(p.confidence)))}%"></i></div></div>` : ""}</div>
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>
-          <button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button></div></div>`;
+          ${RES[p.result] ? gradeBadge(p.result) : `<button class="btn go" style="margin-top:8px" data-took="${E(p.id)}">✓ I Took This Pick</button>`}</div></div>`;
   // one section per sport; sections ordered by their best tier, then their earliest game (list is already ICE>EDGE>FIRE, time)
   const groups = [];
   list.forEach(p => { let g = groups.find(x => x.sport === p.sport); if (!g) groups.push(g = { sport: p.sport, picks: [] }); g.picks.push(p); });
   const best = g => Math.min(...g.picks.map(p => TIER_ORDER[p.tier] ?? 9)), first = g => g.picks.map(p => String(p.time)).sort()[0];
   groups.sort((a, b) => best(a) - best(b) || first(a).localeCompare(first(b)));
+  const tally = ps => {
+    const n = r => ps.filter(p => !p.locked && p.result === r).length, w = n("WIN"), l = n("LOSS"), pu = n("PUSH");
+    return w + l + pu ? `<span class="stally"><i class="tw">${w}W</i><i class="tl">${l}L</i><i class="tp">${pu}P</i></span>` : "";
+  };
   el.innerHTML = groups.map(g => `<section class="sportsec" id="${sid(g.sport)}">
       <div class="sbanner sb-${fam(g.sport)}"><span class="sic">${SPORT_ICON[String(g.sport).toUpperCase()] || "🎯"}</span><b>${E(g.sport || "Other")}</b>
-        <span class="scount">${g.picks.length} pick${g.picks.length === 1 ? "" : "s"}</span></div>
+        <span class="scount">${g.picks.length} pick${g.picks.length === 1 ? "" : "s"}</span>${tally(g.picks)}</div>
       <div class="cards">${g.picks.map(card).join("")}</div></section>`).join("");
   if (!signedIn) el.insertAdjacentHTML("afterbegin", `<p style="color:var(--dim);font-size:13px">Sign in with Discord to see the picks your membership includes and to track the ones you take.</p>`);
 }

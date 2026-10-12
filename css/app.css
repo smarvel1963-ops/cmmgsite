@@ -320,3 +320,20 @@ body.dr-open .drawer-r { transform:none; }
 .lp-empty { color:var(--dim); } .lp-open { display:block; text-align:center; text-decoration:none; margin-top:12px; }
 @media (max-width:760px) { .livebtn span { display:none; } }
 @media (max-width:760px) { #who .btn.disc { padding:7px 10px; font-size:12px; white-space:nowrap; } .wm span { display:none; } }
+
+/* COLOUR ICONS + GLOW TILES (Scott 10/11) */
+.cic { filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.sportrow a .cic, .chip .cic, .sps a .cic { width:22px; height:22px; } .sbanner .sic .cic { width:34px; height:34px; filter:drop-shadow(0 0 8px rgba(255,255,255,.4)); }
+.kx { display:grid !important; grid-template-columns:auto minmax(0,1fr); column-gap:12px; align-items:center; }
+.kx > :not(.kic) { grid-column:2; } .kx .kic { grid-row:1 / span 4; display:grid; place-items:center; }
+.kx .kic .ic { width:44px; height:44px; } .kx .kic .cic { filter:drop-shadow(0 0 10px var(--kg)); }
+.kx .n { font-size:26px !important; text-shadow:0 0 14px var(--kg); }
+.kx.k-gold { --kg:rgba(251,191,36,.55); border-color:rgba(251,191,36,.55) !important; box-shadow:0 0 22px rgba(251,191,36,.15), inset 0 1px 0 rgba(255,255,255,.06) !important; }
+.kx.k-green { --kg:rgba(34,197,94,.55); border-color:rgba(34,197,94,.55) !important; box-shadow:0 0 22px rgba(34,197,94,.15), inset 0 1px 0 rgba(255,255,255,.06) !important; } .kx.k-green .n:not(.neg) { color:#4ade80; }
+.kx.k-red { --kg:rgba(239,68,68,.55); border-color:rgba(239,68,68,.55) !important; box-shadow:0 0 22px rgba(239,68,68,.15), inset 0 1px 0 rgba(255,255,255,.06) !important; }
+.kx.k-orange { --kg:rgba(249,115,22,.55); border-color:rgba(249,115,22,.55) !important; box-shadow:0 0 22px rgba(249,115,22,.15) !important; }
+.kx.k-blue { --kg:rgba(59,130,246,.55); border-color:rgba(59,130,246,.55) !important; box-shadow:0 0 22px rgba(59,130,246,.15) !important; }
+.kx.k-ice { --kg:rgba(56,189,248,.7); } .kx.k-edge { --kg:rgba(34,197,94,.7); } .kx.k-fire { --kg:rgba(239,68,68,.7); }
+.kx.k-ice .n { color:#7fd8ff; } .kx.k-edge .n { color:#4ade80; } .kx.k-fire .n { color:#ff7a45; }
+.crown .cic, .bell .cic { width:28px; height:28px; filter:drop-shadow(0 0 8px rgba(251,191,36,.6)); }
+@media (max-width:640px) { .kx .kic .ic { width:32px; height:32px; } .kx .n { font-size:21px !important; } .kx { column-gap:8px; } }

@@ -132,6 +132,19 @@ const SHELL = (() => {
     }
     if (document.body.classList.contains("dr-open")) lpTimer = setTimeout(livefeed, 60000);
   }
+  // STAT TILES (Scott 10/11 mockups): big glowing colour icon picked from the tile's label + matching glow
+  const KMAP = [[/LIVE/, "live", "red"], [/WIN ?%|WIN RATE|RECORD/, "trophy", "gold"], [/UNIT/, "coins", "green"], [/ROI/, "bars", "green"], [/ODDS/, "target", "red"],
+    [/STREAK/, "flame", "orange"], [/FINAL|GRADED|RESULT/, "check", "green"], [/UPCOMING|NEXT|START|STILL OPEN|PENDING/, "clock", "blue"], [/ALERT/, "bell", "gold"],
+    [/ACCESS|PLAN/, "crown", "gold"], [/PICK|GAMES|TOTAL|TRACKED/, "clip", "blue"]];
+  function tiles() {
+    document.querySelectorAll(".kpi:not(.kdeco), .tile:not(.kdeco)").forEach(k => {
+      k.classList.add("kdeco"); if (k.querySelector("svg") && !k.closest(".tiles")) return;
+      const l = (k.querySelector(".l") || k).textContent.toUpperCase(), t = ["ICE", "EDGE", "FIRE"].find(x => k.classList.contains(x.toLowerCase()));
+      if (t) { const old = k.querySelector(".l svg"); if (old) old.remove(); k.insertAdjacentHTML("afterbegin", `<span class="kic">${ICON.tier(t)}</span>`); k.classList.add("kx", "k-" + t.toLowerCase()); return; }
+      const m = KMAP.find(([re]) => re.test(l)); if (!m || typeof ICON.color !== "function") return;
+      k.insertAdjacentHTML("afterbegin", `<span class="kic">${ICON.color(m[1])}</span>`); k.classList.add("kx", "k-" + m[2]);
+    });
+  }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
@@ -159,8 +172,8 @@ const SHELL = (() => {
       <a class="logo wm" href="/"><img src="/img/lion_64.png" alt="" width="40" height="40"><span><b>CMMG</b><i>SPORTS EDGE</i></span></a>
       <nav class="topnav" aria-label="CMMG">${NAV.map(([k, i2, l, h]) => `<a class="${k === active ? "on" : ""}" href="${h}">${ic(i2)}<span>${l}</span></a>`).join("")}</nav>
       <form class="tsearch" action="/app/schedule/"><input name="q" placeholder="Search teams, games…" aria-label="Search"><button aria-label="Search">${ic("target")}</button></form>
-      <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${ic("star")}</a>`}
-      <a class="bell" href="/app/alerts/" aria-label="Alerts">${ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
+      <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${typeof ICON.color === "function" ? ICON.color("crown") : ic("star")}</a>`}
+      <a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON.color === "function" ? ICON.color("bell") : ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
       <nav class="sportrow" aria-label="Sports">${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
@@ -192,6 +205,7 @@ const SHELL = (() => {
     });
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Information and entertainment only - no wagering in this app. Picks are opinions. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
       21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only. <a href="/privacy/">Privacy</a> · <a href="/delete-account/">Delete account</a></p>`);
+    tiles(); let tq = 0; new MutationObserver(() => { if (!tq) tq = requestAnimationFrame(() => { tq = 0; tiles(); }); }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
     cine(); new MutationObserver(() => { if (document.querySelector("main .thero:not(.cine)")) cine(); }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
     who(); membershipBox(document.getElementById("account"));
     bell(active);

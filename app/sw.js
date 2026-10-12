@@ -3,7 +3,7 @@
  * fast and shows its frame offline. Picks, sign-in and My Tracker always go live to the CMMG relay (another origin,
  * POST) and are never cached - a member never sees an old board from the cache. Only successful responses are stored.
  * Bump VERSION on every release of the frame. */
-const VERSION = "cmmg-app-v11";
+const VERSION = "cmmg-app-v12";
 const CORE = ["/app/", "/app/dashboard/", "/app/results/", "/app/scores/", "/app/game/", "/app/schedule/", "/app/tracker/", "/app/account/", "/app/tools/", "/app/community/", "/app/soon/",
   "/css/app.css", "/js/cmmg.js", "/js/shell.js", "/js/icons.js", "/img/splash.jpg", "/img/lion_64.png", "/img/icon_192.png", "/img/crest.jpg"];
 self.addEventListener("install", e => {
@@ -21,7 +21,7 @@ self.addEventListener("fetch", e => {
   const page = e.request.mode === "navigate", img = /\.(png|jpe?g|webp|svg)$/i.test(u.pathname);
   e.respondWith(caches.open(VERSION).then(async c => {
     const hit = await c.match(e.request, { ignoreSearch: page });
-    const net = fetch(e.request).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; });
+    const net = fetch(e.request, img ? {} : { cache: "no-cache" }).then(r => { if (r.ok) c.put(e.request, r.clone()); return r; });   // no-cache = ask the server (ETag), never a stale 10-min copy
     if (img && hit) { net.catch(() => {}); return hit; }
     return net.catch(() => hit || (page ? c.match("/app/") : Response.error()));
   }));

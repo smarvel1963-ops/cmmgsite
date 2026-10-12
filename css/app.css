@@ -337,3 +337,41 @@ body.dr-open .drawer-r { transform:none; }
 .kx.k-ice .n { color:#7fd8ff; } .kx.k-edge .n { color:#4ade80; } .kx.k-fire .n { color:#ff7a45; }
 .crown .cic, .bell .cic { width:28px; height:28px; filter:drop-shadow(0 0 8px rgba(251,191,36,.6)); }
 @media (max-width:640px) { .kx .kic .ic { width:32px; height:32px; } .kx .n { font-size:21px !important; } .kx { column-gap:8px; } }
+
+/* ===== FANCY BUT READABLE (Scott 10/11: "needs to look FANCY put all readable") =====
+   Brighter text + bigger labels everywhere; fancy = metallic headings, gradient-edged glass panels, shine on buttons. */
+:root { --dim:#b7cde2; --text:#f3f8ff; }
+body { font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+.sub, .game, .book, .when span, .kpi .l, .tile .l, .stats span, th, .field span, dialog label, .lp-t { color:#c3d6ea !important; }
+.kpi .l, .tile .l { font-size:12.5px !important; font-weight:800; letter-spacing:.1em; }
+.game, .book, .when span, .stats span, .lp-t { font-size:13.5px !important; } th { font-size:12px !important; }
+.pick { font-size:19px; } .kpi .n, .tile .n { font-weight:800; }
+/* metallic section headings with a glowing accent bar */
+h3, .side h3, .box h3 { font-family:Saira, Inter, sans-serif; font-size:15px !important; letter-spacing:.14em; text-transform:uppercase;
+  background:linear-gradient(180deg,#ffffff 20%,#d7e6f5 55%,#9fc0de); -webkit-background-clip:text; background-clip:text; color:transparent !important;
+  padding-bottom:8px; margin-bottom:12px !important; border-bottom:2px solid transparent; border-image:linear-gradient(90deg,#3ba9ff,#22d3ee 35%,transparent 80%) 1; }
+h3 .ic, .side h3 .ic, .box h3 .ic { color:#3ba9ff; }
+/* glass panels with a gradient edge + top shine */
+.side > div, .main > .box, .box, .card, .kpi, .tile, .empty {
+  background:linear-gradient(180deg, rgba(22,44,76,.92), rgba(9,20,38,.95)) padding-box,
+             linear-gradient(160deg, rgba(96,165,250,.55), rgba(34,211,238,.12) 40%, rgba(96,165,250,.35)) border-box !important;
+  border:1px solid transparent !important; box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07); }
+.kx.k-gold { background:linear-gradient(180deg, rgba(40,34,14,.9), rgba(12,18,30,.95)) padding-box, linear-gradient(160deg,#fbbf24,rgba(251,191,36,.15) 50%,#f59e0b) border-box !important; }
+.kx.k-green, .kx.k-edge { background:linear-gradient(180deg, rgba(12,44,30,.9), rgba(9,20,32,.95)) padding-box, linear-gradient(160deg,#22c55e,rgba(34,197,94,.15) 50%,#16a34a) border-box !important; }
+.kx.k-red, .kx.k-fire { background:linear-gradient(180deg, rgba(50,16,16,.9), rgba(14,16,30,.95)) padding-box, linear-gradient(160deg,#ef4444,rgba(239,68,68,.15) 50%,#f97316) border-box !important; }
+.kx.k-orange { background:linear-gradient(180deg, rgba(50,26,10,.9), rgba(14,16,30,.95)) padding-box, linear-gradient(160deg,#f97316,rgba(249,115,22,.15) 50%,#fbbf24) border-box !important; }
+.kx.k-blue, .kx.k-ice { background:linear-gradient(180deg, rgba(14,34,66,.9), rgba(9,18,36,.95)) padding-box, linear-gradient(160deg,#3b82f6,rgba(56,189,248,.15) 50%,#22d3ee) border-box !important; }
+.kx .n { font-size:28px !important; }
+/* buttons: subtle shine, bigger tap text */
+.btn { font-size:14.5px; letter-spacing:.02em; box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 4px 14px rgba(0,0,0,.3); }
+.btn.disc { background:linear-gradient(180deg,#7c86ff,#5865f2 55%,#4752c4); }
+.btn.go { background:linear-gradient(180deg,#34d399,#16a34a 60%,#15803d); }
+.chip { color:#d6e6f5; font-size:13.5px; } .chip.on { box-shadow:0 0 14px rgba(255,255,255,.25); }
+.topnav a { color:#d0e2f3; font-size:12.5px; }
+/* tables: zebra + hover for easy scanning */
+tbody tr:nth-child(even) td { background:rgba(127,216,255,.035); } tbody tr:hover td { background:rgba(59,169,255,.08); }
+/* banner text always sits on a dark scrim so it never fights the art */
+.cine-t { text-shadow:0 2px 10px rgba(0,0,0,.85); }
+.cine-t p { background:rgba(3,10,22,.55); display:inline-block; padding:3px 8px; border-radius:6px; }
+@media (max-width:640px) { body { font-size:15px; } .cine { background: linear-gradient(90deg, rgba(4,10,24,.95) 0%, rgba(6,18,44,.85) 55%, rgba(6,18,44,.4)), url(/img/hero_balls.png) right center / auto 100% no-repeat, #071226 !important; }
+  .cine-t { padding-right:0 !important; } .kx .n { font-size:22px !important; } }

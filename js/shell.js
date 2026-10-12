@@ -63,7 +63,7 @@ const SHELL = (() => {
       flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${ic} ${E(label)}</a>`).join("") + `</nav>`);
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
     document.body.insertAdjacentHTML("beforeend", `<p class="rg">Picks are opinions for information and entertainment. No guarantee, and past results don't promise future ones. We don't take bets or hold funds.
-      21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>.</p>`);
+      21+ (18+ where allowed). Bet only where it's legal for you. Gambling problem? Call or text <b>1-800-GAMBLER</b>. CMMG Sports Edge is not affiliated with or endorsed by any league, team or sportsbook; team names are used for identification only.</p>`);
     who(); membershipBox(document.getElementById("account"));
     document.addEventListener("click", e => {
       const t = e.target.closest("[data-signin],[data-signout]"); if (!t) return;

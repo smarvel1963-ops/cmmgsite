@@ -43,15 +43,20 @@
 .gx .tvb { font-size:11px; color:var(--dim); display:flex; gap:4px; align-items:center; }
 .gx .tag { font-size:11px; padding:3px 8px; max-width:190px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:640px) { .gm { grid-template-columns:70px 1fr; } .gx { grid-column:1 / -1; flex-direction:row; justify-content:space-between; align-items:center; } .sc { font-size:20px; } }
+.seg { display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; } .seg button { background:transparent; border:0; color:var(--dim); padding:8px 12px; font-weight:800; } .seg button.on { background:#2563eb; color:#fff; }
+.lt td, .lt th { padding:8px; font-size:13px; white-space:nowrap; } .lt tr[data-go] { cursor:pointer; } .lt tr[data-go]:hover td { background:rgba(127,216,255,.05); }
+.sp2 { display:grid; grid-template-columns:52px 34px minmax(0,1fr) auto; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; }
+.sp2 .q { color:var(--dim); font-size:12px; } .sp2 .sc2 { font-family:Saira; font-weight:800; }
+.foc { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; } .foc button { background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--dim); border-radius:8px; padding:5px 9px; font-weight:800; font-size:12px; } .foc button.on { background:#1d4ed8; color:#fff; }
 .mine .row { display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; }
 </style></head>
 <body>
 <div class="layout wide">
   <main class="main">
     <div class="vhero"><h1>LIVE <span>SCORES</span></h1><p>REAL GAMES. REAL TIME. YOUR PICKS IN ACTION.</p></div>
-    <div class="bar2">
+    <div class="bar2" style="align-items:center">
       <select id="fSport"><option value="">All sports</option></select>
-      <select id="fSt"><option value="">All games</option><option value="in">Live</option><option value="post">Final</option><option value="pre">Upcoming</option></select>
+      <select id="fSt"><option value="">All games</option><option value="in">Live now</option><option value="soon">Upcoming (next 3 hours)</option><option value="pre">Upcoming (today)</option><option value="post">Final</option></select><div class="seg" role="group" aria-label="View"><button data-sv="cards">Standard</button><button data-sv="table">Detailed</button></div>
       <input id="fQ" placeholder="Search teams">
     </div>
     <div class="kp4" id="kp"></div>
@@ -60,6 +65,9 @@
       <div>
         <div class="box mine"><h3>MY LIVE GAME TRACKER <a href="/app/tracker/" style="float:right;font-size:12px;color:var(--ice)">View all →</a></h3><div id="mine" style="color:var(--dim);font-size:13px">Sign in to see the picks you took.</div></div>
         <div class="box"><h3>CMMG PICKS IN ACTION</h3><div id="cmmg" style="color:var(--dim);font-size:13px">Loading…</div></div>
+        <div class="box"><h3>TODAY'S CMMG RESULTS</h3><div id="perf" style="font-size:13px;color:var(--dim)">—</div></div>
+        <div class="box" id="focusBox"><h3>LIVE MOMENTUM <span id="focT" style="float:right;font-size:12px;color:var(--dim);letter-spacing:0"></span></h3><div class="foc" id="foc"></div><div id="mom" style="font-size:13px;color:var(--dim)">Pick a live game.</div>
+          <h3 style="margin-top:12px">SCORING PLAYS</h3><div id="plays" style="font-size:13px;color:var(--dim)">—</div></div>
         <p style="color:var(--dim);font-size:12px">Scores update automatically. Times in CT.</p>
       </div>
     </div>
@@ -71,7 +79,8 @@ const E = CMMG.esc, $ = id => document.getElementById(id);
 const LEAGUES = [["NFL", "football/nfl"], ["NCAAF", "football/college-football"], ["NBA", "basketball/nba"], ["NCAAB", "basketball/mens-college-basketball"],
   ["WNBA", "basketball/wnba"], ["MLB", "baseball/mlb"], ["NHL", "hockey/nhl"], ["MLS", "soccer/usa.1"]];
 const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
-let GAMES = [], PICKS = [], MINE = [], timer = null;
+let GAMES = [], PICKS = [], MINE = [], timer = null, SV = "cards", FOCUS = null, ftimer = null;
+try { SV = localStorage.getItem("cmmg.scoresview") || "cards"; } catch (e) {}
 const ctDay = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
 const ct = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT"; };
 const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
@@ -102,7 +111,8 @@ function pickFor(g) {   // the CMMG pick on this game (visible or locked stub - 
 
 function draw() {
   const sp = $("fSport").value, sf = $("fSt").value, q = norm($("fQ").value);
-  const vis = GAMES.filter(g => (!sp || g.league === sp) && (!sf || g.state === sf) && (!q || g.teams.some(t => norm(t.name).includes(q) || norm(t.abbr).includes(q))));
+  const soon = g => g.state === "pre" && Date.parse(g.date) - Date.now() <= 3 * 36e5;
+  const vis = GAMES.filter(g => (!sp || g.league === sp) && (!sf || (sf === "soon" ? soon(g) : g.state === sf)) && (!q || g.teams.some(t => norm(t.name).includes(q) || norm(t.abbr).includes(q))));
   const n = s => GAMES.filter(g => g.state === s).length, live = MINE.filter(m => m.g && m.g.state === "in").length;
   $("kp").innerHTML = `<div class="kpi live">${ICON.ui("target")}<div><div class="l">LIVE GAMES</div><div class="n">${n("in")}</div></div></div>
     <div class="kpi fin">${ICON.ui("check")}<div><div class="l">FINALS TODAY</div><div class="n">${n("post")}</div></div></div>
@@ -111,6 +121,16 @@ function draw() {
   const order = { in: 0, pre: 1, post: 2 };
   const secs = LEAGUES.map(([k]) => [k, vis.filter(g => g.league === k).sort((a, b) => order[a.state] - order[b.state] || a.date.localeCompare(b.date))]).filter(([, gs]) => gs.length);
   if (!secs.length) { $("list").innerHTML = `<div class="empty">${GAMES.length ? "No games match these filters." : "No games on today's schedule."}</div>`; return; }
+  document.querySelectorAll("[data-sv]").forEach(b => b.classList.toggle("on", b.dataset.sv === SV));
+  perf(); focusList();
+  if (SV === "table") {
+    $("list").innerHTML = `<div class="box"><div style="overflow-x:auto"><table class="rt lt"><tr><th>SPORT</th><th>MATCHUP</th><th>SCORE</th><th>STATUS</th><th>TV</th><th>CMMG PICK</th></tr>` +
+      secs.flatMap(([, gs]) => gs).map(g => { const [a, h] = g.teams, p = pickFor(g);
+        return `<tr data-go="/app/game/?l=${g.league}&id=${encodeURIComponent(g.id)}"><td>${ICON.sport(g.league)} ${E(g.league)}</td><td>${a ? badge(a) : ""} @ ${h ? badge(h) : ""}</td>
+          <td class="sc" style="font-size:15px">${g.state !== "pre" && a && h ? `${E(a.score)} - ${E(h.score)}` : "—"}</td>
+          <td><span class="st ${g.state}" style="padding:2px 6px">${g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "UP"}</span> <span class="game">${g.state === "pre" ? ct(g.date) : E(g.detail)}</span></td>
+          <td class="game">${E(g.tv || "")}</td><td>${p ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</td></tr>`; }).join("") + `</table></div></div>`;
+  } else
   $("list").innerHTML = secs.map(([k, gs]) => {
     const c = s => gs.filter(g => g.state === s).length;
     return `<div class="ssec"><div class="sh">${ICON.sport(k)}<b>${E(k)}</b>${c("in") ? `<small class="lv">${c("in")} LIVE</small>` : ""}<small>${c("post")} FINAL</small><small>${c("pre")} UPCOMING</small></div>`
@@ -138,6 +158,40 @@ function draw() {
     : `${PICKS.length} picks today${PICKS.length ? " · members-only details" : ""}. <a href="/app/" style="color:var(--ice)">Today's Picks →</a>`;
 }
 
+function perf() {   // today's graded CMMG picks the viewer can see (results already shown on the cards)
+  const g = PICKS.filter(p => p.result && !p.locked), w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length, pu = g.filter(p => p.result === "PUSH").length;
+  const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
+  const u = g.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((dec(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
+  const open = PICKS.filter(p => !p.result).length;
+  $("perf").innerHTML = g.length ? `<div class="stats"><div><b>${w}-${l}${pu ? "-" + pu : ""}</b><span>Record</span></div><div><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}">${u > 0 ? "+" : ""}${u.toFixed(2)}</b><span>Units</span></div><div><b>${open}</b><span>Still open</span></div></div>`
+    : `No graded picks yet today${open ? ` · ${open} open` : ""}.`;
+}
+function focusList() {
+  const live = GAMES.filter(g => g.state === "in"), pool = live.length ? live : GAMES.filter(g => g.state === "post").slice(0, 6);
+  if (!pool.length) { $("foc").innerHTML = ""; $("mom").textContent = "No live games right now."; $("plays").textContent = "—"; return; }
+  if (!FOCUS || !pool.some(g => g.id === FOCUS.id)) { FOCUS = pool.find(g => pickFor(g)) || pool[0]; loadFocus(); }
+  $("foc").innerHTML = pool.slice(0, 8).map(g => `<button data-foc="${E(g.id)}" class="${g.id === FOCUS.id ? "on" : ""}">${E(g.teams[0]?.abbr)} @ ${E(g.teams[1]?.abbr)}</button>`).join("");
+}
+async function loadFocus() {
+  const g = FOCUS; if (!g) return; const path = (LEAGUES.find(([k]) => k === g.league) || [])[1]; if (!path) return;
+  let j; try { j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(g.id)}`)).json(); } catch (e) { return; }
+  if (FOCUS !== g) return;
+  const [a, h] = g.teams; $("focT").textContent = `${a?.abbr} @ ${h?.abbr} · ${g.detail}`;
+  const wp = (j.winprobability || []).map(x => x.homeWinPercentage);
+  if (wp.length > 2) {
+    const W = 300, H = 120, X = i => i * W / (wp.length - 1), Y = v => H - v * H;
+    const line = wp.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join(" ");
+    const ca = /^[0-9a-f]{6}$/i.test(a?.color || "") ? "#" + a.color : "#3b82f6", chh = /^[0-9a-f]{6}$/i.test(h?.color || "") ? "#" + h.color : "#f97316";
+    $("mom").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" style="height:120px"><line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="rgba(143,176,204,.3)" stroke-dasharray="4 4"/>
+      <path d="${line} L ${W} 0 L 0 0 Z" fill="${ca}" opacity=".18"/><path d="${line} L ${W} ${H} L 0 ${H} Z" fill="${chh}" opacity=".18"/><path d="${line}" fill="none" stroke="#e8f4ff" stroke-width="2"/></svg>
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>${E(a?.abbr)} ${(100 - 100 * wp[wp.length - 1]).toFixed(0)}%</span><span>Win probability, play by play</span><span>${(100 * wp[wp.length - 1]).toFixed(0)}% ${E(h?.abbr)}</span></div>`;
+  } else $("mom").textContent = "No play-by-play momentum for this game.";
+  const sp = (j.scoringPlays || []).slice(-8).reverse();
+  $("plays").innerHTML = sp.length ? sp.map(x => `<div class="sp2"><span class="q">${E(x.period?.number ? "Q" + x.period.number : "")} ${E(x.clock?.displayValue || "")}</span><span>${E(x.team?.abbreviation || "")}</span><span>${E(x.text || "")}</span><span class="sc2">${E(x.awayScore)}-${E(x.homeScore)}</span></div>`).join("")
+    : "No scoring plays listed for this sport.";
+  clearTimeout(ftimer); if (g.state === "in") ftimer = setTimeout(loadFocus, 30000);
+}
+
 async function load() {
   const s = CMMG.session();
   const [lists, pj, mj] = await Promise.all([Promise.all(LEAGUES.map(fetchLeague)),
@@ -154,7 +208,9 @@ async function load() {
   clearTimeout(timer); timer = setTimeout(load, GAMES.some(g => g.state === "in") ? 30000 : 120000);
 }
 ["fSport", "fSt"].forEach(id => $(id).addEventListener("change", draw));
-document.addEventListener("click", e => { if (e.target.closest("a, button")) return; const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go; }); $("fQ").addEventListener("input", draw);
+document.addEventListener("click", e => { const v = e.target.closest("[data-sv]"); if (v) { SV = v.dataset.sv; try { localStorage.setItem("cmmg.scoresview", SV); } catch (err) {} draw(); return; }
+  const f = e.target.closest("[data-foc]"); if (f) { FOCUS = GAMES.find(g => g.id === f.dataset.foc) || FOCUS; focusList(); loadFocus(); return; }
+  if (e.target.closest("a, button")) return; const g = e.target.closest("[data-go]"); if (g) location.href = g.dataset.go; }); $("fQ").addEventListener("input", draw);
 SHELL.mount("scores"); load();
 </script>
 </body></html>

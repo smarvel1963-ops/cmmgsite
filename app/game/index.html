@@ -63,7 +63,10 @@ async function relayBits() {
     s ? CMMG.relay({ task: "mytracker", session: s.token }).catch(() => ({})) : Promise.resolve({})]);
   PICKS = pj && pj.ok ? pj.picks || [] : []; MINE = mj && mj.ok ? mj.rows || [] : [];
 }
-const onGame = (txt, comps) => comps.every(c => norm(txt).includes(norm(c.team.shortDisplayName)) || norm(txt).includes(norm(c.team.displayName)));
+// a pick is on this game only if EACH team appears in its game text (non-empty names only - the summary header has no
+// shortDisplayName, and "" is contained in every string)
+const onGame = (txt, comps) => comps.length === 2 && comps.every(c => [c.team.displayName, c.team.shortDisplayName, c.team.nickname, c.team.location]
+  .filter(n => n && n.length > 2).some(n => norm(txt).includes(norm(n))));
 
 async function chooser() {   // no id: today's games that carry a CMMG pick or one of my picks
   await relayBits();

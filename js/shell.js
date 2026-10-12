@@ -67,8 +67,22 @@ const SHELL = (() => {
     } catch (e) {}
     return false;
   }
+  // FAVOURITE-TEAM THEME (Scott 10/11 perk idea): the member's chosen team's colours wash the app background - colours
+  // only, never a logo. Saved on this device.
+  function theme() { try { return JSON.parse(localStorage.getItem("cmmg.theme") || "null"); } catch (e) { return null; } }
+  function applyTheme() {
+    const t = theme(), ok = c => /^[0-9a-f]{6}$/i.test(c || "");
+    document.getElementById("teamTheme")?.remove();
+    if (!t || !ok(t.color)) return;
+    const a = "#" + t.color, b = ok(t.alt) ? "#" + t.alt : a;
+    document.head.insertAdjacentHTML("beforeend", `<style id="teamTheme">body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+      background:radial-gradient(900px 520px at 88% -6%, ${a}55, transparent 64%), radial-gradient(700px 420px at 0% 100%, ${b}33, transparent 62%); }
+      .top { box-shadow:inset 0 -2px 0 ${a}aa; }</style>`);
+  }
+  function setTheme(t) { try { t ? localStorage.setItem("cmmg.theme", JSON.stringify(t)) : localStorage.removeItem("cmmg.theme"); } catch (e) {} applyTheme(); }
   function mount(active) {
     if (welcomeGate()) return;
+    applyTheme();
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
     // "Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
     // Home Screen (steps on the Settings page). Hidden once installed.
@@ -114,5 +128,5 @@ const SHELL = (() => {
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE };
+  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE, theme, setTheme };
 })();

@@ -98,7 +98,7 @@ function draw() {
     const p = pickFor(g);
     return `<div class="row4" data-go="/app/game/?l=${g.league}&id=${encodeURIComponent(g.id)}">
       <div class="when2">${g.state === "pre" ? tm(g.date) : g.state === "in" ? `<span style="color:#f87171">LIVE</span>` : "FINAL"}<small>${g.state === "pre" ? "CT" : E(g.detail)}</small></div>
-      <div>${g.teams.map(t => `<div class="tm2"><button class="star ${FAV[t.id] ? "on" : ""}" data-star="${E(t.id)}" data-name="${E(t.name)}" title="${FAV[t.id] ? "Unfollow" : "Follow"}">${FAV[t.id] ? "★" : "☆"}</button>${badge(t)}<span class="n">${E(t.short)}</span><small>${E(t.rec)}</small>${g.state !== "pre" ? `<b style="margin-left:auto;font-family:Saira">${E(t.score)}</b>` : ""}</div>`).join("")}</div>
+      <div>${g.teams.map(t => `<div class="tm2"><button class="star ${FAV[t.id] ? "on" : ""}" data-star="${E(t.id)}" data-name="${E(t.name)}" title="${FAV[t.id] ? "Unfollow" : "Follow"}">${FAV[t.id] ? "★" : "☆"}</button>${badge(t)}<a class="n" href="/app/team/?l=${g.league}&id=${encodeURIComponent(t.id.split(":")[1])}" style="text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${E(t.short)}</a><small>${E(t.rec)}</small>${g.state !== "pre" ? `<b style="margin-left:auto;font-family:Saira">${E(t.score)}</b>` : ""}</div>`).join("")}</div>
       <div class="ex2">${g.tv ? `<span>${ICON.ui("tv")} ${E(g.tv)}</span>` : ""}${p ? `<span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.bet)}</span>` : ""}</div></div>`;
   }).join("") + `</div>`).join("");
 }

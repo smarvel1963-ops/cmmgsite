@@ -9,7 +9,7 @@ const SHELL = (() => {
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
-    ["COMMUNITY & ACCOUNT", [["alerts", "bell", "Alerts", "/app/alerts/"], ["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Tools & Education", "/app/tools/"],
+    ["COMMUNITY & ACCOUNT", [["alerts", "bell", "Alerts", "/app/alerts/"], ["community", "chat", "Discord Community", "/app/community/"], ["tools", "calc", "Strategy & Tools", "/app/tools/"], ["learn", "star", "Learn & Improve", "/app/learn/"],
                              ["account", "gear", "Settings & Membership", "/app/account/"]]],
   ];
   const SOON = {};

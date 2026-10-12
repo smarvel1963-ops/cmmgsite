@@ -1,0 +1,100 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/learn/index.html
+     Learn & Improve (Scott 10/11 design): categories, featured guides, learn by sport, CMMG methods (tiers explained with
+     the LOCKED meanings: ICE strongest > EDGE > FIRE), quick tips, glossary. Real written content only - no fake article
+     dates, view counts or "+EV" claims; no winning promises (gambling ad rules). Guides open in place. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn & Improve · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.vhero { position:relative; overflow:hidden; border-radius:18px; border:1px solid var(--line); padding:22px; margin-bottom:12px;
+  background:radial-gradient(500px 200px at 85% 40%, rgba(234,88,12,.25), transparent 70%), radial-gradient(400px 200px at 65% 85%, rgba(22,163,74,.2), transparent 70%), linear-gradient(100deg,#0b1730,#0f2a55 60%,#081325); }
+.vhero h1 { font-size:clamp(28px, 4.6vw, 48px); font-style:italic; margin:0; line-height:1; } .vhero p { margin:8px 0 0; letter-spacing:.18em; font-weight:700; font-size:12px; color:#bfe6ff; }
+.lg2 { display:grid; grid-template-columns:240px minmax(0,1fr) 300px; gap:14px; } .lg2 > * { min-width:0; }
+@media (max-width:1150px) { .lg2 { grid-template-columns:minmax(0,1fr) 280px; } .lg2 .cats { display:none; } } @media (max-width:820px) { .lg2 { grid-template-columns:minmax(0,1fr); } }
+.cats button { display:flex; gap:8px; align-items:center; width:100%; text-align:left; background:none; border:0; color:var(--dim); font:600 14px Inter, sans-serif; padding:8px 10px; border-radius:9px; }
+.cats button.on { background:rgba(59,130,246,.2); color:#fff; } .cats .ic { width:18px; height:18px; color:#9fd2ff; }
+.feat { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; }
+.gd { border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:6px; cursor:pointer; background:linear-gradient(160deg, rgba(37,99,235,.18), rgba(5,12,24,.7)); }
+.gd b { font-family:Saira; font-size:17px; letter-spacing:.02em; } .gd span { color:var(--dim); font-size:13px; flex:1; } .gd .ic { width:30px; height:30px; color:#ffd700; }
+.gd .rd { font-size:12px; font-weight:800; color:#7fd8ff; }
+.art { display:none; } .art.open { display:block; } .art p, .art li { color:#dbeafe; font-size:15px; line-height:1.6; } .art h2 { margin:0 0 6px; }
+.lbs { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; } .lbs button { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border:1px solid var(--line); border-radius:12px; background:rgba(5,12,24,.55); color:var(--text); font-weight:800; font-size:12px; }
+.lbs .ic { width:24px; height:24px; color:#9fd2ff; } .lbs button.on { border-color:#3b82f6; box-shadow:0 0 12px rgba(59,130,246,.35); }
+.tip { display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--line); font-size:13px; color:#c9dcef; } .tip .ic { width:16px; height:16px; color:#4ade80; margin-top:2px; }
+.meth { display:flex; gap:10px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; color:#c9dcef; } .meth .ic { width:22px; height:22px; } .meth b { display:block; color:#fff; font-size:14px; }
+dl.gl { margin:0; } dl.gl dt { font-weight:800; margin-top:8px; } dl.gl dd { margin:2px 0 0; color:var(--dim); font-size:13px; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>LEARN &amp; IMPROVE</h1><p>STRATEGIES. EDUCATION. DATA. DISCIPLINE.</p></div>
+    <div class="lg2">
+      <div class="cats"><div class="box"><h3>LEARNING CATEGORIES</h3><div id="cats"></div></div></div>
+      <div>
+        <div class="box art" id="reader"></div>
+        <div class="box"><h3 id="ftitle">FEATURED GUIDES</h3><div class="feat" id="feat"></div></div>
+        <div class="box"><h3>LEARN BY SPORT</h3><div class="lbs" id="lbs"></div><div id="sportTip" style="margin-top:10px;font-size:14px;color:#c9dcef"></div></div>
+      </div>
+      <div>
+        <div class="box"><h3>CMMG METHODS</h3><div id="meth"></div></div>
+        <div class="box"><h3>QUICK TIPS</h3><div id="tips"></div></div>
+        <div class="box"><h3>GLOSSARY</h3><dl class="gl" id="gloss"></dl></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const CATS = [["all", "target", "All topics"], ["basics", "star", "Betting basics"], ["bankroll", "shield", "Bankroll management"], ["totals", "chart", "Totals strategy"],
+  ["live", "clock", "Live betting"], ["parlay", "gear", "Parlays & props"], ["mind", "chat", "Market psychology"], ["cmmg", "calc", "CMMG methods"]];
+const GUIDES = [
+  ["basics", "star", "Betting Basics", "Everything a new bettor needs to know.", `<p>A bet is a price on an outcome. The sportsbook sets prices so that across all its customers it keeps a cut - the <b>hold</b> - no matter who wins. That's why the average bettor slowly loses.</p><p>To do better than average you need two things: bets where the price is better than the real chance, and the discipline to size every bet the same way and keep records. Everything else is detail.</p><ul><li>Read odds as a break-even: -110 needs 52.4% wins.</li><li>Bet in units, never in feelings.</li><li>Track every bet - wins and losses.</li></ul>`],
+  ["basics", "calc", "Understanding Odds", "American, decimal and implied probability.", `<p><b>-150</b>: risk $150 to win $100. <b>+150</b>: risk $100 to win $150. Decimal odds include the stake: -150 = 1.667, +150 = 2.50.</p><p>Implied probability is 1 / decimal odds. -150 implies 60%, +150 implies 40%. If you think a side wins more often than its implied probability, the price is in your favour. The Odds Converter in Tools does this for any price.</p>`],
+  ["bankroll", "shield", "Bankroll Management", "Unit sizing so one bad week doesn't end you.", `<p>Pick a bankroll you can afford to lose and never top it up after a bad run. A unit is a fixed slice - most disciplined bettors use 1–3%.</p><p>Even a winning bettor has long losing streaks. Flat units keep you in the game long enough for an edge to show. Raise the unit only after the bankroll grows, never to chase.</p><ul><li>Same unit through wins and losses.</li><li>A "2u" pick means twice your unit, not twice your feelings.</li><li>The Bankroll Manager in Tools sizes your unit.</li></ul>`],
+  ["totals", "chart", "Totals Strategy", "How totals are set and what moves them.", `<p>A total is the combined score. Books set it from pace, efficiency, injuries and weather, then move it as money comes in.</p><p>Totals reward patience: the best number often appears when the market overreacts to one early run. Watch pace (possessions or plays per minute) more than the score itself.</p><p><b>Unders bet reality, overs bet regression</b> - an under needs the game to keep doing what it's doing; an over needs it to change.</p>`],
+  ["live", "clock", "Live Betting", "Timing, pace and margin in-game.", `<p>Live lines move every possession. The opportunity comes when the line reacts to the score but not to <i>how</i> the score happened.</p><p><b>Margin is the variable:</b> close games tend to stay up-tempo late (fouls, timeouts, urgency); blowouts slow down as starters sit. Time remaining matters as much as the score - the same lead means very different things at 20 minutes left and at 4.</p><p>The Live Total Pace tool in Tools gives the straight-line projection; real models adjust it for margin and time.</p>`],
+  ["parlay", "gear", "Parlays & Props", "What they really cost.", `<p>A parlay multiplies the payout because every leg must win - and it multiplies the book's cut too. Five legs at -110 pay about +2,400 but the fair price is closer to +2,800.</p><p>Props (player stats) can be softer markets, but limits are low and lines move fast. CMMG plays are almost all straight bets for this reason. Use the Parlay and Round Robin calculators to see the real odds.</p>`],
+  ["mind", "chat", "Market Psychology", "Why the public loses and how to stay out of the crowd.", `<p>Most money follows favourites, overs and big names. Books shade those prices. Following the crowd means paying a premium.</p><p>The hardest skill is not chasing: after a loss, the next bet should be exactly the one you would have made anyway. A plan written before the games start beats a feeling during them.</p>`],
+  ["cmmg", "calc", "How CMMG Grades Picks", "Tiers, units and every result posted.", `<p>Every CMMG pick comes from a model, gets a tier and a unit size, and is graded when the game ends - wins and losses. Picks are posted before the game starts.</p><p><b>ICE</b> is the model's strongest tier. <b>EDGE</b> is a clear model edge. <b>FIRE</b> is a value play at a playable price, usually a smaller stake. A tier says how strongly the model backs a pick, not that it will win.</p><p>Track the picks you take at your own odds in My Tracker - your price may differ from ours.</p>`],
+];
+const SPORT_TIPS = { NFL: "Key numbers matter: many games end by 3 or 7, so a spread of -2.5 vs -3.5 is a big difference. Weather (wind most of all) moves totals.",
+  NCAAF: "Huge talent gaps and fast tempos make college totals swing; check pace and backup quarterbacks.",
+  NBA: "Rest and travel matter - back-to-backs and late scratches move lines fast. Pace drives totals.",
+  WNBA: "Shorter 40-minute games and smaller rosters - one absence moves a line more than in the NBA.",
+  MLB: "Starting pitchers drive the price; check the probable starter, the bullpen's recent workload and the park.",
+  NHL: "Goalies decide a lot - confirm the starter. Puck lines (-1.5) pay more but need a two-goal win.",
+  MLS: "Draws are a third outcome - a moneyline loses on a draw. Travel and altitude matter in MLS.",
+  TENNIS: "Surface and fatigue matter more than ranking; heavy favourites at short prices need a very high win rate.",
+  UFC: "Styles make fights - check reach, wrestling defence and short-notice replacements.",
+  GOLF: "Course fit beats world ranking; outrights are long shots, top-10 and matchup bets are steadier." };
+const METHODS = [["ICE", "ICE picks", "The model's strongest tier."], ["EDGE", "EDGE picks", "A clear model edge at a fair price."], ["FIRE", "FIRE picks", "Value at a playable price, smaller stake."],
+  ["clock", "Live totals", "In-game totals built on pace, margin and time left."], ["shield", "Every result posted", "Graded when the game ends, wins and losses."]];
+const TIPS = ["Know the break-even for every price before you bet.", "Bet in flat units - 1–3% of your bankroll.", "Totals are about pace, not just offence.", "Live betting is about timing: margin and time left.", "Never chase a loss with a bigger bet.", "Track every bet so you know what really works."];
+const GLOSS = [["Unit", "Your standard bet size, a fixed % of your bankroll."], ["Hold / vig", "The book's built-in cut on a market."], ["Break-even", "The win % a price needs to not lose money."],
+  ["Spread", "Points given or taken to even out two teams."], ["Total (O/U)", "Bet on combined score over or under a number."], ["Moneyline", "Bet on who wins, no spread."], ["Push", "A tie with the line - stake returned."], ["Parlay", "Several bets in one; all must win."], ["Hedge", "A bet on the other side to lock profit or cut loss."]];
+let CAT = "all";
+function draw() {
+  $("cats").innerHTML = CATS.map(([k, i, l]) => `<button data-cat="${k}" class="${k === CAT ? "on" : ""}">${ICON.ui(i)}${l}</button>`).join("");
+  const list = GUIDES.filter(g => CAT === "all" || g[0] === CAT);
+  $("ftitle").textContent = CAT === "all" ? "FEATURED GUIDES" : (CATS.find(c => c[0] === CAT)[2]).toUpperCase();
+  $("feat").innerHTML = list.map((g, i) => `<div class="gd" data-g="${GUIDES.indexOf(g)}">${ICON.ui(g[1])}<b>${E(g[2])}</b><span>${E(g[3])}</span><span class="rd">Read guide →</span></div>`).join("");
+}
+$("lbs").innerHTML = Object.keys(SPORT_TIPS).map(s => `<button data-sp="${s}">${ICON.sport(s)}${s === "MLS" ? "SOCCER" : s}</button>`).join("");
+$("meth").innerHTML = METHODS.map(([i, b, t]) => `<div class="meth">${["ICE", "EDGE", "FIRE"].includes(i) ? ICON.tier(i) : ICON.ui(i)}<span><b>${E(b)}</b>${E(t)}</span></div>`).join("");
+$("tips").innerHTML = TIPS.map(t => `<div class="tip">${ICON.ui("check")}<span>${E(t)}</span></div>`).join("");
+$("gloss").innerHTML = GLOSS.map(([t, d]) => `<dt>${E(t)}</dt><dd>${E(d)}</dd>`).join("");
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-cat]"); if (c) { CAT = c.dataset.cat; draw(); return; }
+  const g = e.target.closest("[data-g]"); if (g) { const x = GUIDES[+g.dataset.g]; const r = $("reader");
+    r.innerHTML = `<h2>${E(x[2])}</h2><p class="game" style="margin-top:0">${E(x[3])}</p>${x[4]}<button class="btn ghost" data-close>Close</button>`; r.classList.add("open"); r.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (e.target.closest("[data-close]")) { $("reader").classList.remove("open"); return; }
+  const s = e.target.closest("[data-sp]"); if (s) { document.querySelectorAll("[data-sp]").forEach(b => b.classList.toggle("on", b === s)); $("sportTip").innerHTML = `<b>${E(s.dataset.sp === "MLS" ? "Soccer" : s.dataset.sp)}:</b> ${E(SPORT_TIPS[s.dataset.sp])}`; }
+});
+SHELL.mount("learn"); draw();
+</script>
+</body></html>

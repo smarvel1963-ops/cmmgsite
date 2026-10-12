@@ -1,0 +1,82 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/tools/index.html
+     Tools & Education (storyboard page 11). Pure in-browser math - no feed, no account needed: odds converter +
+     break-even, bet payout, parlay payout, hold (vig) on a two-way market, plus plain-words education and the books.
+     Line movement / odds comparison need a licensed odds feed (WEB_DESIGNS flag) - not here. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools & Education · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<div class="layout">
+  <main class="main">
+    <h1>Tools &amp; Education</h1>
+    <p class="sub">The math behind every bet, in plain words.</p>
+    <div class="grid2">
+      <div class="box"><h3>🔁 ODDS CONVERTER</h3>
+        <div class="field"><span>American odds</span><input id="oc" value="-110" inputmode="numeric"></div>
+        <div class="out" id="ocOut"></div></div>
+      <div class="box"><h3>💵 BET PAYOUT</h3>
+        <div class="grid2" style="gap:10px"><div class="field"><span>Stake ($)</span><input id="bs" value="100" inputmode="decimal"></div>
+          <div class="field"><span>American odds</span><input id="bo" value="+150" inputmode="numeric"></div></div>
+        <div class="out" id="bOut"></div></div>
+      <div class="box"><h3>🧩 PARLAY CALCULATOR</h3>
+        <div class="field"><span>Stake ($)</span><input id="ps" value="10" inputmode="decimal"></div>
+        <div id="legs"></div>
+        <button class="btn ghost" id="addLeg" style="margin-bottom:10px">+ Add leg</button>
+        <div class="out" id="pOut"></div></div>
+      <div class="box"><h3>⚖️ HOLD (THE BOOK'S CUT)</h3>
+        <div class="grid2" style="gap:10px"><div class="field"><span>Side A odds</span><input id="ha" value="-110" inputmode="numeric"></div>
+          <div class="field"><span>Side B odds</span><input id="hb" value="-110" inputmode="numeric"></div></div>
+        <div class="out" id="hOut"></div></div>
+    </div>
+    <div class="box"><h3>📘 LEARN THE BASICS</h3>
+      <ul class="check">
+        <li><span><b>Units</b> — a unit is your standard bet size (say 1% of your bankroll). "2u" means twice your normal bet. Results in units let people with different bankrolls compare.</span></li>
+        <li><span><b>Break-even</b> — at −110 you must win 52.4% just to break even. The bigger the favorite, the higher that bar. Every price has its own break-even.</span></li>
+        <li><span><b>CMMG tiers</b> — ❄️ ICE is the model's strongest tier, then 🗡️ EDGE, then 🔥 FIRE. A tier says how strongly the model backs a pick, not that it will win.</span></li>
+        <li><span><b>Line shopping</b> — the same bet is priced differently at different books. A few cents of price on every bet adds up over a season.</span></li>
+        <li><span><b>Parlays</b> — every leg must win, and the book's cut stacks on each leg. That's why CMMG plays are almost all straight bets.</span></li>
+        <li><span><b>Bankroll</b> — bet only money you can afford to lose, keep unit size steady, and never chase losses.</span></li>
+      </ul></div>
+    <div class="box"><h3>📚 THE CMMG BOOKS</h3>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <a href="https://www.amazon.com/dp/B0H9V5X8MD" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:240px"><img src="/img/book1.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 1 · The Complete Guide to AI Handicapping</b><br><span class="game">Kindle $7.99 →</span></span></a>
+        <a href="https://www.amazon.com/dp/B0HLCF12GW" style="display:flex;gap:10px;align-items:center;text-decoration:none;flex:1;min-width:240px"><img src="/img/book2.jpg" alt="" style="width:64px;border-radius:3px"><span><b>Book 2 · The Complete Guide to TOTAL LIVE</b><br><span class="game">Kindle $7.99 →</span></span></a>
+      </div></div>
+  </main>
+  <aside class="side"><div id="account"></div>
+    <div><h3>BET RESPONSIBLY</h3><p style="color:var(--dim);font-size:13px;margin:0">Set a budget before you bet and stick to it. If betting stops being fun, take a break. Help is free and confidential: call or text <b>1-800-GAMBLER</b>.</p></div></aside>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const am = v => { const n = Number(String(v).replace(/[^0-9.+-]/g, "")); return isFinite(n) && Math.abs(n) >= 100 ? n : null; };
+const dec = o => o > 0 ? 1 + o / 100 : 1 + 100 / -o;
+const toAm = d => d >= 2 ? "+" + Math.round((d - 1) * 100) : String(-Math.round(100 / (d - 1)));
+const money = n => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = n => (100 * n).toFixed(1) + "%";
+const bad = "Enter American odds like −110 or +150.";
+function calc() {
+  const o = am($("oc").value);
+  $("ocOut").innerHTML = o == null ? bad : `Decimal <b>${dec(o).toFixed(3)}</b> · Implied <b>${pct(1 / dec(o))}</b><br><span class="game">You need to win ${pct(1 / dec(o))} of bets at this price to break even.</span>`;
+  const st = Number($("bs").value), bo = am($("bo").value);
+  $("bOut").innerHTML = bo == null || !(st > 0) ? bad : `Profit <b class="pos">${money(st * (dec(bo) - 1))}</b> · Total return <b>${money(st * dec(bo))}</b>`;
+  const legs = [...document.querySelectorAll(".leg")].map(i => am(i.value));
+  const ps = Number($("ps").value);
+  if (legs.some(l => l == null) || !(ps > 0)) $("pOut").innerHTML = bad;
+  else { const d = legs.reduce((a, l) => a * dec(l), 1);
+    $("pOut").innerHTML = `${legs.length} legs · Parlay odds <b>${toAm(d)}</b> · Payout <b class="pos">${money(ps * d)}</b><br><span class="game">Every leg must win. The chance all ${legs.length} hit at these prices (before the book's cut): ${pct(1 / d)}.</span>`; }
+  const a = am($("ha").value), b = am($("hb").value);
+  if (a == null || b == null) $("hOut").innerHTML = bad;
+  else { const ia = 1 / dec(a), ib = 1 / dec(b), hold = 1 - 1 / (ia + ib);
+    $("hOut").innerHTML = `Hold <b>${pct(hold)}</b> · Fair odds without the cut: <b>${toAm((ia + ib) / ia)}</b> / <b>${toAm((ia + ib) / ib)}</b><br><span class="game">Fair win chance: ${pct(ia / (ia + ib))} / ${pct(ib / (ia + ib))}</span>`; }
+}
+function addLeg(v) {
+  const n = document.querySelectorAll(".leg").length + 1; if (n > 12) return;
+  $("legs").insertAdjacentHTML("beforeend", `<div class="field"><span>Leg ${n} odds</span><input class="leg" value="${v}" inputmode="numeric"></div>`);
+  calc();
+}
+document.addEventListener("input", calc);
+$("addLeg").addEventListener("click", () => addLeg("-110"));
+SHELL.mount("tools"); addLeg("-110"); addLeg("+120");
+</script>
+</body></html>

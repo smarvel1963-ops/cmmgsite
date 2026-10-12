@@ -1,0 +1,125 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/tracker/index.html
+     My Tracker (storyboard page 5): the member's OWN "I Took This Pick" record at the odds THEY got - wins, losses,
+     pushes, win %, net units, ROI, average odds, a cumulative-units chart and every tracked pick (edit / remove).
+     Grades come from the CMMG feed's graded history via the relay; nothing here is CMMG's public record. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Tracker · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<div class="layout">
+  <main class="main">
+    <div class="page-h"><div><h1>My Tracker</h1><p class="sub">The picks you took, graded at the odds you got.</p></div>
+      <div class="seg" role="group" aria-label="Period" style="margin-left:auto">
+        <button data-per="day">Today</button><button data-per="week">Week</button><button data-per="month">Month</button><button data-per="all">All Time</button></div></div>
+    <div id="body"><div class="empty">Loading…</div></div>
+  </main>
+  <aside class="side">
+    <div id="account"></div>
+    <div><h3>HOW IT WORKS</h3><p style="color:var(--dim);font-size:13px;margin:0">Tap <b>✓ I Took This Pick</b> on any pick and enter the odds you actually got. When the game is graded, your result and units show up here. Only you can see your tracker.</p>
+      <a class="btn go" style="display:inline-block;text-decoration:none;margin-top:10px" href="/app/">Today's Picks →</a></div>
+  </aside>
+</div>
+<dialog id="ed"><form method="dialog" id="edForm">
+  <h3 style="margin-top:0">Edit my pick</h3><p id="edWhat" style="color:var(--dim);margin:0 0 6px"></p>
+  <label>My odds<input name="odds" inputmode="numeric" required></label>
+  <label>Units<input name="units" inputmode="decimal" required></label>
+  <label>Sportsbook (optional)<input name="book" maxlength="30"></label>
+  <label>Note (optional)<input name="note" maxlength="200"></label>
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn go" value="save">Save</button><button class="btn ghost" value="remove" formnovalidate style="color:#fca5a5">Remove</button><button class="btn ghost" value="cancel" formnovalidate>Cancel</button></div>
+</form></dialog>
+<div class="toast" id="toast"></div>
+<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, TIER_ICON = { ICE: "❄️", EDGE: "🗡️", FIRE: "🔥" };
+let ROWS = [], PER = "all", EDIT = null;
+try { PER = localStorage.getItem("cmmg.trkper") || "all"; } catch (e) {}
+const ctDay = d => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });            // YYYY-MM-DD in CT
+const odds = o => o == null || o === "" ? "—" : (Number(o) > 0 ? "+" + o : String(o));
+const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
+const toast = t => { const el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; setTimeout(() => el.style.display = "none", 2600); };
+const nice = d => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ""); return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3], 12)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : ""; };
+const rowDay = r => r.date || (r.at ? ctDay(new Date(r.at)) : "");
+
+function inPeriod(r) {
+  if (PER === "all") return true;
+  const d = rowDay(r); if (!d) return false;
+  const now = new Date(), today = ctDay(now);
+  if (PER === "day") return d === today;
+  const back = new Date(now.getTime() - (PER === "week" ? 6 : 29) * 864e5);
+  return d >= ctDay(back) && d <= today;
+}
+
+function chart(rows) {
+  const g = rows.filter(r => r.units_pl != null).sort((a, b) => (rowDay(a) + a.at).localeCompare(rowDay(b) + b.at));
+  if (g.length < 2) return `<p style="color:var(--dim);font-size:13px;margin:0">The chart starts after your second graded pick.</p>`;
+  let c = 0; const pts = [0, ...g.map(r => (c += r.units_pl))];
+  const W = 640, H = 180, P = 10, lo = Math.min(0, ...pts), hi = Math.max(0, ...pts), span = hi - lo || 1;
+  const x = i => P + i * (W - 2 * P) / (pts.length - 1), y = v => H - P - (v - lo) * (H - 2 * P) / span;
+  const path = pts.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+  const col = c >= 0 ? "#22c55e" : "#f87171";
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Cumulative units: ${sgn(c)}">
+    <line x1="${P}" x2="${W - P}" y1="${y(0)}" y2="${y(0)}" stroke="rgba(143,176,204,.35)" stroke-dasharray="4 4"/>
+    <path d="${path} L ${x(pts.length - 1)} ${y(0)} L ${x(0)} ${y(0)} Z" fill="${col}" opacity=".12"/>
+    <path d="${path}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/></svg>`;
+}
+
+function draw() {
+  document.querySelectorAll("[data-per]").forEach(b => b.classList.toggle("on", b.dataset.per === PER));
+  const el = document.getElementById("body"), s = CMMG.session();
+  if (!s) { el.innerHTML = `<div class="empty">Sign in with Discord to see your tracker.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; return; }
+  const rows = ROWS.filter(inPeriod);
+  const won = rows.filter(r => r.result === "WIN"), lost = rows.filter(r => r.result === "LOSS"), push = rows.filter(r => r.result === "PUSH" || r.result === "VOID");
+  const graded = [...won, ...lost, ...push], net = graded.reduce((a, r) => a + (r.units_pl || 0), 0);
+  const risked = graded.reduce((a, r) => a + (Number(r.units) || 0), 0);
+  const dec = rows.map(r => Number(r.myOdds)).filter(o => o && Math.abs(o) >= 100).map(o => o > 0 ? 1 + o / 100 : 1 + 100 / -o);
+  const avgDec = dec.length ? dec.reduce((a, b) => a + b, 0) / dec.length : 0;
+  const avgOdds = avgDec ? (avgDec >= 2 ? "+" + Math.round((avgDec - 1) * 100) : String(-Math.round(100 / (avgDec - 1)))) : "—";
+  const wl = won.length + lost.length;
+  const k = (l, n, cls) => `<div class="kpi"><div class="l">${l}</div><div class="n ${cls || ""}">${n}</div></div>`;
+  el.innerHTML = `<div class="kpis">
+      ${k("RECORD", `${won.length}-${lost.length}${push.length ? "-" + push.length : ""}`)}
+      ${k("WIN %", wl ? (100 * won.length / wl).toFixed(1) + "%" : "—")}
+      ${k("NET UNITS", graded.length ? sgn(net) : "—", net > 0 ? "pos" : net < 0 ? "neg" : "")}
+      ${k("ROI", risked ? (net > 0 ? "+" : "") + (100 * net / risked).toFixed(1) + "%" : "—", net > 0 ? "pos" : net < 0 ? "neg" : "")}
+      ${k("TOTAL PICKS", rows.length)}${k("PENDING", rows.filter(r => r.result === "PENDING").length)}
+      ${k("AVG ODDS", avgOdds)}${k("UNITS RISKED", risked ? risked.toFixed(1) : "—")}</div>
+    <div class="box"><h3>CUMULATIVE UNITS</h3>${chart(rows)}</div>
+    <div class="box"><h3>MY PICKS</h3>${rows.length ? `<div style="overflow-x:auto"><table><tr><th>DATE</th><th>PICK</th><th>MY ODDS</th><th>UNITS</th><th>RESULT</th><th>+/-</th><th></th></tr>` + rows.map(r => `<tr>
+        <td style="white-space:nowrap">${E(nice(rowDay(r)))}</td>
+        <td>${r.tier ? `<span class="tag ${E(r.tier)}" style="font-size:10px;padding:2px 6px">${TIER_ICON[r.tier] || ""} ${E(r.tier)}</span> ` : ""}<b>${E(r.bet || "Members-only pick")}</b><div class="game">${E(r.sport)}${r.game ? " · " + E(r.game) : ""}${r.myBook ? " · " + E(r.myBook) : ""}</div>${r.note ? `<div class="game">📝 ${E(r.note)}</div>` : ""}</td>
+        <td>${odds(r.myOdds)}</td><td>${E(r.units)}</td><td><span class="res ${E(r.result)}">${E(r.result)}</span></td>
+        <td class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}">${r.units_pl == null ? "" : sgn(r.units_pl)}</td>
+        <td><button class="btn ghost" style="padding:5px 9px" data-edit="${E(r.pick)}">Edit</button></td></tr>`).join("") + `</table></div>`
+      : `<div class="empty" style="border:0">${ROWS.length ? "No tracked picks in this period." : "Nothing tracked yet. Tap “✓ I Took This Pick” on Today's Picks to start."}</div>`}</div>`;
+}
+
+async function load() {
+  const s = CMMG.session(); if (!s) return draw();
+  let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { j = { ok: false, error: "Couldn't reach CMMG. Try again in a minute." }; }
+  if (!j.ok) { if (/sign in/.test(j.error || "")) { CMMG.signOut(); location.reload(); return; } document.getElementById("body").innerHTML = `<div class="empty">${E(j.error)}</div>`; return; }
+  ROWS = j.rows || []; draw();
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.per) { PER = t.dataset.per; try { localStorage.setItem("cmmg.trkper", PER); } catch (e) {} draw(); }
+  if (t.dataset.edit) {
+    EDIT = ROWS.find(r => r.pick === t.dataset.edit); if (!EDIT) return;
+    const f = document.getElementById("edForm");
+    document.getElementById("edWhat").textContent = (EDIT.bet || "Members-only pick") + (EDIT.game ? " · " + EDIT.game : "");
+    f.odds.value = EDIT.myOdds ?? ""; f.units.value = EDIT.units ?? 1; f.book.value = EDIT.myBook || ""; f.note.value = EDIT.note || "";
+    document.getElementById("ed").showModal();
+  }
+});
+document.getElementById("ed").addEventListener("close", async () => {
+  const how = document.getElementById("ed").returnValue; if (!EDIT || (how !== "save" && how !== "remove")) return;
+  const f = document.getElementById("edForm"), s = CMMG.session();
+  const body = how === "remove" ? { task: "track", session: s.token, pick: EDIT.pick, remove: true }
+    : { task: "track", session: s.token, pick: EDIT.pick, odds: Number(f.odds.value), units: Number(f.units.value), book: f.book.value, note: f.note.value };
+  const j = await CMMG.relay(body);
+  toast(j.ok ? (how === "remove" ? "Removed" : "Saved ✓") : (j.error || "Couldn't save. Try again."));
+  load();
+});
+SHELL.mount("tracker"); load();
+</script>
+</body></html>

@@ -2,7 +2,8 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
+ * CMMG SPORTS EDGE RELAY v1.3 (v1.3: My Tracker rows carry the game date/time + the member's own book/note)
+ * was v1.1 (Scott 2026-10-11: "lets do it" - the website + app backend).
  * v1.1: "I Took This Pick" only for picks the member may see; My Tracker never shows a locked pick (reviewer finding).
  * One small server for cmmgsports.com (and later the phone app):
  *   1. "Continue with Discord" - the site sends Discord's one-time code (+ PKCE verifier); the relay trades it for
@@ -151,8 +152,8 @@ function track(P, s, req) {
   // v1.1 (masterhub-reviewer 10/11): a member can only track a pick they are allowed to SEE - otherwise a free member
   // could track a locked pick's id and read its details back through My Tracker.
   const known = feedPicksById(P)[id];
-  if (!known) return { ok: false, error: "that pick isn't on the board" };
-  if (!canSee(s, known.need || "pro") && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
+  if (!known && !req.remove) return { ok: false, error: "that pick isn't on the board" };
+  if (known && !canSee(s, known.need || "pro") && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
   const num = (v, lo, hi) => { const n = Number(v); return isFinite(n) && n >= lo && n <= hi ? n : null; };
   const lock = LockService.getScriptLock(); lock.waitLock(5000);
   try {
@@ -178,8 +179,9 @@ function myTracker(P, s) {
     let pl = null;
     if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
     else if (res === "LOSS") pl = -u; else if (res === "PUSH" || res === "VOID") pl = 0;
-    return { pick: m.pick, at: m.at, game: p.game || "", bet: p.bet || "", sport: p.sport || "", tier: p.tier || "",
-             myOdds: odds || null, units: u, result: res || "PENDING", units_pl: pl == null ? null : Math.round(pl * 100) / 100 };
+    return { pick: m.pick, at: m.at, date: p.date || "", time: p.time || "", game: p.game || "", bet: p.bet || "",
+             sport: p.sport || "", tier: p.tier || "", myOdds: odds || null, units: u, myBook: m.book || "", note: m.note || "",
+             result: res || "PENDING", units_pl: pl == null ? null : Math.round(pl * 100) / 100 };
   });
   const done = rows.filter(function (r) { return r.result === "WIN" || r.result === "LOSS"; });
   const w = done.filter(function (r) { return r.result === "WIN"; }).length;

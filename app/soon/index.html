@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/soon/index.html
+     One "coming soon" page for the storyboard screens that still need a data source:
+       scores / game  - a score feed we're allowed to use in a paid product (ESPN's isn't licensed for that - audit)
+       results        - the public record waits for the edge-auditor check (honest graded ledger, losses, period stated)
+       teams          - schedules / teams / players feed
+     ?p=<key> picks the text. Nothing here shows made-up numbers. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coming soon · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<div class="layout">
+  <main class="main"><div class="box soonpage" id="soon"></div></main>
+  <aside class="side"><div id="account"></div></aside>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script>
+const PAGES = {
+  scores: ["⏱", "Live Scores", "Live games and upcoming games, each with the CMMG pick and its tier beside it."],
+  game: ["🏟️", "My Game Center", "Everything about a game you're in: the live score, the CMMG pick, your own pick and odds, and the key stats — on one screen."],
+  results: ["✅", "Verified Results", "Every graded CMMG pick, wins and losses, with the date range stated. No deleted picks, no cherry-picked records."],
+  teams: ["⭐", "Teams · Players · Schedules", "Follow your teams and players, see their next games and any CMMG pick on them."],
+};
+const key = new URLSearchParams(location.search).get("p"), p = PAGES[key] || PAGES.scores, E = CMMG.esc;
+document.title = p[1] + " · CMMG Sports Edge";
+document.getElementById("soon").innerHTML = `<div class="ic">${p[0]}</div><h1>${E(p[1])}</h1><p>${E(p[2])}</p>
+  <p style="font-weight:700;color:var(--gold)">Coming soon.</p><a class="btn go" style="text-decoration:none;display:inline-block;margin-top:8px" href="/app/">Today's Picks →</a>`;
+SHELL.mount(PAGES[key] ? key : "scores");
+</script>
+</body></html>

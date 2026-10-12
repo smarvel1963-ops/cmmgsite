@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/community/index.html
+     Discord Community (storyboard page 10), V1: where the community lives + "Open in Discord". Read-only synced channels
+     (V1 of the chat module) need the bot bridge + Message Content intent; posting from the site is V2. No sample chat
+     lines or testimonials on this page - only real messages will ever show here. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discord Community · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<div class="layout">
+  <main class="main">
+    <h1>Discord Community</h1>
+    <p class="sub">The CMMG community lives on Discord: picks talk, game chat, alerts and every result posted.</p>
+    <div class="box" style="text-align:center;padding:28px">
+      <div style="font-size:44px">💬</div>
+      <h2 style="margin:6px 0">Talk picks with the CMMG community</h2>
+      <p style="color:var(--dim);max-width:520px;margin:6px auto 16px">Use the same Discord account you signed in with here. Your Discord roles decide what you see in both places.</p>
+      <a class="btn disc" style="text-decoration:none;display:inline-block;font-size:16px;padding:12px 20px" id="open">Open the CMMG Discord</a>
+    </div>
+    <div class="grid2">
+      <div class="box"><h3>🆓 FREE</h3><ul class="check">
+        <li><span>Community chat</span><span>✅</span></li><li><span>The daily free card</span><span>✅</span></li><li><span>Daily market breakdowns</span><span>✅</span></li></ul></div>
+      <div class="box"><h3>⭐ VIP · 👑 ELITE</h3><ul class="check">
+        <li><span>Sport alert channels (VIP 5 · Elite 15+)</span><span>🔒</span></li><li><span>VIP receipts: every play graded</span><span>🔒</span></li>
+        <li><span>Elite live drops and arbitrage alerts</span><span>🔒</span></li></ul>
+        <a href="https://winible.com/cmmgsports" style="color:var(--ice);font-size:13px">See plans →</a></div>
+    </div>
+    <div class="box"><h3>COMING TO THIS PAGE</h3><p style="color:var(--dim);font-size:13px;margin:0">Live announcements and game threads from the CMMG Discord, right here — with "Open in Discord" to reply.</p></div>
+  </main>
+  <aside class="side"><div id="account"></div></aside>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script>SHELL.mount("community"); document.getElementById("open").href = SHELL.DISCORD;</script>
+</body></html>

@@ -21,7 +21,7 @@
     const j = await CMMG.relay({ task: "login", code: q.get("code"), verifier: st.verifier, redirect: CMMG.REDIRECT });
     if (!j.ok) return fail(CMMG.esc(j.error || "Please try again."));
     CMMG.saveSession(j.session, j.me);
-    location.replace("../app/");
+    location.replace(st.back || "../app/");
   } catch (e) { fail("Couldn't reach CMMG — check your connection."); }
 })();
 </script></body></html>

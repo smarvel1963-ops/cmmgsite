@@ -1,0 +1,63 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/account/index.html
+     Settings & Membership (storyboard page 12). Discord is the master access authority: this page only SHOWS the plan the
+     relay read from the member's Discord roles, lets them refresh it (sign in again) or disconnect. Plan contents match
+     the Winible plans (Free / VIP $30 / Elite $45, Scott 10/11). Display settings live on this device only. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings & Membership · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<div class="layout">
+  <main class="main">
+    <h1>Settings &amp; Membership</h1>
+    <p class="sub">Your access comes from your CMMG Discord roles. Change your plan on Discord and it shows up here the next time you sign in.</p>
+    <div id="conn" class="box"></div>
+    <div class="grid2">
+      <div class="box"><h3>WHAT YOUR PLAN INCLUDES</h3><ul class="check" id="incl"></ul></div>
+      <div class="box"><h3>PLANS</h3><ul class="check" id="plans"></ul>
+        <a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block;margin-top:12px" href="https://winible.com/cmmgsports">See plans on Winible</a></div>
+    </div>
+    <div class="box"><h3>DISPLAY (THIS DEVICE)</h3>
+      <div class="field"><span>Today's Picks opens in</span>
+        <select id="view"><option value="simple">Simple view (cards)</option><option value="advanced">Advanced view (table)</option></select></div>
+      <p style="color:var(--dim);font-size:12px;margin:0">All times on the site are Central Time (CT).</p></div>
+    <div class="box"><h3>PRIVACY</h3>
+      <p style="color:var(--dim);font-size:13px;margin:0">We keep your Discord ID, name and picture, plus the picks you track. Your tracker is only visible to you. We never see your Discord password, and the site never posts to Discord for you. To have your data removed, email <a href="mailto:smarvel1963@gmail.com" style="color:var(--ice)">smarvel1963@gmail.com</a>.</p></div>
+  </main>
+  <aside class="side"><div id="account"></div></aside>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc;
+const FEATURES = [   // [label, plans that include it] - mirrors winible.com/cmmgsports
+  ["Daily free card (1–2 plays)", ["free", "top5", "vip", "elite"]],
+  ["Discord community chat", ["free", "top5", "vip", "elite"]],
+  ["Top 5 picks", ["top5", "vip", "elite"]],
+  ["The core card: 20+ plays a day + the Top 10", ["vip", "elite"]],
+  ["DFS plays (PrizePicks / DraftKings)", ["vip", "elite"]],
+  ["5 sport alert channels", ["vip", "elite"]],
+  ["Live in-game drops", ["elite"]],
+  ["Late plays near start time", ["elite"]],
+  ["All 15+ sport channels · 45+ plays a day", ["elite"]],
+  ["Arbitrage and middle alerts", ["elite"]],
+];
+function draw() {
+  const s = CMMG.session(), p = SHELL.plan(s), conn = document.getElementById("conn");
+  conn.innerHTML = s
+    ? `<h3>DISCORD</h3><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">${s.me.avatar ? `<img src="${E(s.me.avatar)}" alt="" style="width:46px;height:46px;border-radius:50%">` : ""}
+        <div style="flex:1"><b>${E(s.me.name)}</b><div class="game">✅ Connected${s.me.inServer ? " · in the CMMG server" : " · not in the CMMG server yet"} · <span class="pill ${p.paid ? "pro" : ""}">${p.name}</span></div>
+        <div class="game">Checked at sign-in · good until ${new Date(s.me.until).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} CT</div></div>
+        <button class="btn disc" data-signin>Refresh membership</button><button class="btn ghost" data-signout>Disconnect</button></div>
+        ${s.me.inServer ? "" : `<p style="margin:10px 0 0"><a class="btn disc" style="text-decoration:none;display:inline-block" href="${SHELL.DISCORD}">Join the CMMG Discord</a></p>`}`
+    : `<h3>DISCORD</h3><p style="color:var(--dim);margin:0 0 10px">Not connected.</p><button class="btn disc" data-signin>Continue with Discord</button>`;
+  const key = s ? p.key : "free";
+  document.getElementById("incl").innerHTML = FEATURES.map(([l, who]) => `<li><span>${E(l)}</span><span>${who.indexOf(key) >= 0 ? "✅" : "🔒"}</span></li>`).join("");
+  document.getElementById("plans").innerHTML = [["free", "🆓 Free", "$0"], ["vip", "⭐ VIP", "$30 / month"], ["elite", "👑 Elite", "$45 / month"]]
+    .map(([k, n, pr]) => `<li><span>${n}${k === key ? ' <span class="pill pro">YOUR PLAN</span>' : ""}</span><span>${pr}</span></li>`).join("")
+    + `<li><span style="color:var(--dim);font-size:12px">Weekly and 3-day options are on Winible.</span><span></span></li>`;
+}
+const v = document.getElementById("view");
+try { v.value = localStorage.getItem("cmmg.view") || "simple"; } catch (e) {}
+v.addEventListener("change", () => { try { localStorage.setItem("cmmg.view", v.value); } catch (e) {} });
+SHELL.mount("account"); draw();
+</script>
+</body></html>

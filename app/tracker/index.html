@@ -72,11 +72,16 @@ const betType = b => { const s = String(b || "").trim();
   if (/^(over|under)\b/i.test(s) || /^[ou]\s?\d/i.test(s)) return "Total";
   if (/[+-]\d+(\.\d)?\s*$/.test(s)) return "Spread";
   return "Other"; };
+// "today" follows the betting SESSION (Scott 10/12: "shouldn't my tracker coincide with sessions"): picks are dated by
+// the session day the PC feed publishes, so after an evening CLOSE DAY tomorrow's picks carry tomorrow's date. The range
+// ends at the LATER of the calendar day and the session day, so they count at once; before the close nothing moves.
+let SESSION_DAY = "";
+const todayKey = () => { const c = ctDay(new Date()); return SESSION_DAY > c ? SESSION_DAY : c; };
 function inRange(d) {
   if (RNG === "all") return true; if (!d) return false;
-  const now = new Date(), today = ctDay(now);
+  const today = todayKey(), end = new Date(today + "T12:00:00Z");
   if (RNG === "ytd") return d >= today.slice(0, 4) + "-01-01" && d <= today;
-  return d >= ctDay(new Date(now - (Number(RNG) - 1) * 864e5)) && d <= today;
+  return d >= new Date(end - (Number(RNG) - 1) * 864e5).toISOString().slice(0, 10) && d <= today;
 }
 function stats(rows, plKey, oddsKey) {
   const g = rows.filter(r => r.result === "WIN" || r.result === "LOSS"), w = g.filter(r => r.result === "WIN").length;
@@ -166,7 +171,9 @@ async function load() {
   const s = CMMG.session(); if (!s) return draw();
   let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { j = { ok: false, error: "Couldn't reach CMMG. Try again in a minute." }; }
   if (!j.ok) { if (/sign in/.test(j.error || "")) { CMMG.signOut(); location.reload(); return; } $("body").innerHTML = `<div class="empty">${E(j.error)}</div>`; return; }
-  ROWS = j.rows || []; draw();
+  ROWS = j.rows || [];
+  try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
+  draw();
   try { CM = await CMMG.relay({ task: "results" }); } catch (e) { CM = null; }
   if (CM && CM.published) draw();
 }

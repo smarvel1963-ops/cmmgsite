@@ -6,7 +6,7 @@ const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
     ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
-              ["lives", "clock", "Live Totals", "/app/lives/"], ["board", "chart", "More Boards", "/app/board/?b=golf"],
+              ["lives", "clock", "Live Totals", "/app/lives/"], ["board", "chart", "More Boards", "/app/board/?b=prizepicks"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
@@ -146,9 +146,20 @@ const SHELL = (() => {
       k.insertAdjacentHTML("afterbegin", `<span class="kic">${ICON.color(m[1])}</span>`); k.classList.add("kx", "k-" + m[2]);
     });
   }
+  // SPORT SCENES (Scott 10/12 "on individual sport pages try to interject some of that sport in back ground"): a
+  // sport page gets its own playing surface in the banner + faintly behind the page (css/sportbg.css, line art only).
+  const SCENE_PAGES = ["lives", "horses", "f1", "nascar", "tennis", "ufc", "golf"];
+  function sportScene(active) {
+    const key = active === "sport" ? (new URLSearchParams(location.search).get("l") || "NFL").toUpperCase() : SCENE_PAGES.includes(active) ? active : "";
+    if (!key) return;
+    if (!document.querySelector('link[href="/css/sportbg.css"]')) {
+      const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/css/sportbg.css"; document.head.appendChild(l); }
+    document.body.dataset.sport = key;
+  }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
+    sportScene(active);
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
     // "Install app" only when the browser offers it (Android / desktop Chrome / Edge); iPhone uses Share -> Add to
     // Home Screen (steps on the Settings page). Hidden once installed.
@@ -169,7 +180,7 @@ const SHELL = (() => {
     const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
     // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
     const BOARDCHIPS = [["tennis", "TENNIS", "TENNIS"], ["ufc", "UFC", "UFC"], ["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"]];
-    const BOARDHREF = { tennis: "/app/tennis/", ufc: "/app/ufc/", lives: "/app/lives/", horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
+    const BOARDHREF = { tennis: "/app/tennis/", ufc: "/app/ufc/", golf: "/app/golf/", lives: "/app/lives/", horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
     const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">

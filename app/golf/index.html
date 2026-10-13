@@ -1,0 +1,138 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/golf/index.html
+     Golf (Scott 10/12: "build golf page"). ESPN's public golf scoreboards (PGA / LPGA / DP World, no key): the event on now
+     (or the last final) with a full LEADERBOARD - position with ties, to par, R1-R4 strokes, holes played - and UP NEXT
+     from the tour calendar. OUR PICKS = the golf board from the relay (task "board" name "golf": only a LOCKED, fresh
+     tracker card ever goes out - see cmmg_feed_boards.board_golf), each golfer shown where he/she stands right now and
+     whether the market is cashing at this moment (outright = leading; top N = inside N, ties counted). No golf record or
+     history is shown: that record is being rebuilt (HOT_LIST G2). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golf · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+:root { --green:#16a34a; --flag:#facc15; }
+.tours { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.tours button { background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 16px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.tours button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; }
+.evh { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:center; padding:18px 20px; border-radius:18px; margin-bottom:16px; position:relative; overflow:hidden;
+  border:1px solid rgba(22,163,74,.5); background:radial-gradient(130% 150% at 0% 100%, rgba(22,163,74,.22), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.9)); }
+.evh::after { content:""; position:absolute; right:26px; top:14px; width:3px; height:58px; background:#e8f4ff; border-radius:2px; opacity:.5; }
+.evh::before { content:""; position:absolute; right:29px; top:14px; width:26px; height:16px; background:var(--flag); clip-path:polygon(0 0, 100% 50%, 0 100%); opacity:.7; }
+.evh .lb { font-size:11px; font-weight:900; letter-spacing:.18em; color:#4ade80; } .evh .en { font-family:Saira; font-style:italic; font-weight:800; font-size:28px; line-height:1.1; margin-top:6px; }
+.evh .meta { color:var(--dim); font-size:13px; margin-top:6px; } .evh .st { font-family:Saira; font-weight:800; font-size:22px; padding-right:60px; }
+.sech { display:flex; align-items:center; gap:10px; margin:18px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; } .sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+.pgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+.gcard { padding:14px; border-radius:14px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.82)); }
+.gcard.cash { border-color:rgba(22,163,74,.7); box-shadow:0 0 14px rgba(22,163,74,.2); }
+.gcard .mk { font-size:11px; font-weight:900; letter-spacing:.12em; color:#06101f; background:#4ade80; border-radius:6px; padding:3px 8px; display:inline-block; }
+.gcard .gn { font-family:Saira; font-style:italic; font-weight:800; font-size:20px; margin-top:8px; }
+.gcard .pos { display:flex; align-items:baseline; gap:10px; margin-top:8px; } .gcard .pos b { font-family:Saira; font-size:30px; } .gcard .pos span { font-size:13px; color:var(--dim); }
+.gcard .v { margin-top:6px; font-size:13px; font-weight:800; } .gcard .v.good { color:#4ade80; } .gcard .v.bad { color:#f87171; } .gcard .v.mid { color:var(--dim); }
+.gcard .o { margin-top:8px; font-size:12px; color:var(--dim); }
+.lb2 { width:100%; border-collapse:collapse; font-size:14px; } .lb2 th { text-align:left; font-size:11px; letter-spacing:.1em; color:var(--dim); font-weight:900; padding:8px 6px; border-bottom:1px solid var(--line); }
+.lb2 td { padding:8px 6px; border-bottom:1px solid rgba(127,216,255,.07); } .lb2 td.n { text-align:center; font-family:Saira; } .lb2 th.n { text-align:center; }
+.lb2 td.tp { font-family:Saira; font-weight:800; font-size:16px; text-align:center; } .lb2 td.tp.u { color:#f87171; } .lb2 td.tp.e { color:var(--text); } .lb2 td.tp.o { color:#93c5fd; }
+.lb2 tr.ours td { background:rgba(22,163,74,.12); } .lb2 tr.ours td:first-child { box-shadow:inset 3px 0 0 #4ade80; }
+.lb2 .pl { display:flex; align-items:center; gap:8px; font-weight:700; } .lb2 .pl img { border-radius:2px; } .lb2 .star { color:#4ade80; font-size:11px; font-weight:900; }
+.more { margin-top:10px; } .calr { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; }
+.calr div { padding:10px 12px; border-radius:10px; background:rgba(10,22,40,.6); border:1px solid var(--line); } .calr b { display:block; font-size:14px; } .calr span { font-size:12px; color:var(--dim); }
+.lockc { padding:14px; border-radius:14px; border:1px solid var(--line); background:rgba(10,22,40,.6); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+@media (max-width:700px) { .lb2 .rd { display:none; } .evh { grid-template-columns:1fr; } .evh .en { font-size:22px; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>GOLF</h1><p>EVERY SHOT ON THE BOARD. OUR PICKS.</p></div>
+    <div class="tours" id="tours"></div>
+    <div id="ev"></div>
+    <div id="ours"></div>
+    <div id="board"><div class="empty">Loading…</div></div>
+    <div id="cal"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const TOURS = [["pga", "PGA TOUR"], ["lpga", "LPGA"], ["eur", "DP WORLD"]];
+const CT = { timeZone: "America/Chicago" };
+const dshort = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { ...CT, month: "short", day: "numeric" }); };
+const odds = o => o == null || o === "" ? "" : Number(o) > 0 ? "+" + o : String(o);
+const fold = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z ]/g, "").trim();
+let TOUR = "pga", EV = null, CAL = [], ROWS = [], PICKS = [], SHOWALL = false;
+try { TOUR = localStorage.getItem("cmmg.golf.tour") || "pga"; } catch (e) {}
+
+const toPar = s => { const t = String(s ?? "").trim(); return t === "E" ? 0 : /^[+-]?\d+$/.test(t) ? Number(t) : null; };
+// leaderboard rows: position with ties (T3), to par, strokes per round, holes played in the latest round
+function build(ev) {
+  const cs = ((ev && ev.competitions && ev.competitions[0] && ev.competitions[0].competitors) || []).slice().sort((a, b) => (a.order || 999) - (b.order || 999));
+  const rows = cs.map(c => { const ls = c.linescores || [], cur = ls.filter(l => l.value != null || (l.linescores || []).length).slice(-1)[0];
+    return { name: c.athlete?.displayName || "", flag: c.athlete?.flag?.href || "", par: toPar(c.score), parTxt: String(c.score ?? ""),
+      rounds: [0, 1, 2, 3].map(i => { const l = ls.find(x => x.period === i + 1); return l && l.value ? Math.round(l.value) : null; }),
+      thru: cur && (cur.linescores || []).length ? (cur.linescores.length >= 18 ? "F" : cur.linescores.length) : "", cut: /cut|wd|dq/i.test(String(c.status?.type?.description || "")) }; });
+  let pos = 0; rows.forEach((r, i) => { if (i === 0 || r.par !== rows[i - 1].par) pos = i + 1; r.pos = pos; });
+  rows.forEach(r => { r.tie = rows.filter(x => x.pos === r.pos).length > 1; });
+  return rows;
+}
+const golferOf = p => String(p.bet || "").split(/\s+-\s+/)[0].trim();
+const rowFor = name => { const n = fold(name); return ROWS.find(r => fold(r.name) === n) || ROWS.find(r => fold(r.name).split(" ").pop() === n.split(" ").pop() && fold(r.name)[0] === n[0]) || null; };
+function verdict(p, r) {
+  if (!r) return ["Not on this leaderboard", "mid"];
+  const m = String(p.market || "").toUpperCase(), n = (m.match(/(\d+)/) || [])[1];
+  if (r.cut) return ["Missed the cut", "bad"];
+  if (/OUTRIGHT|WIN/.test(m)) return r.pos === 1 ? [r.tie ? "Tied for the lead" : "Leading", "good"] : [`${r.pos - 1 === 0 ? "" : "Chasing — "}${E(r.parTxt)} (${r.tie ? "T" : ""}${r.pos})`, "mid"];
+  if (n) { const k = Number(n); return r.pos <= k ? [`Inside the top ${k} right now`, "good"] : [`Outside the top ${k} right now`, "bad"]; }
+  return ["", "mid"];
+}
+function draw() {
+  $("tours").innerHTML = TOURS.map(([k, l]) => `<button data-tour="${k}" class="${k === TOUR ? "on" : ""}">${l}</button>`).join("");
+  if (!EV) { $("ev").innerHTML = ""; $("board").innerHTML = `<div class="empty">No ${E(TOURS.find(t => t[0] === TOUR)[1])} event on the board this week.</div>`; drawCal(); drawPicks(); return; }
+  const st = EV.competitions?.[0]?.status || EV.status || {}, done = st.type?.state === "post", live = st.type?.state === "in";
+  $("ev").innerHTML = `<div class="evh"><div style="min-width:0"><div class="lb">${done ? "FINAL" : live ? "LIVE · ROUND " + E(st.period || "") : "THIS WEEK"}</div><div class="en">${E(EV.name)}</div>
+    <div class="meta">${dshort(EV.date)} – ${dshort(EV.endDate)}${ROWS.length ? ` · ${ROWS.length} players` : ""}${done && ROWS[0] ? ` · won by ${E(ROWS[0].name)} at ${E(ROWS[0].parTxt)}` : ""}</div></div>
+    <div class="st">${done ? "FINAL" : live ? E(st.type?.shortDetail || "LIVE") : ""}</div></div>`;
+  drawPicks();
+  const ours = new Set(PICKS.filter(p => !p.locked).map(p => fold(golferOf(p))));
+  const show = SHOWALL ? ROWS : ROWS.slice(0, 30);
+  const pc = v => v == null ? "" : v < 0 ? "u" : v === 0 ? "e" : "o";
+  $("board").innerHTML = ROWS.length ? `<div class="sech">LEADERBOARD<small>${done ? "final" : "live"} · ${ROWS.length} players</small></div><div class="box" style="padding:6px 8px;overflow-x:auto"><table class="lb2">
+    <tr><th>POS</th><th>PLAYER</th><th class="n">TO PAR</th><th class="n rd">R1</th><th class="n rd">R2</th><th class="n rd">R3</th><th class="n rd">R4</th><th class="n">THRU</th></tr>
+    ${show.map(r => `<tr class="${ours.has(fold(r.name)) ? "ours" : ""}"><td class="n">${r.cut ? "CUT" : (r.tie ? "T" : "") + r.pos}</td><td><div class="pl">${r.flag ? `<img src="${E(r.flag)}" alt="" width="20" height="14" loading="lazy">` : ""}${E(r.name)}${ours.has(fold(r.name)) ? ' <span class="star">OUR PICK</span>' : ""}</div></td>
+      <td class="tp ${pc(r.par)}">${E(r.parTxt || "–")}</td>${r.rounds.map(x => `<td class="n rd">${x ?? ""}</td>`).join("")}<td class="n">${E(r.thru)}</td></tr>`).join("")}</table>
+    ${ROWS.length > 30 ? `<div class="more"><button class="btn ghost" data-all>${SHOWALL ? "Show top 30" : `Show all ${ROWS.length}`}</button></div>` : ""}</div>` : `<div class="empty">The field hasn't teed off yet.</div>`;
+  drawCal();
+}
+function drawPicks() {
+  const gp = PICKS;
+  if (!gp.length) { $("ours").innerHTML = `<div class="sech">OUR PICKS</div><p class="game" style="margin:-4px 2px 6px">Our golf card posts tournament week — check back then.</p>`; return; }
+  $("ours").innerHTML = `<div class="sech">OUR PICKS<small>${E(gp[0].game || "")}</small></div><div class="pgrid">${gp.map(p => {
+    if (p.locked) return `<div class="lockc">${ICON.ui("lock")} <b>Members-only golf pick</b>${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none;margin-left:auto" href="${SHELL.UPGRADE}">Unlock</a>`}</div>`;
+    const r = rowFor(golferOf(p)), [v, cls] = verdict(p, r);
+    return `<div class="gcard ${cls === "good" ? "cash" : ""}"><span class="mk">${E(String(p.market || "").replace(/TOP/i, "TOP "))}</span><div class="gn">${E(golferOf(p))}</div>
+      ${r ? `<div class="pos"><b>${r.cut ? "CUT" : (r.tie ? "T" : "") + r.pos}</b><span>${E(r.parTxt)}${r.thru ? " · thru " + E(r.thru) : ""}</span></div>` : ""}
+      ${v ? `<div class="v ${cls}">${v}</div>` : ""}<div class="o">${odds(p.odds)}${p.book ? " · " + E(p.book) : ""}${p.units ? " · " + E(p.units) + "u" : ""}${p.tier ? " · " + E(p.tier) : ""}</div>
+      ${p.result ? `<span class="rb ${E(p.result)}" style="margin-top:8px;display:inline-block">${E(p.result)}</span>` : ""}</div>`; }).join("")}</div>`;
+}
+function drawCal() {
+  const up = CAL.filter(c => Date.parse(c.startDate) > Date.now() && (!EV || c.label !== EV.name)).slice(0, 4);
+  $("cal").innerHTML = up.length ? `<div class="box"><h3>UP NEXT</h3><div class="calr">${up.map(c => `<div><b>${E(c.label)}</b><span>${dshort(c.startDate)} – ${dshort(c.endDate)}</span></div>`).join("")}</div></div>` : "";
+}
+async function loadBoard() {
+  let j = null; try { j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/golf/${TOUR}/scoreboard`)).json(); } catch (e) {}
+  CAL = (j && j.leagues && j.leagues[0] && j.leagues[0].calendar) || []; EV = (j && (j.events || [])[0]) || null; ROWS = build(EV);
+}
+async function load() {
+  await loadBoard();
+  try { const r = await CMMG.relay({ task: "board", name: "golf", session: CMMG.session()?.token }); PICKS = r && r.ok && r.live ? r.picks || [] : []; } catch (e) { PICKS = []; }
+  draw();
+}
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-tour]"); if (t) { TOUR = t.dataset.tour; SHOWALL = false; try { localStorage.setItem("cmmg.golf.tour", TOUR); } catch (x) {} $("board").innerHTML = `<div class="empty">Loading…</div>`; await loadBoard(); draw(); return; }
+  if (e.target.closest("[data-all]")) { SHOWALL = !SHOWALL; draw(); }
+});
+setInterval(async () => { await loadBoard(); draw(); }, 90000); setInterval(load, 300000);
+SHELL.mount("golf"); load();
+</script>
+</body></html>

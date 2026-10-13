@@ -194,7 +194,10 @@ const SHELL = (() => {
         ${BOARDCHIPS.map(([k, ik, l]) => `<a class="${curBoard === k || active === k ? "on" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? ICON.sport(ik) : ""}${l}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
-      `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("") + `</nav>`;
+      `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("")
+      // Sign out / Sign in at the foot of the menu (Scott 10/12 "you dont have logout buttons in meno"); same handler as the phone sheet
+      + `<div class="rail-foot">${CMMG.session() ? `<button class="railbtn" data-signout>${typeof ICON !== "undefined" ? ICON.ui("shield") : ""}Sign out</button>`
+          : `<button class="railbtn" data-signin>${typeof ICON !== "undefined" ? ICON.ui("shield") : ""}Sign in with Discord</button>`}</div></nav>`;
     document.body.insertAdjacentHTML("beforeend", rail.replace('<nav class="rail"', '<nav class="rail drawer-l" id="leftDrawer"') +
       `<aside class="drawer-r" id="livePanel" aria-label="Live feed"><div class="lp-h"><b>${ic("chat")} LIVE FEED</b><button data-drawer="close" aria-label="Close">✕</button></div>
         <div class="lp-tabs"><button data-lpt="site" class="on">CMMG</button><button data-lpt="discord">Discord</button></div><div id="lpBody" class="lp-b">Loading…</div></aside>

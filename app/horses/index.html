@@ -5,7 +5,8 @@
      cloth colours, horse, jockey, bet, tier, MORNING LINE odds, Capital OTB backups) and recent finishes.
      Data = relay task "board" name "horses" (same feed + masking as /app/board/?b=horses): a locked pick never carries
      the horse/odds; finishes show only once Verified Results are public (RESULTS_PUBLIC). Never a W-L or units total -
-     the horse record is being re-graded (place/show were counted as wins; R1). "ML" = morning line, not a price. -->
+     a pick is graded WIN on any money finish (1st/2nd/3rd - Scott 10/12), so the bet reads "In the money". "ML" = morning
+     line, not a price. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Horse Racing · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -62,7 +63,7 @@
     <div id="next"></div>
     <div class="trk" id="tracks"></div>
     <div id="list"><div class="empty">Loading…</div></div>
-    <p class="mlnote">ML = the track's morning line, set before betting opens. The price at post time will be different.</p>
+    <p class="mlnote">Our horse picks are graded on finishing in the money — 1st, 2nd or 3rd. ML = the track's morning line, set before betting opens; the price at post time will be different.</p>
     <div id="hist"></div>
   </main>
 </div>
@@ -90,6 +91,9 @@ const fill = p => {
 // the race FINISH, never the bet result: a WIN-bet result has been booked on place/show finishes (reviewer 10/12, R1)
 const finish = p => { const f = String(p.finish || "").toUpperCase(); if (!p.result) return "";
   return f === "WIN" || f === "PLACE" || f === "SHOW" ? f : p.result === "VOID" ? "VOID" : f ? "OUT" : ""; };
+// Scott 10/12: "horses any money place considered win" - a pick that finishes 1st, 2nd or 3rd is graded WIN,
+// paid at that finish's real payout. So the bet is shown as IN THE MONEY, never as a win-only bet.
+const betLabel = p => { const m = String(p.market || "WIN").toUpperCase(); return m === "WIN" ? "In the money (top 3)" : m === "PLACE" ? "Top 2" : m === "SHOW" ? "Top 3" : m; };
 let ROWS = [], HIST = [], PUB = false, TRACK = "";
 try { TRACK = localStorage.getItem("cmmg.horses.track") || ""; } catch (e) {}
 
@@ -106,7 +110,7 @@ function raceRow(p) {
   const f = PUB ? finish(p) : "";
   return `<div class="race ${p.result ? "done" : ""}"><div class="rn"><div><small>RACE</small>${E(p.race ?? "")}</div></div>${postCell(p)}
     <div class="who"><div class="hz2">${cloth(p.num)}<span class="hn">${E(p.horse)}</span></div>
-      <div class="sub2">${p.jockey ? `<span>Jockey <b>${E(p.jockey)}</b></span>` : ""}<span><b>${E(p.market || "WIN")}</b> bet</span>
+      <div class="sub2">${p.jockey ? `<span>Jockey <b>${E(p.jockey)}</b></span>` : ""}<span><b>${E(betLabel(p))}</b></span>
         ${(p.backups || []).length ? `<span class="bk2">Backups ${p.backups.map(n => cloth(n)).join("")}</span>` : ""}</div></div>
     <div class="rt2">${p.ml ? `<div class="ml"><small>ML</small>${E(p.ml)}</div>` : ""}${p.tier ? `<span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${f ? `<span class="fin ${f}">${f}</span>` : ""}</div></div>`;
 }
@@ -117,7 +121,7 @@ function drawNext() {
   $("next").innerHTML = `<div class="nextp"><div style="min-width:0"><div class="lb">NEXT POST${up.locked ? "" : ` · ${E(up.course).toUpperCase()} · RACE ${E(up.race ?? "")}`}</div>
     ${up.locked ? `<div class="hz"><span class="hn">Members-only pick</span></div><div class="meta">${ICON.ui("lock")} Unlock with your CMMG Discord membership</div>`
       : `<div class="hz">${cloth(up.num)}<span class="hn">${E(up.horse)}</span></div>
-         <div class="meta">${up.jockey ? `Jockey <b>${E(up.jockey)}</b> · ` : ""}<b>${E(up.market || "WIN")}</b> bet${up.ml ? ` · ML <b>${E(up.ml)}</b>` : ""} · post ${ct(up.time)} CT</div>`}</div>
+         <div class="meta">${up.jockey ? `Jockey <b>${E(up.jockey)}</b> · ` : ""}<b>${E(betLabel(up))}</b>${up.ml ? ` · ML <b>${E(up.ml)}</b>` : ""} · post ${ct(up.time)} CT</div>`}</div>
     <div class="cd"><b data-cd-big="${E(up.time)}">${fmtCd(s)}</b><span>TO POST</span></div></div>`;
 }
 function draw() {

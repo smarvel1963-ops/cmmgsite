@@ -135,4 +135,15 @@ check("board: history hidden until RESULTS_PUBLIC", post({ task: "board", name: 
 PROPS.RESULTS_PUBLIC = "1";
 check("board: history = graded only once public", (r => r.history.length === 1 && r.history[0].result === "WIN")(post({ task: "board", name: "horses" })));
 delete PROPS.RESULTS_PUBLIC;
+// v1.8 storage guard
+post({ task: "put", key: "wkey", part: "board_horses", data: { date: "2026-10-12", picks: [{ id: "u1", need: "free", sport: "HORSES", bet: "Señor Café 🏇 - In the money (top 3)" }], history: [] } });
+const chunks = Object.keys(PROPS).filter(k => /^F_board_horses#\d+$/.test(k)).map(k => PROPS[k]);
+check("v1.8: stored chunks are pure ASCII (1 char = 1 byte)", chunks.length && chunks.every(c => /^[\x00-\x7f]*$/.test(c)), chunks[0] && chunks[0].slice(0, 120));
+check("v1.8: non-ASCII text reads back exactly", post({ task: "board", name: "horses" }).picks[0].bet === "Señor Café 🏇 - In the money (top 3)");
+const before = PROPS["F_history#0"];
+const tooBig = post({ task: "put", key: "wkey", part: "history", data: { picks: [{ id: "x", bet: "y".repeat(130000) }] } });
+check("v1.8: a part over its cap is refused and the last copy stays", tooBig.ok === false && /too big/.test(tooBig.error) && PROPS["F_history#0"] === before, tooBig);
+check("v1.8: a board over 44 KB is refused", post({ task: "put", key: "wkey", part: "board_lives", data: { picks: [{ bet: "z".repeat(45000) }] } }).ok === false);
+let trackOk = true; for (let i = 0; i < 305; i++) { post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-12", picks: [{ id: "q" + i, need: "free", sport: "NFL", bet: "B" }] } }); trackOk = post({ task: "track", session: freeS, pick: "q" + i }).ok && trackOk; }
+check("v1.8: a member keeps at most 300 tracked picks", trackOk && post({ task: "mytracker", session: freeS }).rows.length === 300);
 console.log(`\n${ok} passed, ${bad} failed`);

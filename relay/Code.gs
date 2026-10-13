@@ -3,7 +3,9 @@
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
  * CMMG SPORTS EDGE RELAY v1.8 (v1.8: "results" rows carry "profit" - each graded pick's STORED payout from MasterHub, which
- *   the site totals instead of odds x units (Scott 10/12 records fix #2). Needs a redeploy of the live copy to take effect.)
+ *   the site totals instead of odds x units (Scott 10/12 records fix #2). Storage guard (reviewer 10/12): putBig stores
+ *   pure ASCII (non-ASCII escaped to \uXXXX, so an 8000-char chunk is 8000 bytes), feedPut refuses a part over its cap,
+ *   a member keeps at most 300 tracked picks. Needs a redeploy of the live copy to take effect.)
  * was v1.7 (v1.7: "board" - extra boards Lives/Horses/F1/NASCAR/Golf/DK/PrizePicks, empty until the PC feed
  *   sends them (each board has its own OFF switch in data/cmmg_feed_config.json). v1.6: "community" - read-only Discord channel copy, OFF until DISCORD_BOT_TOKEN + COMMUNITY_CHANNELS)
  * was v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
@@ -43,7 +45,10 @@ const ROLE_MAP_DEFAULT = {
   "1554688062812856461": ["top5"],           // Top 5 Pass
 };
 const CHUNK = 8000;                   // Script Property values max ~9 KB - big JSON is split
-const TRACK_MAX = 500;                // a member's tracked picks kept
+const TRACK_MAX = 300;                // a member's tracked picks kept (v1.8: 500 -> 300, Script Properties are ~500 KB in all)
+// v1.8 byte caps per feed part (escaped JSON as stored). The PC exporter (cmmg_feed_export.py) caps a little lower, by
+// UTF-8 bytes: history 120 KB, today 60 KB, each board 40 KB, all together ~320 KB - the margin here covers \u escapes.
+const PART_CAP = { today: 64000, history: 128000, records: 44000, board: 44000 };
 
 function doGet() { return out({ ok: true, app: "cmmg relay", v: 1 }); }
 
@@ -76,7 +81,10 @@ function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
   if (["today", "history", "records"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
-  putBig(P, "F_" + req.part, JSON.stringify({ at: new Date().toISOString(), data: req.data }));
+  const str = ascii(JSON.stringify({ at: new Date().toISOString(), data: req.data }));
+  const cap = PART_CAP[/^board_/.test(req.part) ? "board" : req.part];
+  if (str.length > cap) return { ok: false, error: "part too big: " + str.length + " > " + cap + " bytes - not stored (the last copy stays)" };
+  putBig(P, "F_" + req.part, str);
   return { ok: true };
 }
 
@@ -281,7 +289,11 @@ function feedPicksById(P) {
 }
 
 // ---------------------------------------------------------------- storage helpers (Script Properties, chunked)
+// JSON with every non-ASCII character as \uXXXX: still the same JSON, and now 1 char = 1 byte, so a chunk can never
+// pass the per-value byte limit however many accents / emoji a pick carries.
+function ascii(str) { return String(str).replace(/[\u0080-\uffff]/g, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0")); }
 function putBig(P, key, str) {
+  str = ascii(str);
   const old = Number(P.getProperty(key + "#n") || 0), n = Math.max(1, Math.ceil(str.length / CHUNK)), all = {};
   for (let i = 0; i < n; i++) all[key + "#" + i] = str.slice(i * CHUNK, (i + 1) * CHUNK);
   all[key + "#n"] = String(n);

@@ -31,12 +31,26 @@
 .tpr b { color:var(--text); font-size:14px; } .tpr .bar5 { height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; } .tpr .bar5 i { display:block; height:100%; }
 .ql { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .ql a { display:flex; gap:8px; align-items:center; text-decoration:none; padding:10px; border:1px solid var(--line); border-radius:10px; background:rgba(5,12,24,.55); font-weight:700; font-size:13px; } .ql .ic { width:18px; height:18px; color:#9fd2ff; }
 .bye { color:var(--dim); font-size:13px; margin-top:8px; }
+/* NEXT GAME countdown banner (Scott 10/12: "love the ufc banner with count down ... do that on each sport ... for next
+   earliest match up") */
+.nxt { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; padding:16px 20px; border-radius:18px; margin:12px 0 14px; position:relative; overflow:hidden;
+  border:1px solid rgba(255,215,0,.45); background:radial-gradient(120% 140% at 100% 0%, rgba(255,215,0,.13), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.9)); }
+.nxt.live { border-color:rgba(239,68,68,.55); background:radial-gradient(120% 140% at 100% 0%, rgba(239,68,68,.16), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.9)); }
+.nxt .lb { font-size:11px; font-weight:900; letter-spacing:.18em; color:#ffd700; } .nxt.live .lb { color:#f87171; }
+.nxt .mu { display:flex; align-items:center; gap:12px; margin-top:8px; flex-wrap:wrap; } .nxt .mu .tb { font-size:13px; padding:4px 8px; }
+.nxt .mu b { font-family:Saira; font-style:italic; font-weight:800; font-size:24px; } .nxt .mu .at { color:var(--dim); font-weight:800; }
+.nxt .mu small { color:var(--dim); font-weight:700; font-size:12px; }
+.nxt .meta { color:var(--dim); font-size:13px; margin-top:6px; } .nxt .meta b { color:var(--text); }
+.nxt .cd { text-align:center; } .nxt .cd b { display:block; font-family:Saira; font-weight:800; font-size:34px; line-height:1; color:#ffd700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.nxt.live .cd b { color:#f87171; } .nxt .cd span { font-size:11px; font-weight:800; letter-spacing:.14em; color:var(--dim); }
+@media (max-width:640px) { .nxt { grid-template-columns:1fr; } .nxt .cd { text-align:left; } .nxt .mu b { font-size:19px; } }
 </style></head>
 <body>
 <div class="layout wide">
   <main class="main">
     <div class="shero" id="hero"></div>
     <div class="sps" id="sps"></div>
+    <div id="nextup"></div>
     <div class="wk" id="wk"></div>
     <div class="bar4"><select id="fSt"><option value="">All games</option><option value="in">Live</option><option value="pre">Upcoming</option><option value="post">Final</option></select><input id="fQ" placeholder="Search teams">
       <a class="btn ghost" id="stLink" style="text-decoration:none">Standings →</a></div>
@@ -67,6 +81,38 @@ $("stLink").href = "/app/standings/";
 $("ql").innerHTML = [["target", "CMMG picks", "/app/"], ["clock", "Live scores", "/app/scores/"], ["chart", "Standings", "/app/standings/"], ["star", "Schedules & teams", "/app/schedule/"],
   ["stadium", "Game Center", "/app/game/"], ["calc", "Strategy tools", "/app/tools/"]].map(([i, l, h]) => `<a href="${h}">${ICON.ui(i)}${l}</a>`).join(""); document.title = `${L} · CMMG Sports Edge`;
 try { localStorage.setItem("cmmg.stsport", L); } catch (e) {}
+
+// NEXT GAME banner: the earliest game not yet started (today, then the next days / this week), with a live countdown.
+// When games are on, it leads with how many are live. ESPN public scoreboard only.
+const fmtCd = s => { if (s <= 0) return "STARTING"; const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return d ? `${d}d ${h}h ${String(m).padStart(2, "0")}m` : `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}`; };
+const whenCT = t => new Date(t).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " CT";
+async function nextUp() {
+  const extra = L === "NCAAF" ? "&groups=80&limit=300" : L === "NCAAB" ? "&groups=50&limit=400" : "";
+  const get = async q => { try { return (await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATH}/scoreboard?${q}${extra}`)).json()).events || []; } catch (e) { return []; } };
+  let evs = await get(WEEKLY ? "" : `dates=${ctDay().replace(/-/g, "")}`);
+  const live = evs.filter(e => e.status.type.state === "in").length;
+  let pre = evs.filter(e => e.status.type.state === "pre" && Date.parse(e.date) > Date.now() - 6e5);
+  for (let i = 1; !pre.length && i <= (WEEKLY ? 2 : 7); i++) {                 // nothing left today: look ahead
+    const q = WEEKLY ? `week=${(CUR || 1) + i}&seasontype=2` : `dates=${ctDay(new Date(Date.now() + i * 864e5)).replace(/-/g, "")}`;
+    pre = (await get(q)).filter(e => e.status.type.state === "pre");
+  }
+  pre.sort((a, b) => a.date.localeCompare(b.date));
+  const e = pre[0];
+  if (!e && !live) { $("nextup").innerHTML = ""; return; }
+  if (!e) { $("nextup").innerHTML = `<div class="nxt live"><div><div class="lb">● LIVE NOW</div><div class="mu"><b>${live} ${E(L === "MLS" ? "soccer" : L)} game${live === 1 ? "" : "s"} under way</b></div><div class="meta">Scores in the list below.</div></div><div class="cd"><b>LIVE</b><span>RIGHT NOW</span></div></div>`; return; }
+  const c = e.competitions[0], cs = c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
+  const o = (c.odds || [])[0] || {}, tv = [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", ");
+  const g = { teams: cs.map(x => x.team) }, p = pickFor(g);
+  const side = x => `${badge(x.team)}<b>${E(x.team.shortDisplayName || x.team.displayName)}</b><small>${E((x.records || [{}])[0]?.summary || "")}</small>`;
+  $("nextup").innerHTML = `<div class="nxt ${live ? "live" : ""}"><div style="min-width:0"><div class="lb">${live ? `● ${live} LIVE NOW · ` : ""}NEXT ${E(L === "MLS" ? "MATCH" : "GAME")}</div>
+    <div class="mu">${side(cs[0])}<span class="at">@</span>${side(cs[1])}</div>
+    <div class="meta"><b>${whenCT(e.date)}</b>${tv ? ` · ${ICON.ui("tv")} ${E(tv)}` : ""}${c.venue?.fullName ? ` · ${E(c.venue.fullName)}` : ""}${o.details ? ` · Line <b>${E(o.details)}</b>` : ""}${o.overUnder != null ? ` · O/U <b>${E(o.overUnder)}</b>` : ""}
+      ${p ? ` · <span class="tag ${E(p.tier)}" style="font-size:11px">${TIER_ICON[p.tier] || ""} CMMG: ${E(p.bet)}</span>` : ""}</div></div>
+    <div class="cd"><b data-start="${E(e.date)}">${fmtCd(Math.round((Date.parse(e.date) - Date.now()) / 1000))}</b><span>TO KICKOFF</span></div></div>`.replace("TO KICKOFF", ({ NFL: "TO KICKOFF", NCAAF: "TO KICKOFF", MLB: "TO FIRST PITCH", NHL: "TO PUCK DROP", MLS: "TO KICKOFF" })[L] || "TO TIP-OFF");
+}
+setInterval(() => { const b = document.querySelector("#nextup [data-start]"); if (!b) return; const s = Math.round((Date.parse(b.dataset.start) - Date.now()) / 1000); b.textContent = fmtCd(s); if (s < -60) nextUp(); }, 1000);
+setInterval(nextUp, 120000);
 
 async function load() {
   $("tbl").innerHTML = `<tr><td class="game">Loading…</td></tr>`;
@@ -119,7 +165,7 @@ document.addEventListener("click", e => {
 });
 ["fSt"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
 SHELL.mount("sport");
-CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); }).catch(() => {});
-load();
+CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); nextUp(); }).catch(() => {});
+load().then(nextUp);           // after load: football needs this week's number (CUR) to look ahead
 </script>
 </body></html>

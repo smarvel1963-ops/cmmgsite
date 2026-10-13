@@ -52,7 +52,8 @@ const BOARDS = [
 ];
 const KEY = (new URLSearchParams(location.search).get("b") || "lives").toLowerCase(), B = BOARDS.find(b => b[0] === KEY) || BOARDS[0];
 document.title = `${B[1]} · CMMG Sports Edge`; $("ttl").textContent = B[2]; $("tag").textContent = B[3];
-$("tabs").innerHTML = BOARDS.map(b => `<a class="${b === B ? "on" : ""}" href="/app/board/?b=${b[0]}">${ICON.sport(b[4])}${E(b[1])}</a>`).join("");
+if (KEY === "horses") location.replace("/app/horses/");   // horses has its own race-card page now (10/12)
+$("tabs").innerHTML = BOARDS.map(b => `<a class="${b === B ? "on" : ""}" href="${b[0] === "horses" ? "/app/horses/" : "/app/board/?b=" + b[0]}">${ICON.sport(b[4])}${E(b[1])}</a>`).join("");
 const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
 const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT"; };
 const day = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" }); };

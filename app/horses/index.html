@@ -1,0 +1,163 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/horses/index.html
+     Horse Racing (Scott 10/12: "build web horses page next"): today's races with our pick in each - a NEXT POST spotlight
+     with a live countdown, track tabs, one row per race (post time CT + countdown, saddle-cloth number in the real US
+     cloth colours, horse, jockey, bet, tier, MORNING LINE odds, Capital OTB backups) and recent finishes.
+     Data = relay task "board" name "horses" (same feed + masking as /app/board/?b=horses): a locked pick never carries
+     the horse/odds; finishes show only once Verified Results are public (RESULTS_PUBLIC). Never a W-L or units total -
+     the horse record is being re-graded (place/show were counted as wins; R1). "ML" = morning line, not a price. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horse Racing · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+/* NEXT POST spotlight */
+.nextp { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; padding:18px 20px; border-radius:18px; margin-bottom:16px;
+  border:1px solid rgba(255,215,0,.45); background:radial-gradient(120% 140% at 0% 0%, rgba(255,215,0,.14), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.85)); }
+.nextp .lb { font-size:11px; font-weight:900; letter-spacing:.18em; color:#ffd700; }
+.nextp .hz { display:flex; align-items:center; gap:12px; margin-top:8px; min-width:0; }
+.nextp .hz .hn { font-family:Saira; font-style:italic; font-weight:800; font-size:26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nextp .meta { color:var(--dim); font-size:13px; margin-top:6px; } .nextp .meta b { color:var(--text); }
+.nextp .cd { text-align:center; } .nextp .cd b { display:block; font-family:Saira; font-weight:800; font-size:40px; line-height:1; color:#ffd700; text-shadow:0 0 18px rgba(255,215,0,.35); font-variant-numeric:tabular-nums; }
+.nextp .cd span { font-size:11px; font-weight:800; letter-spacing:.14em; color:var(--dim); }
+/* track tabs */
+.trk { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .trk::-webkit-scrollbar { display:none; }
+.trk button { flex:0 0 auto; background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 14px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.trk button small { color:var(--dim); font-weight:700; margin-left:6px; } .trk button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .trk button.on small { color:#334155; }
+/* a track = one card, a race = one row */
+.tsec { margin-bottom:14px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); }
+.tsec .th { display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line);
+  background:repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 2px, transparent 2px 22px); }
+.tsec .th b { font-family:Saira; font-style:italic; font-size:21px; } .tsec .th small { color:var(--dim); font-weight:800; font-size:12px; } .tsec .th .ic { width:26px; height:26px; }
+.race { display:grid; grid-template-columns:56px 104px minmax(0,1fr) auto; gap:14px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(127,216,255,.08); }
+.race:last-child { border-bottom:0; } .race.done { opacity:.92; }
+.rn { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; font-family:Saira; font-weight:800; font-size:17px;
+  background:radial-gradient(circle at 35% 30%, #2b4a78, #0b1730); border:2px solid rgba(255,215,0,.55); box-shadow:0 0 10px rgba(255,215,0,.15); }
+.rn small { display:block; font-size:9px; letter-spacing:.12em; color:#ffd700; margin-bottom:-6px; }
+.post b { display:block; font-family:Saira; font-weight:800; font-size:16px; } .post span { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
+.post span.soon { color:#ffd700; font-weight:800; } .post span.off { color:#f87171; font-weight:800; }
+.hz2 { display:flex; align-items:center; gap:10px; min-width:0; } .hz2 .hn { font-weight:800; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sub2 { font-size:13px; color:var(--dim); margin-top:4px; display:flex; flex-wrap:wrap; gap:4px 12px; align-items:center; } .sub2 b { color:var(--text); }
+.bk2 { display:inline-flex; align-items:center; gap:4px; } .bk2 .cl { width:20px; height:20px; font-size:11px; border-radius:4px; }
+.rt2 { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.ml { font-family:Saira; font-weight:800; font-size:20px; } .ml small { font-family:Inter; font-size:10px; font-weight:800; letter-spacing:.12em; color:var(--dim); margin-right:5px; }
+/* saddle cloth: number in the standard US cloth colours */
+.cl { flex:none; width:34px; height:34px; border-radius:6px; display:grid; place-items:center; font-family:Saira; font-weight:800; font-size:18px;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.25), 0 2px 6px rgba(0,0,0,.4); }
+.fin { display:inline-block; font-weight:900; font-size:12px; letter-spacing:.08em; border-radius:7px; padding:4px 9px; font-family:Saira, Inter; }
+.fin.WIN { background:#16a34a; color:#04140a; } .fin.PLACE { background:#2563eb; color:#fff; } .fin.SHOW { background:#ca8a04; color:#1f1600; } .fin.OUT { background:#475569; color:#fff; } .fin.VOID { background:#64748b; color:#fff; }
+.locked2 { color:var(--dim); font-weight:700; } .locked2 b { color:var(--text); }
+.soonbar { padding:18px 20px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; font-size:15px; } .soonbar b { color:#ffd700; }
+.mlnote { font-size:12px; color:var(--dim); margin:4px 2px 18px; }
+@media (max-width:760px) { .race { grid-template-columns:48px minmax(0,1fr) auto; } .race .post { grid-column:2; grid-row:1; } .race .who { grid-column:1 / -1; } .race .rt2 { grid-column:3; grid-row:1; }
+  .rn { width:40px; height:40px; font-size:15px; } .nextp { grid-template-columns:1fr; } .nextp .cd { text-align:left; } .nextp .hz .hn { font-size:22px; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>HORSE RACING</h1><p>TODAY'S RACES. OUR PICK IN EVERY ONE.</p></div>
+    <div id="soon"></div>
+    <div id="next"></div>
+    <div class="trk" id="tracks"></div>
+    <div id="list"><div class="empty">Loading…</div></div>
+    <p class="mlnote">ML = the track's morning line, set before betting opens. The price at post time will be different.</p>
+    <div id="hist"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+// US saddle-cloth colours by program number: [cloth, number]
+const CLOTH = { 1: ["#d71920", "#fff"], 2: ["#ffffff", "#111"], 3: ["#1d4fc4", "#fff"], 4: ["#ffd400", "#111"], 5: ["#0f8a3c", "#fff"],
+  6: ["#111111", "#ffd400"], 7: ["#ff7a00", "#111"], 8: ["#ff7fb8", "#111"], 9: ["#2ad1c9", "#111"], 10: ["#6d28d9", "#fff"],
+  11: ["#9ca3af", "#d71920"], 12: ["#9be22d", "#111"], 13: ["#7a4b2a", "#fff"], 14: ["#7f1d1d", "#ffd400"], 15: ["#c3b091", "#111"],
+  16: ["#93c5fd", "#d71920"], 17: ["#1e3a8a", "#fff"], 18: ["#14532d", "#ffd400"], 19: ["#1e40af", "#ffd400"], 20: ["#c026d3", "#ffd400"] };
+const cloth = (n, cls = "") => { const c = CLOTH[n] || ["#334155", "#fff"]; return n == null || n === "" ? "" : `<span class="cl ${cls}" style="background:${c[0]};color:${c[1]}">${E(n)}</span>`; };
+const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }); };
+const dayOf = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" }); };
+const until = t => { const s = Math.round((new Date(t) - Date.now()) / 1000); return isNaN(s) ? null : s; };
+const fmtCd = s => { if (s <= 0) return "0:00"; const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}` : `${m}:${String(x).padStart(2, "0")}`; };
+// older feed rows (before the race-card fields) - read them back out of game "Belmont Park R1" / bet "#4 Art Museum - WIN"
+const fill = p => {
+  const g = String(p.game || ""), m = g.match(/^(.*?)\s+R(\d+)$/), b = String(p.bet || "").match(/^#(\d+)\s+(.*?)(?:\s+-\s+(\w+))?$/);
+  return Object.assign({ course: p.course || (m ? m[1] : p.group || ""), race: p.race ?? (m ? Number(m[2]) : null),
+    num: p.num ?? (b ? Number(b[1]) : null), horse: p.horse || (b ? b[2] : p.bet || ""),
+    jockey: p.jockey || String(p.detail || "").replace(/^Jockey\s+/, ""), backups: p.backups || [] }, p);
+};
+// the race FINISH, never the bet result: a WIN-bet result has been booked on place/show finishes (reviewer 10/12, R1)
+const finish = p => { const f = String(p.finish || "").toUpperCase(); if (!p.result) return "";
+  return f === "WIN" || f === "PLACE" || f === "SHOW" ? f : p.result === "VOID" ? "VOID" : f ? "OUT" : ""; };
+let ROWS = [], HIST = [], PUB = false, TRACK = "";
+try { TRACK = localStorage.getItem("cmmg.horses.track") || ""; } catch (e) {}
+
+function postCell(p) {
+  const s = until(p.time), done = !!p.result;
+  const right = done ? `<span>${E(p.result === "VOID" ? "Scratched / void" : "Finished")}</span>`
+    : s == null ? "" : s > 0 ? `<span class="${s < 1800 ? "soon" : ""}" data-cd="${E(p.time)}">in ${fmtCd(s)}</span>` : `<span class="off">OFF</span>`;
+  return `<div class="post"><b>${ct(p.time)} <small style="font-size:11px;color:var(--dim)">CT</small></b>${right}</div>`;
+}
+function raceRow(p) {
+  if (p.locked) return `<div class="race"><div class="rn"><div><small>RACE</small>?</div></div>${postCell(p)}
+    <div class="who locked2">${ICON.ui("lock")} <b>Members-only pick</b> · access comes from your CMMG Discord membership</div>
+    <div class="rt2">${p.tier ? `<span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`;
+  const f = PUB ? finish(p) : "";
+  return `<div class="race ${p.result ? "done" : ""}"><div class="rn"><div><small>RACE</small>${E(p.race ?? "")}</div></div>${postCell(p)}
+    <div class="who"><div class="hz2">${cloth(p.num)}<span class="hn">${E(p.horse)}</span></div>
+      <div class="sub2">${p.jockey ? `<span>Jockey <b>${E(p.jockey)}</b></span>` : ""}<span><b>${E(p.market || "WIN")}</b> bet</span>
+        ${(p.backups || []).length ? `<span class="bk2">Backups ${p.backups.map(n => cloth(n)).join("")}</span>` : ""}</div></div>
+    <div class="rt2">${p.ml ? `<div class="ml"><small>ML</small>${E(p.ml)}</div>` : ""}${p.tier ? `<span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${f ? `<span class="fin ${f}">${f}</span>` : ""}</div></div>`;
+}
+function drawNext() {
+  const up = ROWS.filter(p => !p.result && until(p.time) > 0).sort((a, b) => String(a.time).localeCompare(String(b.time)))[0];
+  if (!up) { $("next").innerHTML = ""; return; }
+  const s = until(up.time);
+  $("next").innerHTML = `<div class="nextp"><div style="min-width:0"><div class="lb">NEXT POST${up.locked ? "" : ` · ${E(up.course).toUpperCase()} · RACE ${E(up.race ?? "")}`}</div>
+    ${up.locked ? `<div class="hz"><span class="hn">Members-only pick</span></div><div class="meta">${ICON.ui("lock")} Unlock with your CMMG Discord membership</div>`
+      : `<div class="hz">${cloth(up.num)}<span class="hn">${E(up.horse)}</span></div>
+         <div class="meta">${up.jockey ? `Jockey <b>${E(up.jockey)}</b> · ` : ""}<b>${E(up.market || "WIN")}</b> bet${up.ml ? ` · ML <b>${E(up.ml)}</b>` : ""} · post ${ct(up.time)} CT</div>`}</div>
+    <div class="cd"><b data-cd-big="${E(up.time)}">${fmtCd(s)}</b><span>TO POST</span></div></div>`;
+}
+function draw() {
+  const tracks = [...new Set(ROWS.filter(p => !p.locked).map(p => p.course))];
+  if (TRACK && !tracks.includes(TRACK)) TRACK = "";
+  $("tracks").innerHTML = tracks.length > 1 ? `<button data-trk="" class="${TRACK ? "" : "on"}">All tracks<small>${ROWS.length}</small></button>` +
+    tracks.map(t => `<button data-trk="${E(t)}" class="${TRACK === t ? "on" : ""}">${E(t)}<small>${ROWS.filter(p => p.course === t).length}</small></button>`).join("") : "";
+  drawNext();
+  const vis = ROWS.filter(p => !TRACK || p.course === TRACK || p.locked);
+  if (!vis.length) { $("list").innerHTML = `<div class="empty">No races posted yet today — tomorrow's card posts in the morning.</div>`; return; }
+  const by = []; vis.forEach(p => { const k = p.locked ? "Members-only picks" : p.course; let x = by.find(y => y.k === k); if (!x) by.push(x = { k, rows: [] }); x.rows.push(p); });
+  $("list").innerHTML = by.map(x => { const r = x.rows.sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    return `<div class="tsec"><div class="th">${ICON.sport("HORSES")}<b>${E(x.k)}</b><small>${r.length} race${r.length === 1 ? "" : "s"} · first post ${ct(r[0].time)} CT</small></div>${r.map(raceRow).join("")}</div>`; }).join("");
+}
+function drawHist() {
+  if (!PUB || !HIST.length) { $("hist").innerHTML = ""; return; }
+  const h = HIST.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
+  // finishes only, no W-L / units total: the list is capped and the horse record is being re-graded (R1)
+  $("hist").innerHTML = `<div class="box"><h3>RECENT FINISHES</h3><div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>RACE</th><th>OUR PICK</th><th>ML</th><th>FINISH</th></tr>
+    ${h.map(p => { const f = finish(p); return `<tr><td style="white-space:nowrap">${E(p.date || dayOf(p.time))}</td><td style="white-space:nowrap">${E(p.course)} R${E(p.race ?? "")}</td>
+      <td><div class="hz2" style="gap:8px">${cloth(p.num)}<b>${E(p.horse)}</b></div></td><td>${E(p.ml || "")}</td><td>${f ? `<span class="fin ${f}">${f}</span>` : ""}</td></tr>`; }).join("")}</table></div></div>`;
+}
+async function load() {
+  let j; try { j = await CMMG.relay({ task: "board", name: "horses", session: CMMG.session()?.token }); } catch (e) { j = { ok: false }; }
+  if (!j || !j.ok || !j.live) {
+    $("list").innerHTML = ""; $("soon").innerHTML = `<div class="soonbar"><b>Horse racing is coming to the site.</b> Until this board is switched on here, our race-day picks post in the CMMG Discord.${SHELL.STORE ? "" : ` <a href="${SHELL.DISCORD}" style="color:var(--ice)">Open Discord</a>`}</div>`;
+    return;
+  }
+  $("soon").innerHTML = "";
+  ROWS = (j.picks || []).map(p => p.locked ? p : fill(p)); HIST = (j.history || []).map(fill); PUB = !!j.published;
+  draw(); drawHist();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-trk]"); if (!b) return; TRACK = b.dataset.trk;
+  try { localStorage.setItem("cmmg.horses.track", TRACK); } catch (x) {} draw(); });
+// countdowns tick every second; the board itself refreshes every 2 minutes (picks + finishes)
+setInterval(() => {
+  document.querySelectorAll("[data-cd]").forEach(el => { const s = until(el.dataset.cd); if (s > 0) { el.textContent = "in " + fmtCd(s); el.classList.toggle("soon", s < 1800); } else { el.textContent = "OFF"; el.className = "off"; } });
+  const big = document.querySelector("[data-cd-big]"); if (big) { const s = until(big.dataset.cdBig); if (s > 0) big.textContent = fmtCd(s); else drawNext(); }
+}, 1000);
+setInterval(load, 120000);
+SHELL.mount("horses"); load();
+</script>
+</body></html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/f1/index.html
+     F1 race page (Scott 10/12: "build f1 and nascar pages"). Engine + data rules: js/motor.js (ESPN racing calendar
+     and results, our picks from relay board "f1", finishes behind RESULTS_PUBLIC). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F1 · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css"><link rel="stylesheet" href="/css/motor.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>:root { --acc:#ff2d2d; }</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>FORMULA 1</h1><p>RACE WEEKEND. OUR PICKS.</p></div>
+    <div id="soon"></div>
+    <div id="next"></div>
+    <div id="picks"></div>
+    <div id="last"></div>
+    <div id="cal"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script><script src="/js/motor.js"></script>
+<script>MOTOR.mount({ key: "f1", name: "F1", path: "racing/f1", round: "GRAND PRIX", flagWord: "TO LIGHTS OUT", sessions: true });</script>
+</body></html>

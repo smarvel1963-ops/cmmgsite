@@ -169,7 +169,7 @@ const SHELL = (() => {
     const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
     // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
     const BOARDCHIPS = [["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"]];
-    const BOARDHREF = { horses: "/app/horses/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
+    const BOARDHREF = { horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
     const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">

@@ -1,0 +1,37 @@
+/* SAVE AS: motor.css · LOCATION: C:/MarvelApps/cmmgsite/css/motor.css
+   F1 + NASCAR race pages (js/motor.js). --acc is set per page: F1 red, NASCAR yellow. */
+.nrace { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center; padding:18px 20px 16px; border-radius:18px; margin-bottom:16px; position:relative; overflow:hidden;
+  border:1px solid color-mix(in srgb, var(--acc) 55%, transparent);
+  background:radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--acc) 18%, transparent), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.88)); }
+.nrace::after { content:""; position:absolute; left:0; right:0; bottom:0; height:8px; opacity:.55;
+  background:repeating-conic-gradient(#e8f4ff 0 25%, #0b1220 0 50%) 0 0 / 8px 8px; }
+.nrace .lb { font-size:11px; font-weight:900; letter-spacing:.18em; color:var(--acc); }
+.nrace .rname { font-family:Saira; font-style:italic; font-weight:800; font-size:28px; line-height:1.1; margin-top:6px; }
+.nrace .meta { color:var(--dim); font-size:13px; margin-top:6px; }
+.nrace .sess { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px; }
+.nrace .sess span { display:flex; flex-direction:column; padding:7px 10px; border-radius:10px; background:rgba(10,22,40,.7); border:1px solid var(--line); font-size:12px; color:var(--dim); }
+.nrace .sess span b { color:var(--text); font-size:12px; letter-spacing:.04em; } .nrace .sess span.race { border-color:var(--acc); box-shadow:0 0 12px color-mix(in srgb, var(--acc) 35%, transparent); }
+.nrace .sess span.done { opacity:.5; }
+.nrace .cd { text-align:center; } .nrace .cd b { display:block; font-family:Saira; font-weight:800; font-size:34px; line-height:1; color:var(--acc); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.nrace .cd span { font-size:11px; font-weight:800; letter-spacing:.14em; color:var(--dim); }
+.dgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; }
+.dcard { position:relative; padding:14px; border-radius:14px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.8)); display:flex; flex-direction:column; align-items:flex-start; }
+.dcard .pos { position:absolute; top:10px; right:12px; font-family:Saira; font-weight:800; font-size:26px; color:rgba(255,255,255,.12); }
+.dcard .mk { font-size:11px; font-weight:900; letter-spacing:.14em; color:#06101f; background:var(--acc); border-radius:6px; padding:3px 8px; }
+.dcard .dn { font-family:Saira; font-style:italic; font-weight:800; font-size:20px; margin-top:10px; }
+.dcard .dm { font-size:12px; color:var(--dim); margin-top:4px; } .dcard .dm b { color:var(--text); }
+.dcard .meter { width:100%; height:8px; border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:10px; }
+.dcard .meter i { display:block; height:100%; background:linear-gradient(90deg, color-mix(in srgb, var(--acc) 55%, #fff), var(--acc)); }
+.dcard.lk .dn { font-size:16px; font-style:normal; }
+.fin { display:flex; flex-direction:column; }
+.frow { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid rgba(127,216,255,.08); } .frow:last-child { border-bottom:0; }
+.frow .fp { width:38px; font-family:Saira; font-weight:800; font-size:16px; color:var(--dim); } .frow img { border-radius:2px; }
+.frow .fd { font-weight:800; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.frow.p1 .fp { color:#ffd700; } .frow.p2 .fp { color:#cbd5e1; } .frow.p3 .fp { color:#d08b4a; }
+.frow .ours { font-size:11px; font-weight:900; letter-spacing:.08em; color:var(--acc); }
+.rb { display:inline-block; min-width:30px; text-align:center; font-weight:900; border-radius:7px; padding:4px 8px; font-family:Saira, Inter; font-size:12px; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH, .rb.VOID { background:#64748b; color:#fff; }
+.calr { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px; }
+.calr div { padding:10px 12px; border-radius:10px; background:rgba(10,22,40,.6); border:1px solid var(--line); } .calr b { display:block; font-size:14px; } .calr span { font-size:12px; color:var(--dim); }
+.soonbar { padding:18px 20px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; font-size:15px; } .soonbar b { color:#ffd700; }
+@media (max-width:640px) { .nrace { grid-template-columns:1fr; } .nrace .cd { text-align:left; } .nrace .rname { font-size:22px; } }

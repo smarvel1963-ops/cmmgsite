@@ -61,7 +61,8 @@ const ctDay = (d = new Date()) => d.toLocaleDateString("en-CA", { timeZone: "Ame
 let SEL = null, CUR = null, EVENTS = [], BYES = [], PICKS = [], NWEEKS = 18;
 $("hero").className = "shero sb-" + FAM;
 $("hero").innerHTML = `${ICON.sport(L)}<div><h1>${E(L === "MLS" ? "SOCCER" : L)}</h1><p>CMMG SPORTS EDGE · ${E(NAME.toUpperCase())} · GAMES. PICKS. STANDINGS.</p></div>`;
-$("sps").innerHTML = Object.keys(SP).map(k => `<a href="?l=${k}" class="${k === L ? "on" : ""}">${ICON.sport(k)}${k === "MLS" ? "SOCCER" : k}</a>`).join("");
+// the shell's sport row at the top already lists every sport with this one highlighted - no second row (Scott 10/12)
+$("sps").remove();
 $("stLink").href = "/app/standings/";
 $("ql").innerHTML = [["target", "CMMG picks", "/app/"], ["clock", "Live scores", "/app/scores/"], ["chart", "Standings", "/app/standings/"], ["star", "Schedules & teams", "/app/schedule/"],
   ["stadium", "Game Center", "/app/game/"], ["calc", "Strategy tools", "/app/tools/"]].map(([i, l, h]) => `<a href="${h}">${ICON.ui(i)}${l}</a>`).join(""); document.title = `${L} · CMMG Sports Edge`;

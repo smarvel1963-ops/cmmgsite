@@ -1,0 +1,138 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/tennis/index.html
+     Tennis (Scott 10/12: "build tennis page"). ESPN's public tennis scoreboards (ATP + WTA, no key) for every tournament
+     this week: OUR PICKS = today's Pro Track tennis picks (relay task "picks", same masking as Pro Track - a locked pick
+     never carries the player or price) matched to their match with the live set score; LIVE NOW = singles in progress,
+     set by set with tiebreaks; TOURNAMENTS = one card per event with today's order of play (CT day) by round, qualifying
+     hidden unless asked for. Results on our picks come from the feed's own grade, never from the score. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tennis · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+:root { --court:#00bf63; }
+.tabs3 { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.tabs3 button { background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 16px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.tabs3 button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .tabs3 label { display:flex; gap:6px; align-items:center; font-size:13px; color:var(--dim); margin-left:auto; }
+.sech { display:flex; align-items:center; gap:10px; margin:18px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
+.sech .dot { width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 10px #ef4444; animation:pulse 1.4s infinite; } .sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+/* a match = two player rows + set boxes */
+.mgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:12px; }
+.match { padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.82)); }
+.match.live { border-color:rgba(239,68,68,.5); } .match.ours { border-color:color-mix(in srgb, var(--court) 65%, transparent); box-shadow:0 0 16px color-mix(in srgb, var(--court) 18%, transparent); }
+.match .mh { display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--dim); margin-bottom:8px; text-transform:uppercase; }
+.match .mh .st { color:var(--text); } .match.live .mh .st { color:#f87171; }
+.pl { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:4px 0; }
+.pl .nm { display:flex; align-items:center; gap:8px; min-width:0; font-weight:700; } .pl .nm span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pl.w .nm { font-weight:900; } .pl.w .nm::after { content:"✓"; color:var(--court); font-weight:900; } .pl .nm img { border-radius:2px; flex:none; }
+.pl .nm .sd { font-size:11px; color:var(--dim); font-weight:700; }
+.sets { display:flex; gap:4px; } .sets b { width:26px; height:26px; display:grid; place-items:center; border-radius:6px; background:rgba(255,255,255,.05); font-family:Saira; font-size:15px; position:relative; }
+.sets b.won { background:color-mix(in srgb, var(--court) 30%, transparent); color:#fff; } .sets b sup { position:absolute; top:-3px; right:-2px; font-size:9px; color:var(--dim); }
+.pk2 { margin-top:10px; padding-top:10px; border-top:1px solid rgba(127,216,255,.1); display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; }
+.pk2 .b { font-family:Saira; font-weight:800; font-size:17px; } .pk2 .o { color:var(--dim); }
+.rb { display:inline-block; min-width:30px; text-align:center; font-weight:900; border-radius:7px; padding:4px 8px; font-family:Saira, Inter; font-size:12px; margin-left:auto; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH, .rb.VOID { background:#64748b; color:#fff; }
+.tour { margin-bottom:14px; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); }
+.tour .th { display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid var(--line); cursor:pointer;
+  background:linear-gradient(90deg, color-mix(in srgb, var(--court) 14%, transparent), transparent 60%); }
+.tour .th b { font-family:Saira; font-style:italic; font-size:20px; } .tour .th small { color:var(--dim); font-weight:700; font-size:12px; } .tour .th .ic { width:24px; height:24px; }
+.tour .th .tag2 { margin-left:auto; font-size:11px; font-weight:900; letter-spacing:.1em; padding:3px 8px; border-radius:6px; background:rgba(255,255,255,.08); }
+.tour .tbd { padding:12px 14px; } .tour.shut .tbd { display:none; }
+.rnd { font-size:12px; font-weight:900; letter-spacing:.12em; color:var(--court); margin:12px 2px 8px; } .rnd:first-child { margin-top:0; }
+.lockc { padding:14px; border-radius:14px; border:1px solid var(--line); background:rgba(10,22,40,.6); display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+@media (max-width:640px) { .mgrid { grid-template-columns:1fr; } .tabs3 label { margin-left:0; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>TENNIS</h1><p>ATP · WTA · EVERY MATCH THIS WEEK. OUR PICKS.</p></div>
+    <div class="tabs3" id="tabs"><button data-t="" class="on">All</button><button data-t="atp">ATP</button><button data-t="wta">WTA</button>
+      <label><input type="checkbox" id="qual"> Show qualifying</label></div>
+    <div id="ours"></div>
+    <div id="live"></div>
+    <div id="tours"><div class="empty">Loading…</div></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const ctDay = d => new Date(d).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }); };
+const dshort = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" }); };
+const odds = o => o == null || o === "" ? "" : Number(o) > 0 ? "+" + o : String(o);
+const last = s => String(s || "").trim().split(/\s+/).pop().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+let TOUR = "", QUAL = false, EVENTS = [], PICKS = [], OPEN = {};
+try { TOUR = localStorage.getItem("cmmg.tennis.tour") || ""; QUAL = localStorage.getItem("cmmg.tennis.q") === "1"; OPEN = JSON.parse(localStorage.getItem("cmmg.tennis.open") || "{}") || {}; } catch (e) {}
+
+// flatten every SINGLES match of every event: { tour, ev, round, c }
+function matches() {
+  const out = [];
+  EVENTS.forEach(([tour, ev]) => (ev.groupings || []).forEach(g => {
+    if (!/singles/i.test(g.grouping?.displayName || "")) return;
+    (g.competitions || []).forEach(c => out.push({ tour, ev, round: c.round?.displayName || "", c }));
+  }));
+  return out;
+}
+const isQual = m => /qualif/i.test(m.round);
+function matchCard(m, pick) {
+  const c = m.c, st = c.status?.type || {}, live = st.state === "in";
+  const ps = (c.competitors || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  const nsets = Math.max(...ps.map(p => (p.linescores || []).length), 0);
+  const row = p => { const a = p.athlete || {}, ls = p.linescores || [];
+    return `<div class="pl ${p.winner ? "w" : ""}"><div class="nm">${a.flag?.href ? `<img src="${E(a.flag.href)}" alt="" width="20" height="14" loading="lazy">` : ""}<span>${E(a.displayName || a.shortName || "TBD")}</span>${p.seed ? `<small class="sd">(${E(p.seed)})</small>` : ""}</div>
+      <div class="sets">${[...Array(nsets)].map((_, i) => { const s = ls[i]; return s ? `<b class="${s.winner ? "won" : ""}">${E(Math.round(s.value))}${s.tiebreak != null ? `<sup>${E(s.tiebreak)}</sup>` : ""}</b>` : "<b></b>"; }).join("")}</div></div>`; };
+  return `<div class="match ${live ? "live" : ""} ${pick ? "ours" : ""}"><div class="mh"><span>${E(m.ev.shortName || m.ev.name)} · ${E(m.round)}</span><span class="st">${live ? "LIVE · " : ""}${E(st.state === "pre" ? ct(c.date) + " CT" : st.shortDetail || "")}</span></div>
+    ${ps.map(row).join("")}
+    ${pick ? `<div class="pk2"><span class="tag ${E(pick.tier)}">${ICON.tier(pick.tier)} ${E(pick.tier || "")}</span><span class="b">${E(pick.bet)}</span><span class="o">${odds(pick.odds)}${pick.book ? " · " + E(pick.book) : ""}</span>${pick.result ? `<span class="rb ${E(pick.result)}">${E(pick.result)}</span>` : ""}</div>` : ""}</div>`;
+}
+// our pick -> its match: both players' last names in the pick's game text ("Francisco Cerundolo vs Jakub Mensik")
+function matchFor(p, all) {
+  const g = String(p.game || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return all.filter(m => (m.c.competitors || []).length === 2 && m.c.competitors.every(k => g.includes(last(k.athlete?.displayName))))
+    .sort((a, b) => Math.abs(new Date(a.c.date) - new Date(p.time)) - Math.abs(new Date(b.c.date) - new Date(p.time)))[0] || null;
+}
+function draw() {
+  document.querySelectorAll("#tabs [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === TOUR)); $("qual").checked = QUAL;
+  const all = matches(), vis = all.filter(m => (!TOUR || m.tour === TOUR) && (QUAL || !isQual(m)));
+  // our picks
+  const tp = PICKS.filter(p => String(p.sport).toUpperCase() === "TENNIS");
+  $("ours").innerHTML = tp.length ? `<div class="sech">OUR PICKS TODAY<small>${tp.length} pick${tp.length === 1 ? "" : "s"} · from Pro Track</small></div><div class="mgrid">${tp.map(p => {
+      if (p.locked) return `<div class="lockc">${ICON.ui("lock")} <b>Members-only tennis pick</b> <span class="game">${ct(p.time)} CT</span>${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none;margin-left:auto" href="${SHELL.UPGRADE}">Unlock</a>`}</div>`;
+      const m = matchFor(p, all); return m ? matchCard(m, p) : `<div class="match ours"><div class="mh"><span>${E(p.game)}</span><span class="st">${ct(p.time)} CT</span></div>
+        <div class="pk2" style="border:0;margin:0;padding:0"><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><span class="b">${E(p.bet)}</span><span class="o">${odds(p.odds)}</span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`; }).join("")}</div>`
+    : `<div class="sech">OUR PICKS TODAY</div><p class="game" style="margin:-4px 2px 6px">No tennis picks on Pro Track yet today.</p>`;
+  // live
+  const live = vis.filter(m => m.c.status?.type?.state === "in");
+  $("live").innerHTML = live.length ? `<div class="sech"><span class="dot"></span>LIVE NOW<small>${live.length} match${live.length === 1 ? "" : "es"}</small></div><div class="mgrid">${live.map(m => matchCard(m, null)).join("")}</div>` : "";
+  // tournaments: today's order of play by round
+  const today = ctDay(new Date());
+  const evs = EVENTS.filter(([t]) => !TOUR || t === TOUR);
+  if (!evs.length) { $("tours").innerHTML = `<div class="empty">No tournaments on the tour this week.</div>`; return; }
+  $("tours").innerHTML = `<div class="sech">TOURNAMENTS<small>${evs.length} this week · today's order of play</small></div>` + evs.map(([t, ev]) => {
+    const ms = vis.filter(m => m.ev === ev && ctDay(m.c.date) === today && m.c.status?.type?.state !== "in").sort((a, b) => String(a.c.date).localeCompare(String(b.c.date)));
+    const rounds = [...new Set(ms.map(m => m.round))], key = t + ev.id, shut = OPEN[key] === false;
+    return `<div class="tour ${shut ? "shut" : ""}"><div class="th" data-open="${E(key)}">${ICON.sport("TENNIS")}<div><b>${E(ev.name)}</b><br><small>${E([ev.venue?.fullName, dshort(ev.date) + " – " + dshort(ev.endDate)].filter(Boolean).join(" · "))}</small></div><span class="tag2">${t.toUpperCase()}</span></div>
+      <div class="tbd">${ms.length ? rounds.map(r => `<div class="rnd">${E(r).toUpperCase()}</div><div class="mgrid">${ms.filter(m => m.round === r).map(m => matchCard(m, null)).join("")}</div>`).join("")
+        : `<p class="game">No ${QUAL ? "" : "main-draw "}singles on today's schedule${QUAL ? "" : " — tick “Show qualifying” for the qualifiers"}.</p>`}</div></div>`; }).join("");
+}
+async function loadScores() {
+  const got = await Promise.all(["atp", "wta"].map(async t => { try { const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/${t}/scoreboard`)).json(); return (j.events || []).map(e => [t, e]); } catch (e) { return []; } }));
+  EVENTS = got.flat();
+}
+async function load() {
+  await loadScores();
+  try { const j = await CMMG.relay({ task: "picks", session: CMMG.session()?.token }); PICKS = j && j.ok ? j.picks || [] : []; } catch (e) { PICKS = []; }
+  draw();
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-t]"); if (t) { TOUR = t.dataset.t; try { localStorage.setItem("cmmg.tennis.tour", TOUR); } catch (x) {} draw(); return; }
+  const o = e.target.closest("[data-open]"); if (o) { const k = o.dataset.open; OPEN[k] = OPEN[k] === false; try { localStorage.setItem("cmmg.tennis.open", JSON.stringify(OPEN)); } catch (x) {} draw(); }
+});
+$("qual").addEventListener("change", e => { QUAL = e.target.checked; try { localStorage.setItem("cmmg.tennis.q", QUAL ? "1" : "0"); } catch (x) {} draw(); });
+setInterval(async () => { await loadScores(); draw(); }, 45000); setInterval(load, 180000);
+SHELL.mount("tennis"); load();
+</script>
+</body></html>

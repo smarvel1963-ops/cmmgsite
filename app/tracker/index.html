@@ -35,11 +35,14 @@
 .legend { display:flex; gap:14px; font-size:12px; color:var(--dim); margin-bottom:6px; } .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
 .hf { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; } .hf select { padding:8px; border-radius:9px; border:1px solid var(--line); background:#081325; color:var(--text); font:inherit; }
 .lock2 { text-align:center; color:var(--dim); font-size:13px; padding:18px 6px; } .lock2 b { color:#ffd700; display:block; margin-bottom:4px; }
+.autoall { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; margin-bottom:12px; border-radius:12px; border:1px solid rgba(74,222,128,.4); background:rgba(22,163,74,.08); font-size:13px; color:var(--dim); cursor:pointer; }
+.autoall b { color:var(--text); } .autoall input { margin-top:2px; width:18px; height:18px; flex:none; }
 </style></head>
 <body>
 <div class="layout wide">
   <main class="main">
     <div class="vhero"><h1>MY TRACKER</h1><h2>PERFORMANCE LAB</h2><p>YOUR PICKS. OUR PICKS. REAL RESULTS.</p></div>
+    <label class="autoall" id="autoBox" hidden><input type="checkbox" id="autoAll"> <span><b>I play every CMMG pick</b> — count every Pro Track + Free pick in my record automatically, at CMMG's odds and stake. Picks I edit keep my own numbers.</span></label>
     <div class="tabs2" id="tabs"></div>
     <div class="rng" id="rng"></div>
     <div id="body"><div class="empty">Loading…</div></div>
@@ -173,12 +176,12 @@ function draw() {
     el.innerHTML = `<div class="box"><div class="hf">${opt("sport", HF.sport, [...new Set(ROWS.map(r => r.sport).filter(Boolean))].sort(), "All sports")}${opt("tier", HF.tier, TIERS, "All tiers")}${opt("type", HF.type, ["Moneyline", "Spread", "Total", "Player Prop", "Other"], "All bet types")}</div>
       ${hr.length ? `<div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>SPORT</th><th>PICK</th><th>TIER</th><th>RESULT</th><th>UNITS</th><th></th></tr>` + hr.map(r => `<tr>
         <td style="white-space:nowrap">${E(nice(rowDay(r)))}</td><td>${ICON.sport(r.sport)}</td>
-        <td><b>${E(r.bet || "Members-only pick")}</b><div class="game">${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}${r.note ? " · " + E(r.note) : ""}</div></td>
+        <td><b>${E(r.bet || "Members-only pick")}</b>${r.auto ? ' <span class="pill" title="Counted automatically (I play every CMMG pick)">AUTO</span>' : ""}<div class="game">${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}${r.note ? " · " + E(r.note) : ""}</div></td>
         <td>${r.tier ? `<span class="tag ${E(r.tier)}" style="font-size:10px;padding:2px 6px">${ICON.tier(r.tier)} ${E(r.tier)}</span>` : ""}</td>
         <td><span class="res ${E(r.result)}">${E(r.result)}</span></td>
         <td class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}">${r.units_pl == null ? "" : sgn(r.units_pl)}</td>
         <td><button class="btn ghost" style="padding:5px 9px" data-edit="${E(r.pick)}">Edit</button></td></tr>`).join("") + `</table></div>`
-        : `<p class="game">${ROWS.length ? "No picks match." : "Nothing tracked yet. Tap “✓ I Took This Pick” on Pro Track to start."}</p>`}</div>`;
+        : `<p class="game">${ROWS.length ? "No picks match." : "Nothing tracked yet. Tap “✓ I Took This Pick” on any pick, or tick “I play every CMMG pick” above."}</p>`}</div>`;
   }
 }
 
@@ -187,11 +190,19 @@ async function load() {
   let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { j = { ok: false, error: "Couldn't reach CMMG. Try again in a minute." }; }
   if (!j.ok) { if (/sign in/.test(j.error || "")) { CMMG.signOut(); location.reload(); return; } $("body").innerHTML = `<div class="empty">${E(j.error)}</div>`; return; }
   ROWS = j.rows || [];
+  $("autoBox").hidden = false; $("autoAll").checked = !!j.auto;
   try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
   draw();
   try { CM = await CMMG.relay({ task: "results" }); } catch (e) { CM = null; }
   if (CM && CM.published) draw();
 }
+// "I play every CMMG pick" (Scott 10/12: "all cmmg bets are as i play them always i dont have to click them all")
+$("autoAll").addEventListener("change", async e => {
+  const s = CMMG.session(); if (!s) return;
+  e.target.disabled = true;
+  try { await CMMG.relay({ task: "trackall", session: s.token, on: e.target.checked }); } catch (x) {}
+  e.target.disabled = false; load();
+});
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.tab) { TAB = t.dataset.tab; draw(); }

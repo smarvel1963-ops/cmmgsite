@@ -116,7 +116,7 @@ function liveCard(p, ev) {
     <div class="sc">${cs.map(c => `<span>${E(c.team.shortDisplayName || c.team.displayName)}</span><b>${E(c.score)}</b>`).join("")}</div>
     <div class="play">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-family:Inter;font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? '<span class="pill">PAPER</span>' : ""}</div>
     <div class="why">${odds(p.odds) ? `${odds(p.odds)} ${E(p.book || "")} · ` : ""}${p.units ? `${E(p.units)}u · ` : ""}fired ${ct(p.time)} CT${p.detail ? " · " + E(p.detail) : ""}</div>
-    ${paceMeter(p, ev)}</div>`;
+    ${paceMeter(p, ev)}${SHELL.took(p)}</div>`;
 }
 function row(p) {
   if (p.locked) return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div><div><div class="pk">${ICON.ui("lock")} Members-only live play</div><div class="gm">Live plays come with an ELITE CMMG Discord membership.</div></div>
@@ -125,7 +125,7 @@ function row(p) {
   return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${live ? '<span class="livepill">LIVE</span>' : "CT"}</span></div>
     <div><div class="pk">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? ' <span class="pill">PAPER</span>' : ""}</div>
       <div class="gm">${E(p.game)}${p.detail ? " · " + E(p.detail) : ""}</div></div>
-    <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`;
+    <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
 }
 function draw() {
   const lgs = ORDER.filter(k => PICKS.some(p => p.sport === k));

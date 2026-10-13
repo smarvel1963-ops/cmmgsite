@@ -46,7 +46,7 @@
         const sc = scoreOf(p);
         return `<div class="dcard"><div class="pos">${i + 1}</div><div class="mk">${E(MKT(p.market))}</div><div class="dn">${E(driverOf(p))}</div>
           ${sc != null ? `<div class="meter" title="Model score ${E(sc)}"><i style="width:${Math.max(4, Math.min(100, sc))}%"></i></div><div class="dm">Model score <b>${E(sc)}</b></div>` : ""}
-          ${p.tier ? `<span class="tag ${E(p.tier)}" style="margin-top:8px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}</div>`; }).join("")}</div>
+          ${p.tier ? `<span class="tag ${E(p.tier)}" style="margin-top:8px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${SHELL.took(p)}</div>`; }).join("")}</div>
         <p class="game" style="margin-top:10px">Model picks for finishing position — these markets carry no price here.</p></div>`;
     }
     function drawLast() {

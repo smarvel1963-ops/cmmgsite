@@ -156,6 +156,60 @@ const SHELL = (() => {
       const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "/css/sportbg.css"; document.head.appendChild(l); }
     document.body.dataset.sport = key;
   }
+  // I TOOK THIS PICK on every pick card (Scott 10/12 "the took this pick isnt on every pic either for customer and it
+  // should be"): SHELL.took(p) renders the button; one shared dialog saves it through the relay "track" task, the same as
+  // Pro Track. Shown only for a pick the viewer can see that hasn't graded yet.
+  const TOOKS = {};
+  function took(p) {
+    if (!p || p.locked || !p.id || p.result) return "";
+    TOOKS[p.id] = p;
+    return `<button class="btn go tookbtn" data-took2="${E(p.id)}">✓ I Took This Pick</button>`;
+  }
+  let TOOKP = null;
+  function tookDialog() {
+    let d = document.getElementById("took2"); if (d) return d;
+    document.body.insertAdjacentHTML("beforeend", `<dialog id="took2" class="tookdlg"><form method="dialog" id="took2Form">
+      <h3 style="margin-top:0">I took this pick</h3><p id="took2What" style="color:var(--dim);margin:0 0 6px"></p>
+      <label>My odds (what I actually got)<input name="odds" inputmode="numeric"></label>
+      <label>My line (optional)<input name="line" maxlength="20"></label>
+      <label>Units<input name="units" inputmode="decimal" value="1" required></label>
+      <label>Sportsbook (optional)<input name="book" maxlength="30"></label>
+      <label>Note (optional)<input name="note" maxlength="200"></label>
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn go" value="save">Save to my tracker</button><button class="btn ghost" value="cancel" formnovalidate>Cancel</button></div>
+    </form></dialog><div class="toast" id="took2Toast"></div>`);
+    d = document.getElementById("took2");
+    d.addEventListener("close", async () => {
+      if (d.returnValue !== "save" || !TOOKP) return;
+      const f = document.getElementById("took2Form"), s = CMMG.session(), t = document.getElementById("took2Toast");
+      let j; try { j = await CMMG.relay({ task: "track", session: s.token, pick: TOOKP.id, odds: f.odds.value === "" ? null : Number(f.odds.value), line: f.line.value,
+        units: Number(f.units.value), book: f.book.value, note: f.note.value }); } catch (e) { j = { ok: false }; }
+      t.textContent = j.ok ? "Added to My Tracker ✓" : (j.error || "Couldn't save — try again"); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600);
+    });
+    return d;
+  }
+  function openTook(id) {
+    if (!CMMG.session()) { CMMG.signIn(); return; }
+    const p = TOOKS[id]; if (!p) return; TOOKP = p;
+    const d = tookDialog(), f = document.getElementById("took2Form");
+    document.getElementById("took2What").textContent = [p.bet, p.game].filter(Boolean).join(" · ");
+    f.odds.value = p.odds != null ? p.odds : ""; f.line.value = p.line || ""; f.units.value = p.units || 1; f.book.value = p.book || ""; f.note.value = "";
+    d.showModal();
+  }
+  // SPORT ROW SCROLL (Scott 10/12 "there isnt away to scroll across them on web like you can on app"): arrows + mouse wheel
+  function sportScroll() {
+    const row = document.querySelector("nav.sportrow"); if (!row || row.dataset.scroll) return;
+    row.dataset.scroll = "1";
+    const wrap = document.createElement("div"); wrap.className = "sportwrap"; row.parentNode.insertBefore(wrap, row); wrap.appendChild(row);
+    wrap.insertAdjacentHTML("afterbegin", `<button class="sr-arrow l" aria-label="Scroll sports left">‹</button>`);
+    wrap.insertAdjacentHTML("beforeend", `<button class="sr-arrow r" aria-label="Scroll sports right">›</button>`);
+    const upd = () => { wrap.classList.toggle("can-l", row.scrollLeft > 4); wrap.classList.toggle("can-r", row.scrollLeft + row.clientWidth < row.scrollWidth - 4); };
+    wrap.querySelector(".l").onclick = () => row.scrollBy({ left: -row.clientWidth * .7, behavior: "smooth" });
+    wrap.querySelector(".r").onclick = () => row.scrollBy({ left: row.clientWidth * .7, behavior: "smooth" });
+    row.addEventListener("wheel", e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && row.scrollWidth > row.clientWidth) { e.preventDefault(); row.scrollBy({ left: e.deltaY }); } }, { passive: false });
+    row.addEventListener("scroll", upd, { passive: true }); window.addEventListener("resize", upd);
+    const on = row.querySelector("a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+    upd();
+  }
   function mount(active) {
     if (welcomeGate()) return;
     applyTheme();
@@ -228,11 +282,13 @@ const SHELL = (() => {
     tiles(); let tq = 0; new MutationObserver(() => { if (!tq) tq = requestAnimationFrame(() => { tq = 0; tiles(); }); }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
     cine(); new MutationObserver(() => { if (document.querySelector("main .thero:not(.cine)")) cine(); }).observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
     who(); membershipBox(document.getElementById("account"));
+    sportScroll();
     bell(active);
     document.addEventListener("click", e => {
+      const tk = e.target.closest("[data-took2]"); if (tk) { e.preventDefault(); openTook(tk.dataset.took2); return; }
       const t = e.target.closest("[data-signin],[data-signout]"); if (!t) return;
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
+  return { mount, plan, membershipBox, who, took, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
 })();

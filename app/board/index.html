@@ -64,7 +64,7 @@ const card = p => p.locked
   : `<div class="box bcard ${p.result ? "r-" + E(p.result) : ""}"><div class="when"><b>${ct(p.time)}</b><span>${E(p.market || p.sport)}</span></div>
       <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.paper ? '<span class="pill" title="Tracked play, not an official bet">PAPER</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
         <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}</div>
-      <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`;
+      <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
 function groups(rows) {
   const g = []; rows.forEach(p => { const k = p.group || p.sport || ""; let x = g.find(y => y.k === k); if (!x) g.push(x = { k, rows: [] }); x.rows.push(p); });
   return g.map(x => `<div class="grp">${ICON.sport(x.rows[0].sport)}${E(x.k)}<span class="n">${x.rows.length} pick${x.rows.length === 1 ? "" : "s"}</span></div>${x.rows.map(card).join("")}`).join("");

@@ -86,7 +86,7 @@ function matchCard(m, pick) {
       <div class="sets">${[...Array(nsets)].map((_, i) => { const s = ls[i]; return s ? `<b class="${s.winner ? "won" : ""}">${E(Math.round(s.value))}${s.tiebreak != null ? `<sup>${E(s.tiebreak)}</sup>` : ""}</b>` : "<b></b>"; }).join("")}</div></div>`; };
   return `<div class="match ${live ? "live" : ""} ${pick ? "ours" : ""}"><div class="mh"><span>${E(m.ev.shortName || m.ev.name)} · ${E(m.round)}</span><span class="st">${live ? "LIVE · " : ""}${E(st.state === "pre" ? ct(c.date) + " CT" : st.shortDetail || "")}</span></div>
     ${ps.map(row).join("")}
-    ${pick ? `<div class="pk2"><span class="tag ${E(pick.tier)}">${ICON.tier(pick.tier)} ${E(pick.tier || "")}</span><span class="b">${E(pick.bet)}</span><span class="o">${odds(pick.odds)}${pick.book ? " · " + E(pick.book) : ""}</span>${pick.result ? `<span class="rb ${E(pick.result)}">${E(pick.result)}</span>` : ""}</div>` : ""}</div>`;
+    ${pick ? `<div class="pk2"><span class="tag ${E(pick.tier)}">${ICON.tier(pick.tier)} ${E(pick.tier || "")}</span><span class="b">${E(pick.bet)}</span><span class="o">${odds(pick.odds)}${pick.book ? " · " + E(pick.book) : ""}</span>${pick.result ? `<span class="rb ${E(pick.result)}">${E(pick.result)}</span>` : SHELL.took(pick)}</div>` : ""}</div>`;
 }
 // our pick -> its match: both players' last names in the pick's game text ("Francisco Cerundolo vs Jakub Mensik")
 function matchFor(p, all) {
@@ -102,7 +102,7 @@ function draw() {
   $("ours").innerHTML = tp.length ? `<div class="sech">OUR PICKS TODAY<small>${tp.length} pick${tp.length === 1 ? "" : "s"} · from Pro Track</small></div><div class="mgrid">${tp.map(p => {
       if (p.locked) return `<div class="lockc">${ICON.ui("lock")} <b>Members-only tennis pick</b> <span class="game">${ct(p.time)} CT</span>${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none;margin-left:auto" href="${SHELL.UPGRADE}">Unlock</a>`}</div>`;
       const m = matchFor(p, all); return m ? matchCard(m, p) : `<div class="match ours"><div class="mh"><span>${E(p.game)}</span><span class="st">${ct(p.time)} CT</span></div>
-        <div class="pk2" style="border:0;margin:0;padding:0"><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><span class="b">${E(p.bet)}</span><span class="o">${odds(p.odds)}</span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`; }).join("")}</div>`
+        <div class="pk2" style="border:0;margin:0;padding:0"><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><span class="b">${E(p.bet)}</span><span class="o">${odds(p.odds)}</span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`; }).join("")}</div>`
     : `<div class="sech">OUR PICKS TODAY</div><p class="game" style="margin:-4px 2px 6px">No tennis picks on Pro Track yet today.</p>`;
   // live
   const live = vis.filter(m => m.c.status?.type?.state === "in");

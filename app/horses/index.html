@@ -114,7 +114,7 @@ function raceRow(p) {
     <div class="who"><div class="hz2">${cloth(p.num)}<span class="hn">${E(p.horse)}</span></div>
       <div class="sub2">${p.jockey ? `<span>Jockey <b>${E(p.jockey)}</b></span>` : ""}<span><b>${E(betLabel(p))}</b></span>
         ${(p.backups || []).length ? `<span class="bk2">Backups ${p.backups.map(n => cloth(n)).join("")}</span>` : ""}</div></div>
-    <div class="rt2">${p.ml ? `<div class="ml"><small>ML</small>${E(p.ml)}</div>` : ""}${p.tier ? `<span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${f ? `<span class="fin ${f}">${f}</span>` : ""}</div></div>`;
+    <div class="rt2">${p.ml ? `<div class="ml"><small>ML</small>${E(p.ml)}</div>` : ""}${p.tier ? `<span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${f ? `<span class="fin ${f}">${f}</span>` : SHELL.took(p)}</div></div>`;
 }
 function drawNext() {
   const up = ROWS.filter(p => !p.result && until(p.time) > 0).sort((a, b) => String(a.time).localeCompare(String(b.time)))[0];

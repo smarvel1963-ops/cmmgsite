@@ -67,6 +67,7 @@ function doPost(e) {
       case "community": return out(community(P, session(P, req.session)));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
+      case "trackall": return out(trackAll(P, session(P, req.session), req));
       case "forget": return out(forget(P, session(P, req.session)));
       default: return out({ ok: false, error: "unknown task" });
     }
@@ -228,7 +229,7 @@ function track(P, s, req) {
   if (!/^[A-Za-z0-9_.:-]{1,80}$/.test(id)) return { ok: false, error: "bad pick" };
   // v1.1 (masterhub-reviewer 10/11): a member can only track a pick they are allowed to SEE - otherwise a free member
   // could track a locked pick's id and read its details back through My Tracker.
-  const known = feedPicksById(P)[id];
+  const known = feedPicksById(P, true)[id];
   if (!known && !req.remove) return { ok: false, error: "that pick isn't on the board" };
   if (known && !canSee(s, known.need || "pro") && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
   const num = (v, lo, hi) => { const n = Number(v); return isFinite(n) && n >= lo && n <= hi ? n : null; };
@@ -252,39 +253,65 @@ function forget(P, s) {
   try {
     const key = "T_" + s.uid, n = Number(P.getProperty(key + "#n") || 0);
     for (let i = 0; i < n; i++) P.deleteProperty(key + "#" + i);
-    P.deleteProperty(key + "#n");
+    P.deleteProperty(key + "#n"); P.deleteProperty("A_" + s.uid);
     return { ok: true, deleted: n > 0 };
   } finally { lock.releaseLock(); }
 }
 
 // The member's tracked picks with the result from the feed's graded history (their own odds decide their units).
+// "I play every CMMG pick" (Scott 10/12: "all cmmg bets are as i play them always i dont have to click them all"): a
+// per-member switch (A_<uid> = "1"). ON = My Tracker also counts every Pro Track / Free pick the member can see, at CMMG's
+// posted odds + stake and stored payout. A pick the member tracked or edited keeps the member's own numbers.
+function trackAll(P, s, req) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  if (req.on === true || req.on === false) { if (req.on) P.setProperty("A_" + s.uid, "1"); else P.deleteProperty("A_" + s.uid); }
+  return { ok: true, auto: P.getProperty("A_" + s.uid) === "1" };
+}
 function myTracker(P, s) {
   if (!s) return { ok: false, error: "sign in with Discord first" };
   const mine = getBig(P, "T_" + s.uid) || [];
-  const byId = feedPicksById(P);
+  const byId = feedPicksById(P, true), core = feedPicksById(P);
+  const auto = P.getProperty("A_" + s.uid) === "1";
+  if (auto) {                                   // every visible Pro Track / Free pick the member hasn't tracked by hand
+    const have = {}; mine.forEach(function (m) { have[m.pick] = true; });
+    Object.keys(core).forEach(function (id) {
+      const p = core[id];
+      if (have[id] || !p || !p.bet || !canSee(s, p.need || "pro")) return;
+      mine.push({ pick: id, at: p.time || p.date || "", odds: p.odds != null ? p.odds : null, units: p.units != null ? Number(p.units) : 1,
+                  book: p.book || "", note: "", auto: true, cmmgProfit: p.profit != null ? Number(p.profit) : null });
+    });
+    mine.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
+  }
   const rows = mine.map(function (m) {
     let p = byId[m.pick] || {};
     if (p.id && !canSee(s, p.need || "pro") && !p.result) p = { need: p.need, sport: p.sport, tier: p.tier };   // never leak a locked pick
     const res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
     let pl = null;
-    if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
+    if (m.auto && m.cmmgProfit != null && res) pl = m.cmmgProfit;                // AUTO row: CMMG's stored payout
+    else if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
     else if (res === "LOSS") pl = -u; else if (res === "PUSH" || res === "VOID") pl = 0;
     return { pick: m.pick, at: m.at, date: p.date || "", time: p.time || "", game: p.game || "", bet: p.bet || "",
-             sport: p.sport || "", tier: p.tier || "", myOdds: odds || null, units: u, myBook: m.book || "", note: m.note || "",
+             sport: p.sport || "", tier: p.tier || "", myOdds: odds || null, units: u, myBook: m.book || "", note: m.note || "", auto: !!m.auto,
              result: res || "PENDING", units_pl: pl == null ? null : Math.round(pl * 100) / 100 };
   });
   const done = rows.filter(function (r) { return r.result === "WIN" || r.result === "LOSS"; });
   const w = done.filter(function (r) { return r.result === "WIN"; }).length;
   const net = rows.reduce(function (a, r) { return a + (r.units_pl || 0); }, 0);
-  return { ok: true, rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
+  return { ok: true, auto: auto, rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
 }
 
 // Today's board + graded history, by id (graded history last, so a result wins over today's copy).
-function feedPicksById(P) {
+// boards = true adds every board's picks + history (Scott 10/12: "I Took This Pick ... on every pick for customer"), so a
+// Live Totals / horses / F1 / NASCAR / golf / PrizePicks / DK pick can be tracked and shows in My Tracker. "I play every
+// CMMG pick" (trackAll) stays Pro Track + Free only: boards are extra products, not the CMMG record.
+function feedPicksById(P, boards) {
   const h = getBig(P, "F_history"), t = getBig(P, "F_today"), byId = {};
-  [].concat(t && t.data && t.data.picks || [], h && h.data && h.data.picks || []).forEach(function (p) { byId[p.id] = p; });
+  let list = [].concat(t && t.data && t.data.picks || [], h && h.data && h.data.picks || []);
+  if (boards) BOARDS.forEach(function (b) { const f = getBig(P, "F_board_" + b), d = f && f.data || {};
+    list = list.concat(d.history || [], d.picks || []); });
+  list.forEach(function (p) { if (p && p.id) byId[p.id] = p; });
   return byId;
 }
 

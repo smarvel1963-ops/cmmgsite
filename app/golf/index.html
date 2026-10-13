@@ -113,7 +113,7 @@ function drawPicks() {
     return `<div class="gcard ${cls === "good" ? "cash" : ""}"><span class="mk">${E(String(p.market || "").replace(/TOP/i, "TOP "))}</span><div class="gn">${E(golferOf(p))}</div>
       ${r ? `<div class="pos"><b>${r.cut ? "CUT" : (r.tie ? "T" : "") + r.pos}</b><span>${E(r.parTxt)}${r.thru ? " · thru " + E(r.thru) : ""}</span></div>` : ""}
       ${v ? `<div class="v ${cls}">${v}</div>` : ""}<div class="o">${odds(p.odds)}${p.book ? " · " + E(p.book) : ""}${p.units ? " · " + E(p.units) + "u" : ""}${p.tier ? " · " + E(p.tier) : ""}</div>
-      ${p.result ? `<span class="rb ${E(p.result)}" style="margin-top:8px;display:inline-block">${E(p.result)}</span>` : ""}</div>`; }).join("")}</div>`;
+      ${p.result ? `<span class="rb ${E(p.result)}" style="margin-top:8px;display:inline-block">${E(p.result)}</span>` : SHELL.took(p)}</div>`; }).join("")}</div>`;
 }
 function drawCal() {
   const up = CAL.filter(c => Date.parse(c.startDate) > Date.now() && (!EV || c.label !== EV.name)).slice(0, 4);

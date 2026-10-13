@@ -146,4 +146,29 @@ check("v1.8: a part over its cap is refused and the last copy stays", tooBig.ok 
 check("v1.8: a board over 44 KB is refused", post({ task: "put", key: "wkey", part: "board_lives", data: { picks: [{ bet: "z".repeat(45000) }] } }).ok === false);
 let trackOk = true; for (let i = 0; i < 305; i++) { post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-12", picks: [{ id: "q" + i, need: "free", sport: "NFL", bet: "B" }] } }); trackOk = post({ task: "track", session: freeS, pick: "q" + i }).ok && trackOk; }
 check("v1.8: a member keeps at most 300 tracked picks", trackOk && post({ task: "mytracker", session: freeS }).rows.length === 300);
+// "I play every CMMG pick" (10/12)
+post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-13", picks: [
+  { id: "a1", need: "pro", sport: "NFL", tier: "ICE", game: "A @ B", bet: "A ML", odds: -110, units: 1, result: "WIN", profit: 0.91, date: "2026-10-13" },
+  { id: "a2", need: "elite", sport: "NBA", tier: "FIRE", game: "C @ D", bet: "OVER 220", odds: -110, units: 2, date: "2026-10-13" },
+  { id: "a3", need: "free", sport: "MLB", tier: "EDGE", game: "E @ F", bet: "F ML", odds: 120, units: 1, result: "LOSS", profit: -1, date: "2026-10-13" } ] } });
+DISCORD.roles = ["1471082166149578936"]; DISCORD.user = { id: "555", username: "vip2" };
+const vipS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+check("trackall: needs sign-in", post({ task: "trackall", on: true }).ok === false);
+check("trackall: starts OFF", post({ task: "trackall", session: vipS }).auto === false);
+check("trackall: turn ON", post({ task: "trackall", session: vipS, on: true }).auto === true);
+let mta = post({ task: "mytracker", session: vipS });
+const ar = id => mta.rows.find(r => r.pick === id);
+check("trackall ON: every visible CMMG pick is counted (pro + free)", mta.auto === true && ar("a1") && ar("a3") && ar("a1").auto, mta.rows.map(r => r.pick));
+check("trackall ON: an Elite-only pick a VIP can't see is not added", !ar("a2"));
+check("trackall ON: AUTO row uses CMMG's stored payout", ar("a1").units_pl === 0.91 && ar("a3").units_pl === -1, [ar("a1"), ar("a3")]);
+check("trackall ON: board picks are NOT auto-added (Pro Track + Free only)", !mta.rows.some(r => /^h\d|^u1/.test(r.pick)));
+check("board pick: a member can track it (Took This Pick on every pick)", post({ task: "track", session: vipS, pick: "u1", odds: 300 }).ok);
+check("board pick: shows in My Tracker with its bet", (r => r && /In the money/.test(r.bet))(post({ task: "mytracker", session: vipS }).rows.find(r => r.pick === "u1")));
+post({ task: "track", session: vipS, pick: "u1", remove: true });
+post({ task: "track", session: vipS, pick: "a1", odds: 150, units: 3 });
+mta = post({ task: "mytracker", session: vipS });
+check("trackall ON: an edited pick keeps MY numbers, not AUTO", !ar("a1").auto && ar("a1").units === 3 && ar("a1").units_pl === 4.5, ar("a1"));
+check("trackall ON: no duplicate row for an edited pick", mta.rows.filter(r => r.pick === "a1").length === 1);
+check("trackall: turn OFF -> AUTO rows gone, my own pick stays", (post({ task: "trackall", session: vipS, on: false }).auto === false)
+  && (r => !r.rows.some(x => x.auto) && r.rows.length === 1 && r.rows[0].pick === "a1")(post({ task: "mytracker", session: vipS })));
 console.log(`\n${ok} passed, ${bad} failed`);

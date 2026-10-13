@@ -79,7 +79,7 @@ async function load() {
     : `<div class="card"><div class="when"><b>${ct(p.time)}</b><span>${SPORT_ICON[p.sport] || "🎯"} ${E(p.sport)}</span>${p.tv ? `<div class="tv">${ICON.ui("tv")} ${E(p.tv)}</div>` : ""}</div>
         <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
           <div class="pick" style="margin-top:4px;font-size:16px">${E(p.bet)}</div><div class="game">${E(p.game)}</div></div>
-        <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}</div></div></div>`).join("");
+        <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}</div>${SHELL.took(p)}</div></div>`).join("");
 }
 
 function tick() {

@@ -87,7 +87,7 @@ function bout(c, i, n, pick) {
   return `<div class="bout ${isMain ? "main" : ""} ${pick ? "ours" : ""}">${fighter(fs[0] || {}, false)}
     <div class="mid"><div class="wc">${E(c.type?.abbreviation || "")}</div>${mid}${isMain ? `<span class="rd">MAIN EVENT${rounds === 5 ? " · 5 RDS" : ""}</span>` : rounds === 5 ? '<span class="rd">5 RDS</span>' : ""}</div>
     ${fighter(fs[1] || {}, true)}
-    ${pick ? `<div class="pk3"><span class="tag ${E(pick.tier)}">${ICON.tier(pick.tier)} ${E(pick.tier || "")}</span><span class="b">${E(pick.bet)}</span><span class="o">${odds(pick.odds)}${pick.book ? " · " + E(pick.book) : ""}</span>${pick.result ? `<span class="rb ${E(pick.result)}">${E(pick.result)}</span>` : ""}</div>` : ""}</div>`;
+    ${pick ? `<div class="pk3"><span class="tag ${E(pick.tier)}">${ICON.tier(pick.tier)} ${E(pick.tier || "")}</span><span class="b">${E(pick.bet)}</span><span class="o">${odds(pick.odds)}${pick.book ? " · " + E(pick.book) : ""}</span>${pick.result ? `<span class="rb ${E(pick.result)}">${E(pick.result)}</span>` : SHELL.took(pick)}</div>` : ""}</div>`;
 }
 // our pick -> its bout: both fighters' last names in the pick's game text
 function boutFor(p) {
@@ -104,7 +104,7 @@ function draw() {
   const up = PICKS.filter(p => /^(UFC|MMA)$/i.test(String(p.sport)));
   $("ours").innerHTML = up.length ? `<div class="sech">OUR PICKS<small>${up.length} · from Pro Track</small></div>` + up.map(p => {
       if (p.locked) return `<div class="lockc">${ICON.ui("lock")} <b>Members-only UFC pick</b> <span class="game">${ct(p.time)} CT</span>${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none;margin-left:auto" href="${SHELL.UPGRADE}">Unlock</a>`}</div>`;
-      const c = boutFor(p); return c ? bout(c, -1, 0, p) : `<div class="bout ours"><div class="pk3" style="border:0;padding:0"><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><span class="b">${E(p.bet)}</span><span class="o">${E(p.game)} · ${odds(p.odds)}</span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`; }).join("") : "";
+      const c = boutFor(p); return c ? bout(c, -1, 0, p) : `<div class="bout ours"><div class="pk3" style="border:0;padding:0"><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span><span class="b">${E(p.bet)}</span><span class="o">${E(p.game)} · ${odds(p.odds)}</span>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`; }).join("") : "";
   $("card").innerHTML = `<div class="sech">FIGHT CARD<small>${bouts.length} bouts · main event first</small></div>` + bouts.map((c, i) => bout(c, i, bouts.length, null)).join("");
   drawCal();
 }

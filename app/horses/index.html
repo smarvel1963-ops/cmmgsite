@@ -6,7 +6,9 @@
      Data = relay task "board" name "horses" (same feed + masking as /app/board/?b=horses): a locked pick never carries
      the horse/odds; finishes show only once Verified Results are public (RESULTS_PUBLIC). Never a W-L or units total -
      a pick is graded WIN on any money finish (1st/2nd/3rd - Scott 10/12), so the bet reads "In the money". "ML" = morning
-     line, not a price. -->
+     line, not a price.
+     Records fix (Scott 10/12 #8): recent finishes come from the FULL horse archive (not the few days with a posted
+     snapshot), and each row shows its STORED payout in units (the real money-finish payout as graded) - still no total. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Horse Racing · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -140,9 +142,10 @@ function drawHist() {
   if (!PUB || !HIST.length) { $("hist").innerHTML = ""; return; }
   const h = HIST.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
   // finishes only, no W-L / units total: the list is capped and the horse record is being re-graded (R1)
-  $("hist").innerHTML = `<div class="box"><h3>RECENT FINISHES</h3><div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>RACE</th><th>OUR PICK</th><th>ML</th><th>FINISH</th></tr>
+  const u = p => { const v = CMMG.pl(p); return v == null || !p.result || p.result === "VOID" ? "" : `<b class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${v > 0 ? "+" : ""}${v.toFixed(2)}u</b>`; };
+  $("hist").innerHTML = `<div class="box"><h3>RECENT FINISHES</h3><div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>RACE</th><th>OUR PICK</th><th>ML</th><th>FINISH</th><th>UNITS</th></tr>
     ${h.map(p => { const f = finish(p); return `<tr><td style="white-space:nowrap">${E(p.date || dayOf(p.time))}</td><td style="white-space:nowrap">${E(p.course)} R${E(p.race ?? "")}</td>
-      <td><div class="hz2" style="gap:8px">${cloth(p.num)}<b>${E(p.horse)}</b></div></td><td>${E(p.ml || "")}</td><td>${f ? `<span class="fin ${f}">${f}</span>` : ""}</td></tr>`; }).join("")}</table></div></div>`;
+      <td><div class="hz2" style="gap:8px">${cloth(p.num)}<b>${E(p.horse)}</b></div></td><td>${E(p.ml || "")}</td><td>${f ? `<span class="fin ${f}">${f}</span>` : ""}</td><td>${u(p)}</td></tr>`; }).join("")}</table></div></div>`;
 }
 async function load() {
   let j; try { j = await CMMG.relay({ task: "board", name: "horses", session: CMMG.session()?.token }); } catch (e) { j = { ok: false }; }

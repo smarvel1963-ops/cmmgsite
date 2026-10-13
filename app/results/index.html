@@ -4,7 +4,11 @@
      (record, win % WITH its breakeven, net units, ROI, streak, by tier ICE > EDGE > FIRE), results table (newest first,
      W/L/P/V badges, no confidence column), breakdown by sport, recent picks. Data = relay task "results" (graded feed
      history), which stays OFF until Scott sets RESULTS_PUBLIC=1 after the grade fixes (ACTIVE_TODO; Scott 10/11 "build
-     sites first, fix those things once we have it all ready") - until then the page shows "results go live soon". -->
+     sites first, fix those things once we have it all ready") - until then the page shows "results go live soon".
+     Records fix (Scott 10/12 "yes"): the page publishes PRO TRACK; the FREE PICK is its own record, shown beside it and
+     never added to it (the two record cards pick which one the page shows). Units = each pick's STORED profit from the
+     feed (its real graded payout - relay v1.8 passes it), never odds x units. The date-range menu offers only windows the
+     feed's history covers (from its earliest graded date); "All" names the date it starts. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Verified Results · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -37,6 +41,10 @@
 .stk { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .stk div { background:var(--panel2); border-radius:10px; padding:10px; text-align:center; } .stk b { display:block; font-family:Saira; font-size:22px; } .stk span { font-size:11px; color:var(--dim); }
 .pt { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; } @media (max-width:640px) { .pt { grid-template-columns:repeat(2,1fr); } } .pt div { background:var(--panel2); border-radius:10px; padding:8px; text-align:center; } .pt b { display:block; font-family:Saira; font-size:18px; } .pt span { font-size:11px; color:var(--dim); }
 .soonbar { padding:16px 18px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; }
+.prod { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; margin-bottom:12px; } @media (max-width:560px) { .prod { grid-template-columns:minmax(0,1fr); } }
+.prod button { text-align:left; background:rgba(10,22,40,.6); border:1px solid var(--line); color:var(--text); border-radius:12px; padding:10px 14px; font:inherit; cursor:pointer; min-width:0; }
+.prod button.on { border-color:#3b82f6; box-shadow:0 0 0 1px #3b82f6 inset; background:rgba(37,99,235,.18); }
+.prod .l { font-size:11px; letter-spacing:.12em; font-weight:800; color:var(--dim); } .prod b { display:block; font-family:Saira; font-size:20px; margin-top:2px; } .prod span { font-size:12px; color:var(--dim); }
 .soonbar b { color:#ffd700; } .muted { opacity:.45; filter:grayscale(.4); pointer-events:none; }
 </style></head>
 <body>
@@ -47,12 +55,13 @@
     <div id="body">
       <div class="filters">
         <label>Sport<select id="fSport"><option value="">All sports</option></select></label>
-        <label>Date range<select id="fRange"><option value="30">Last 30 days</option><option value="1">Today</option><option value="7">Last 7 days</option><option value="90">Last 90 days</option><option value="ytd">Year to date</option><option value="0">All available</option></select></label>
+        <label>Date range<select id="fRange"><option value="30">Last 30 days</option></select></label>
         <label>Tier<select id="fTier"><option value="">All tiers</option><option>ICE</option><option>EDGE</option><option>FIRE</option></select></label>
         <label>Result<select id="fRes"><option value="">All results</option><option value="WIN">Wins</option><option value="LOSS">Losses</option><option value="PUSH">Pushes</option><option value="VOID">Voids</option></select></label>
         <label>Search<input id="fQ" placeholder="Team, pick or sport"></label>
         <button class="btn ghost" id="clear">Clear</button>
       </div>
+      <div class="prod" id="prod"></div>
       <div class="rngb" id="rngBtns"></div>
       <div class="kp" id="kpis"></div>
       <div class="box" id="trendBox"><h3>DAILY UNITS &amp; WIN RATE</h3><div id="trend"></div></div>
@@ -75,8 +84,9 @@
           <div class="box"><h3>BREAKDOWN BY SPORT</h3><div style="overflow-x:auto"><table class="rt" id="bySport"></table></div></div>
           <div class="box"><h3>HOW THIS IS COUNTED</h3><ul class="check" style="font-size:13px;color:var(--dim)">
             <li><span>Every graded CMMG pick in the range, wins and losses, newest first.</span></li>
+            <li><span>Pro Track and the Free Pick are two separate records. They are never added together.</span></li>
             <li><span>Pregame picks only, as published. Odds and stake as posted; your price may differ.</span></li>
-            <li><span>Units at each pick's own odds and stake. Breakeven is the win % those odds need.</span></li>
+            <li><span>Units are each pick's result as graded, at its real payout. Breakeven is the win % the posted odds need.</span></li>
             <li><span>Voids and postponements are listed, not counted in the record.</span></li>
             <li><span>Past results don't promise future results.</span></li></ul></div>
         </div>
@@ -87,27 +97,51 @@
 <script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"];
-let ALL = [], VIEW = [], PAGE = 0; const PER = 15;
+let ALL = [], VIEW = [], PAGE = 0, PROD = "pro", EARLY = ""; const PER = 15;
+const PRODS = [["pro", "PRO TRACK"], ["free", "FREE PICK"]];
 const odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
-const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
+const sgn = n => n == null ? "—" : (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
 const nice = d => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ""); return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3], 12)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : ""; };
 const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
-const pl = p => { const u = Number(p.units) || 1, d = dec(p.odds); return p.result === "WIN" ? (d ? u * (d - 1) : 0) : p.result === "LOSS" ? -u : 0; };
+const pl = CMMG.pl;          // stored profit (the real graded payout) - never odds x units; null = not known
 
 function stats(rows) {
   const g = rows.filter(p => p.result === "WIN" || p.result === "LOSS"), w = g.filter(p => p.result === "WIN").length;
-  const push = rows.filter(p => p.result === "PUSH").length, net = rows.reduce((a, p) => a + pl(p), 0);
+  const push = rows.filter(p => p.result === "PUSH").length, net = CMMG.net(rows);
   const risk = rows.filter(p => p.result !== "VOID").reduce((a, p) => a + (Number(p.units) || 1), 0);
   const be = g.length ? g.reduce((a, p) => a + (dec(p.odds) ? 1 / dec(p.odds) : .5238), 0) / g.length : 0;
-  return { w, l: g.length - w, push, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: risk ? net / risk : 0 };
+  return { w, l: g.length - w, push, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: net == null ? null : risk ? net / risk : 0 };
+}
+
+// The range menu offers only what the feed's history holds (Scott 10/12 #7): a window that starts before the earliest
+// graded date would claim history the data doesn't have. Windows are N days INCLUDING today (Last 30 days = 30 days).
+const ctToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+const minus = (d, n) => new Date(new Date(d + "T12:00:00Z").getTime() - n * 864e5).toISOString().slice(0, 10);
+function rangeStart(v) { const t = ctToday(); return v === "ytd" ? t.slice(0, 4) + "-01-01" : v === "0" ? "" : minus(t, Math.max(1, Number(v) || 30) - 1); }
+function ranges() {
+  const all = [["1", "Today", "Today"], ["7", "Last 7 days", "7D"], ["30", "Last 30 days", "30D"], ["90", "Last 90 days", "90D"], ["ytd", "Year to date", "YTD"]];
+  const ok = all.filter(([v]) => !EARLY || v === "1" || rangeStart(v) >= EARLY);
+  return ok.concat([["0", EARLY ? `All (since ${nice(EARLY)})` : "All", EARLY ? `All · since ${nice(EARLY).replace(/, \d{4}/, "")}` : "All"]]);
+}
+function drawRanges() {
+  const cur = $("fRange").value, r = ranges();
+  $("fRange").innerHTML = r.map(([v, l]) => `<option value="${v}">${E(l)}</option>`).join("");
+  $("fRange").value = r.some(([v]) => v === cur) ? cur : r.some(([v]) => v === "30") ? "30" : "0";   // never a range not offered
+  $("rngBtns").innerHTML = r.map(([v, , b]) => `<button data-r="${v}">${E(b)}</button>`).join("");
+}
+function drawProd(base) {   // the two records side by side, each its own - never one total
+  $("prod").innerHTML = PRODS.map(([k, l]) => { const x = stats(base.filter(p => (p.need || "pro") === k));
+    return `<button data-prod="${k}" class="${k === PROD ? "on" : ""}"><span class="l">${l}</span><b>${x.w}-${x.l}${x.push ? "-" + x.push : ""}</b>
+      <span>${x.n ? (100 * x.wr).toFixed(1) + "% · " + (x.net == null ? "units —" : sgn(x.net) + "u") : "no graded picks in range"}</span></button>`; }).join("");
 }
 
 function apply() {
   const sp = $("fSport").value, days = Number($("fRange").value) || 0, tier = $("fTier").value, res = $("fRes").value, q = $("fQ").value.trim().toLowerCase();
-  const rv = $("fRange").value, today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-  const cut = rv === "ytd" ? today.slice(0, 4) + "-01-01" : days === 1 ? today : days ? new Date(Date.now() - days * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }) : "";
-  VIEW = ALL.filter(p => (!sp || p.sport === sp) && (!cut || p.date >= cut) && (!tier || p.tier === tier) && (!res || p.result === res)
+  const cut = rangeStart($("fRange").value);
+  const base = ALL.filter(p => (!sp || p.sport === sp) && (!cut || p.date >= cut) && (!tier || p.tier === tier) && (!res || p.result === res)
     && (!q || `${p.game} ${p.bet} ${p.sport}`.toLowerCase().includes(q)));
+  drawProd(base);
+  VIEW = base.filter(p => (p.need || "pro") === PROD);
   PAGE = 0; draw();
 }
 
@@ -122,8 +156,8 @@ function draw() {
   const tiers = TIERS.map(t => { const x = stats(VIEW.filter(p => p.tier === t)); return `<span>${ICON.tier(t)} ${t}</span><i><b style="width:${(x.wr * 100).toFixed(0)}%;background:${t === "ICE" ? "#7fd8ff" : t === "EDGE" ? "#4ade80" : "#ff7a45"}"></b></i><span>${x.n ? `${x.w}-${x.l}` : "—"}</span>`; }).join("");
   $("kpis").innerHTML = k("RECORD", `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`, "W - L - P")
     + k("WIN %", s.n ? (100 * s.wr).toFixed(1) + "%" : "—", s.n ? `breakeven ${(100 * s.be).toFixed(1)}%` : "")
-    + k("NET UNITS", s.n ? sgn(s.net) : "—", "at each pick's odds", s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
-    + k("ROI", s.n ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", "", s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "")
+    + k("NET UNITS", s.n ? sgn(s.net) : "—", s.net == null ? "a payout is missing" : "as graded, real payouts", s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
+    + k("ROI", s.n && s.roi != null ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", "", s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "")
     + k("CURRENT STREAK", streak ? `${streak} ${sr === "WIN" ? "W" : "L"}` : "—", bestStreak())
     + k("AVG ODDS", (() => { const d = VIEW.map(p => dec(p.odds)).filter(Boolean); if (!d.length) return "—"; const m = d.reduce((a, b) => a + b, 0) / d.length; return m >= 2 ? "+" + Math.round((m - 1) * 100) : String(-Math.round(100 / (m - 1))); })(), `${VIEW.length} picks`)
     + `<div class="kpi"><div class="l">BY TIER</div><div class="tierbar" style="margin-top:6px">${tiers}</div></div>`;
@@ -145,9 +179,10 @@ function draw() {
 function extras() {
   const done = VIEW.filter(p => p.result && p.result !== "VOID");
   // daily units (bars) + daily win rate (line)
-  const days = {}; done.forEach(p => { const d = days[p.date] = days[p.date] || { u: 0, w: 0, l: 0 }; d.u += pl(p); if (p.result === "WIN") d.w++; if (p.result === "LOSS") d.l++; });
-  const keys = Object.keys(days).sort();
-  if (keys.length < 2) { $("trend").innerHTML = `<p class="game" style="margin:0">The trend shows once there are two days of results.</p>`; }
+  const days = {}; done.forEach(p => { const d = days[p.date] = days[p.date] || { u: 0, w: 0, l: 0 }; d.u += pl(p) || 0; if (p.result === "WIN") d.w++; if (p.result === "LOSS") d.l++; });
+  const keys = Object.keys(days).sort(), unk = CMMG.net(done) == null;   // a missing payout: no units chart rather than a wrong one
+  if (unk) { $("trend").innerHTML = `<p class="game" style="margin:0">Units show once every graded pick in range carries its payout.</p>`; }
+  else if (keys.length < 2) { $("trend").innerHTML = `<p class="game" style="margin:0">The trend shows once there are two days of results.</p>`; }
   else {
     const W = 760, H = 200, P = 26, mx = Math.max(1, ...keys.map(k => Math.abs(days[k].u))), bw = (W - 2 * P) / keys.length;
     const Yu = v => H / 2 - v / mx * (H / 2 - P), Yr = r => H - P - r * (H - 2 * P);
@@ -165,14 +200,14 @@ function extras() {
       <text x="50" y="50" text-anchor="middle" font-family="Saira" font-weight="800" font-size="20" fill="#e8f4ff">${tot}</text><text x="50" y="62" text-anchor="middle" font-size="8" fill="#8fb0cc">PICKS</text></svg>
       <div class="lg">${parts.map(([l, v, col]) => `<span><i style="background:${col}"></i>${l} · ${v} (${(100 * v / tot).toFixed(1)}%)</span>`).join("")}</div></div>` : `<p class="game">No graded picks in range.</p>`;
   // units by tier
-  const tu = TIERS.map(t => [t, stats(VIEW.filter(p => p.tier === t)).net]), mxu = Math.max(1, ...tu.map(x => Math.abs(x[1])));
-  $("utier").innerHTML = tu.map(([t, v]) => `<div class="ub"><span>${ICON.tier(t)} ${t}</span><span class="bar3"><i style="width:${Math.abs(v) / mxu * 100}%;background:${t === "ICE" ? "#38bdf8" : t === "EDGE" ? "#22c55e" : "#ef4444"}"></i></span><b class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}" style="text-align:right">${sgn(v)}</b></div>`).join("");
+  const tu = TIERS.map(t => [t, stats(VIEW.filter(p => p.tier === t)).net]), mxu = Math.max(1, ...tu.map(x => Math.abs(x[1] || 0)));
+  $("utier").innerHTML = tu.map(([t, v]) => `<div class="ub"><span>${ICON.tier(t)} ${t}</span><span class="bar3"><i style="width:${Math.abs(v || 0) / mxu * 100}%;background:${t === "ICE" ? "#38bdf8" : t === "EDGE" ? "#22c55e" : "#ef4444"}"></i></span><b class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}" style="text-align:right">${sgn(v)}</b></div>`).join("");
   // streaks (chronological)
   const seq = VIEW.filter(p => p.result === "WIN" || p.result === "LOSS").slice().reverse();
   let lw = 0, ll = 0, cw = 0, cl = 0; seq.forEach(p => { if (p.result === "WIN") { cw++; cl = 0; } else { cl++; cw = 0; } lw = Math.max(lw, cw); ll = Math.max(ll, cl); });
   $("streaks").innerHTML = `<div class="stk"><div><b class="pos">${cw}</b><span>Current win streak</span></div><div><b>${lw}</b><span>Longest win streak</span></div><div><b class="neg">${cl}</b><span>Current loss streak</span></div><div><b>${ll}</b><span>Longest loss streak</span></div></div>`;
   // profit tracker (cumulative by day)
-  if (keys.length < 2) { $("profit").innerHTML = `<p class="game" style="margin:0">Shows once there are two days of results.</p>`; return; }
+  if (unk || keys.length < 2) { $("profit").innerHTML = `<p class="game" style="margin:0">${unk ? "Units show once every graded pick in range carries its payout." : "Shows once there are two days of results."}</p>`; return; }
   let cum = 0; const cp = keys.map(k => (cum += days[k].u));
   const W = 760, H = 170, P = 22, lo = Math.min(0, ...cp), hi = Math.max(0, ...cp), sp2 = hi - lo || 1, X = i => P + i * (W - 2 * P) / (cp.length - 1), Y = v => H - P - (v - lo) * (H - 2 * P) / sp2;
   const d = cp.map((v, i) => (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(v).toFixed(1)).join(" "), col = cum >= 0 ? "#22c55e" : "#ef4444";
@@ -208,14 +243,16 @@ async function load() {
     $("body").classList.add("muted"); ALL = []; apply(); return;
   }
   ALL = (j.picks || []).slice().sort((a, b) => String(b.date + b.time).localeCompare(String(a.date + a.time)));
+  EARLY = CMMG.earliest(CMMG.byNeed(ALL, PROD)); drawRanges();     // the shown record's own first date
   $("fSport").insertAdjacentHTML("beforeend", [...new Set(ALL.map(p => p.sport))].sort().map(s => `<option>${E(s)}</option>`).join(""));
   apply();
 }
 ["fSport", "fRange", "fTier", "fRes"].forEach(id => $(id).addEventListener("change", apply));
-$("rngBtns").innerHTML = [["1", "Today"], ["7", "7D"], ["30", "30D"], ["90", "90D"], ["ytd", "YTD"], ["0", "All"]].map(([v, l]) => `<button data-r="${v}">${l}</button>`).join("");
+drawRanges();
+$("prod").addEventListener("click", e => { const b = e.target.closest("[data-prod]"); if (b) { PROD = b.dataset.prod; EARLY = CMMG.earliest(CMMG.byNeed(ALL, PROD)); drawRanges(); apply(); } });
 $("rngBtns").addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (b) { $("fRange").value = b.dataset.r; apply(); } });
 $("fQ").addEventListener("input", apply);
-$("clear").addEventListener("click", () => { $("fSport").value = ""; $("fRange").value = "30"; $("fTier").value = ""; $("fRes").value = ""; $("fQ").value = ""; apply(); });
+$("clear").addEventListener("click", () => { $("fSport").value = ""; $("fRange").value = "30"; drawRanges(); $("fTier").value = ""; $("fRes").value = ""; $("fQ").value = ""; apply(); });
 $("prev").addEventListener("click", () => { if (PAGE > 0) { PAGE--; draw(); } });
 $("next").addEventListener("click", () => { if ((PAGE + 1) * PER < VIEW.length) { PAGE++; draw(); } });
 SHELL.mount("results"); load();

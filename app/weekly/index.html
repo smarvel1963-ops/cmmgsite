@@ -4,7 +4,10 @@
      CMMG week (record, win % with its breakeven, units, ROI, vs the week before, day-by-day bars, by sport, by tier,
      best wins + toughest losses - both shown, honest) and YOUR week (picks you tracked, at your own odds).
      CMMG numbers come from relay task "results" and stay behind the same RESULTS_PUBLIC switch as Verified Results;
-     "Your week" reads task "mytracker" (the member's own picks) and works now. No invented numbers. -->
+     "Your week" reads task "mytracker" (the member's own picks) and works now. No invented numbers.
+     Records fix (Scott 10/12 "yes"): the CMMG week is PRO TRACK; the Free Pick's week is its own record in its own box,
+     never added in. Units = each pick's STORED profit (real graded payout), never odds x units. A week that starts
+     before the feed's earliest graded date says so, and Prev stops at the first week the data holds. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Weekly Report · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -39,7 +42,9 @@
       <span class="grow"></span><span class="note">Weeks run Monday–Sunday, Central Time.</span></div>
     <div id="soon"></div>
     <div id="cmmg">
+      <div class="note" id="cover" style="margin:-4px 0 10px"></div>
       <div class="kp" id="kpis"></div>
+      <div class="box"><h3>FREE PICK THIS WEEK <span style="font-weight:500;color:var(--dim);letter-spacing:0">· its own record, not added to Pro Track</span></h3><div id="freeWk" class="note"></div></div>
       <div class="box"><h3>UNITS BY DAY</h3><div class="days" id="days"></div></div>
       <div class="g2">
         <div class="box"><h3>BY SPORT</h3><div style="overflow-x:auto"><table class="rt" id="bySport"></table></div></div>
@@ -52,8 +57,8 @@
     </div>
     <div class="box"><h3>YOUR WEEK</h3><div id="mine"><p class="note">Loading…</p></div></div>
     <div class="box"><h3>HOW THIS IS COUNTED</h3><ul class="check note">
-      <li><span>Every graded CMMG pick from Monday to Sunday (Central Time), wins and losses.</span></li>
-      <li><span>Units at each pick's own posted odds and stake. Breakeven is the win % those odds need.</span></li>
+      <li><span>Every graded Pro Track pick from Monday to Sunday (Central Time), wins and losses. The Free Pick is a separate record, shown on its own.</span></li>
+      <li><span>Units are each pick's result as graded, at its real payout. Breakeven is the win % the posted odds need.</span></li>
       <li><span>"Your week" uses the picks you tapped "I Took This Pick" on, at the odds you entered.</span></li>
       <li><span>Voids and postponements are listed, not counted in the record. Past results don't promise future results.</span></li></ul></div>
   </main>
@@ -61,45 +66,50 @@
 <script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"], DN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2), odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const sgn = n => n == null ? "—" : (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2), odds = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
 const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
-const pl = p => { const u = Number(p.units) || 1, d = dec(p.odds); return p.result === "WIN" ? (d ? u * (d - 1) : 0) : p.result === "LOSS" ? -u : 0; };
+const pl = CMMG.pl;          // stored profit (the real graded payout) - never odds x units; null = not known
 function stats(rows) {
   const g = rows.filter(p => p.result === "WIN" || p.result === "LOSS"), w = g.filter(p => p.result === "WIN").length;
-  const net = rows.reduce((a, p) => a + pl(p), 0), risk = rows.filter(p => p.result !== "VOID").reduce((a, p) => a + (Number(p.units) || 1), 0);
+  const net = CMMG.net(rows), risk = rows.filter(p => p.result !== "VOID").reduce((a, p) => a + (Number(p.units) || 1), 0);
   const be = g.length ? g.reduce((a, p) => a + (dec(p.odds) ? 1 / dec(p.odds) : .5238), 0) / g.length : 0;
-  return { w, l: g.length - w, push: rows.filter(p => p.result === "PUSH").length, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: risk ? net / risk : 0 };
+  return { w, l: g.length - w, push: rows.filter(p => p.result === "PUSH").length, n: g.length, wr: g.length ? w / g.length : 0, be, net, roi: net == null ? null : risk ? net / risk : 0 };
 }
 // week math on plain YYYY-MM-DD strings (UTC noon, so DST never shifts a day)
 const D = s => new Date(s + "T12:00:00Z"), S = d => d.toISOString().slice(0, 10), add = (s, n) => S(new Date(D(s).getTime() + n * 864e5));
 const monday = s => add(s, -((D(s).getUTCDay() + 6) % 7));
 const TODAY = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }), THIS = monday(TODAY);
-let WK = THIS, ALL = [], PUB = false, MINE = null;
+let WK = THIS, ALL = [], PUB = false, MINE = null, EARLY = "";
+const PRO = rows => CMMG.byNeed(rows, "pro"), FREE = rows => CMMG.byNeed(rows, "free");
 const inWk = (p, w) => p.date >= w && p.date <= add(w, 6);
 const fmt = s => D(s).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
-const row = p => `<div class="hl">${ICON.sport(p.sport)}<div><b>${E(p.bet)}</b> <span class="note">${odds(p.odds)}</span><div class="game">${E(p.game)} · ${fmt(p.date)}</div></div><b class="u ${pl(p) > 0 ? "pos" : "neg"}">${sgn(pl(p))}u</b></div>`;
+const row = p => `<div class="hl">${ICON.sport(p.sport)}<div><b>${E(p.bet)}</b> <span class="note">${odds(p.odds)}</span><div class="game">${E(p.game)} · ${fmt(p.date)}</div></div><b class="u ${pl(p) > 0 ? "pos" : "neg"}">${pl(p) == null ? "" : sgn(pl(p)) + "u"}</b></div>`;
 
 function draw() {
   $("wkLabel").textContent = `${fmt(WK)} – ${fmt(add(WK, 6))}${WK === THIS ? " · this week" : ""}`;
   $("next").disabled = WK >= THIS;
+  $("prev").disabled = PUB && !!EARLY && WK <= monday(EARLY);      // no week before the first one the data holds
   if (PUB) {
-    const rows = ALL.filter(p => inWk(p, WK)), s = stats(rows), lw = ALL.filter(p => inWk(p, add(WK, -7))), ls = lw.length ? stats(lw) : null;
+    const rows = PRO(ALL).filter(p => inWk(p, WK)), s = stats(rows), lw = PRO(ALL).filter(p => inWk(p, add(WK, -7))), ls = lw.length ? stats(lw) : null;
+    $("cover").textContent = EARLY && WK < EARLY ? `Results on record from ${fmt(EARLY)} — this week is counted from that day only.` : "";
+    const fr = FREE(ALL).filter(p => inWk(p, WK)), fs = stats(fr);
+    $("freeWk").innerHTML = fr.length ? `<b>${fs.w}-${fs.l}${fs.push ? "-" + fs.push : ""}</b> · ${fs.n ? (100 * fs.wr).toFixed(1) + "%" : "—"} · <b class="${fs.net > 0 ? "pos" : fs.net < 0 ? "neg" : ""}">${fs.net == null ? "units —" : sgn(fs.net) + "u"}</b> · ${fr.length} pick${fr.length === 1 ? "" : "s"}` : "No graded Free Pick this week.";
     const k = (l, n, sub, cls) => `<div class="kpi"><div class="l">${l}</div><div class="n ${cls || ""}">${n}</div><div class="s">${sub || ""}</div></div>`;
-    const dl = ls && ls.n && s.n ? s.net - ls.net : null;
+    const dl = ls && ls.n && s.n && s.net != null && ls.net != null ? s.net - ls.net : null;
     $("kpis").innerHTML = k("RECORD", `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`, ls ? `last week ${ls.w}-${ls.l}${ls.push ? "-" + ls.push : ""}` : "W - L - P")
       + k("WIN %", s.n ? (100 * s.wr).toFixed(1) + "%" : "—", s.n ? `breakeven ${(100 * s.be).toFixed(1)}%` : "")
-      + k("NET UNITS", s.n ? sgn(s.net) : "—", dl == null ? "at each pick's odds" : `<span class="${dl > 0 ? "up" : dl < 0 ? "dn" : ""}">${dl > 0 ? "▲" : dl < 0 ? "▼" : "="} ${Math.abs(dl).toFixed(2)}u</span> vs last week`, s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
-      + k("ROI", s.n ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", `${rows.length} picks`, s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "");
+      + k("NET UNITS", s.n ? sgn(s.net) : "—", dl == null ? (s.net == null && s.n ? "a payout is missing" : "as graded, real payouts") : `<span class="${dl > 0 ? "up" : dl < 0 ? "dn" : ""}">${dl > 0 ? "▲" : dl < 0 ? "▼" : "="} ${Math.abs(dl).toFixed(2)}u</span> vs last week`, s.net > 0 ? "pos" : s.net < 0 ? "neg" : "")
+      + k("ROI", s.n && s.roi != null ? (s.roi > 0 ? "+" : "") + (100 * s.roi).toFixed(1) + "%" : "—", `${rows.length} picks`, s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : "");
     const per = DN.map((d, i) => { const r = rows.filter(p => p.date === add(WK, i)); return [d, stats(r), r.length]; });
-    const mx = Math.max(1, ...per.map(([, x]) => Math.abs(x.net)));
+    const mx = Math.max(1, ...per.map(([, x]) => Math.abs(x.net || 0)));
     $("days").innerHTML = per.map(([d, x, c]) => `<div class="day"><b class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${c ? sgn(x.net) : "—"}</b>
-      <div class="col ${x.net > 0 ? "p" : x.net < 0 ? "n" : "z"}" style="height:${c ? Math.max(3, Math.abs(x.net) / mx * 120) : 3}px"></div><span>${d}</span><span style="font-weight:500">${c ? `${x.w}-${x.l}` : ""}</span></div>`).join("");
+      <div class="col ${x.net > 0 ? "p" : x.net < 0 ? "n" : "z"}" style="height:${c ? Math.max(3, Math.abs(x.net || 0) / mx * 120) : 3}px"></div><span>${d}</span><span style="font-weight:500">${c ? `${x.w}-${x.l}` : ""}</span></div>`).join("");
     const tbl = (keys, f, lab) => `<tr><th>${lab}</th><th>RECORD</th><th>WIN %</th><th>UNITS</th></tr>` + (keys.map(key => { const x = stats(rows.filter(p => f(p) === key)); return x.n || x.push ? `<tr>
       <td style="white-space:nowrap">${lab === "SPORT" ? ICON.sport(key) : ICON.tier(key)} ${E(key)}</td><td>${x.w}-${x.l}${x.push ? "-" + x.push : ""}</td><td>${x.n ? (100 * x.wr).toFixed(1) + "%" : "—"}</td>
       <td class="${x.net > 0 ? "pos" : x.net < 0 ? "neg" : ""}">${sgn(x.net)}</td></tr>` : ""; }).join("") || `<tr><td colspan="4" class="note">No graded picks this week.</td></tr>`);
     $("bySport").innerHTML = tbl([...new Set(rows.map(p => p.sport))].sort(), p => p.sport, "SPORT");
     $("byTier").innerHTML = tbl(TIERS, p => p.tier, "TIER");
-    const wins = rows.filter(p => p.result === "WIN").sort((a, b) => pl(b) - pl(a)).slice(0, 5), losses = rows.filter(p => p.result === "LOSS").sort((a, b) => pl(a) - pl(b)).slice(0, 5);
+    const wins = rows.filter(p => p.result === "WIN").sort((a, b) => (pl(b) || 0) - (pl(a) || 0)).slice(0, 5), losses = rows.filter(p => p.result === "LOSS").sort((a, b) => (pl(a) || 0) - (pl(b) || 0)).slice(0, 5);
     $("best").innerHTML = wins.map(row).join("") || `<p class="note">No wins graded this week yet.</p>`;
     $("worst").innerHTML = losses.map(row).join("") || `<p class="note">No losses graded this week.</p>`;
   }
@@ -122,13 +132,13 @@ function drawMine() {
 }
 async function load() {
   let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
-  PUB = !!(j && j.ok && j.published); ALL = PUB ? j.picks || [] : [];
+  PUB = !!(j && j.ok && j.published); ALL = PUB ? j.picks || [] : []; EARLY = CMMG.earliest(ALL);
   if (!PUB) { $("cmmg").hidden = true; $("soon").innerHTML = `<div class="soonbar"><b>The CMMG weekly report goes live with Verified Results.</b> Every graded pick of the week, wins and losses, with breakevens. Your own week below works now.</div>`; }
   const s = CMMG.session();
   if (!s) MINE = "out"; else { try { const m = await CMMG.relay({ task: "mytracker", session: s.token }); MINE = m && m.ok ? m.rows || [] : "out"; } catch (e) { MINE = "out"; } }
   draw();
 }
-$("prev").addEventListener("click", () => { WK = add(WK, -7); draw(); });
+$("prev").addEventListener("click", () => { if (!$("prev").disabled) { WK = add(WK, -7); draw(); } });
 $("next").addEventListener("click", () => { if (WK < THIS) { WK = add(WK, 7); draw(); } });
 SHELL.mount("weekly"); draw(); load();
 </script>

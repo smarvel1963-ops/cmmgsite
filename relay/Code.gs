@@ -2,7 +2,9 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.7 (v1.7: "board" - extra boards Lives/Horses/F1/NASCAR/Golf/DK/PrizePicks, empty until the PC feed
+ * CMMG SPORTS EDGE RELAY v1.8 (v1.8: "results" rows carry "profit" - each graded pick's STORED payout from MasterHub, which
+ *   the site totals instead of odds x units (Scott 10/12 records fix #2). Needs a redeploy of the live copy to take effect.)
+ * was v1.7 (v1.7: "board" - extra boards Lives/Horses/F1/NASCAR/Golf/DK/PrizePicks, empty until the PC feed
  *   sends them (each board has its own OFF switch in data/cmmg_feed_config.json). v1.6: "community" - read-only Discord channel copy, OFF until DISCORD_BOT_TOKEN + COMMUNITY_CHANNELS)
  * was v1.5 (v1.5: "results" - Verified Results, OFF until RESULTS_PUBLIC=1)
  * was v1.4 (v1.4: "forget" deletes a member's stored data - Play rule)
@@ -177,7 +179,7 @@ function results(P) {
   const h = getBig(P, "F_history"), rows = (h && h.data && h.data.picks || []).filter(function (p) { return p.result; });
   return { ok: true, published: true, at: h ? h.at : null, picks: rows.map(function (p) {
     return { id: p.id, date: p.date, time: p.time, sport: p.sport, game: p.game, bet: p.bet, market: p.market, odds: p.odds,
-             units: p.units, tier: p.tier, result: p.result, need: p.need };
+             units: p.units, tier: p.tier, result: p.result, need: p.need, profit: p.profit == null ? null : p.profit };
   }) };
 }
 

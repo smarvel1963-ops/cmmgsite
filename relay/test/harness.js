@@ -112,6 +112,11 @@ check("forget deletes my tracked picks", post({ task: "forget", session: proS })
 check("results stay unpublished until RESULTS_PUBLIC=1", post({ task: "results" }).published === false && !post({ task: "results" }).picks);
 PROPS.RESULTS_PUBLIC = "1";
 check("results publish graded picks only once switched on", (r => r.published && r.picks.every(p => p.result))(post({ task: "results" })));
+post({ task: "put", key: "wkey", part: "history", data: { picks: [ { id: "p1", sport: "NHL", game: "SEA @ WSH", bet: "OVER 6.0", odds: -125, units: 2, result: "WIN", profit: 1.5, need: "pro" },
+  { id: "f7", sport: "NFL", game: "BUF @ KC", bet: "BUF ML", odds: -145, result: "LOSS", need: "free" } ] } });
+const rp = post({ task: "results" }).picks;
+check("v1.8: results carry each pick's STORED profit (not odds x units) + need", rp[0].profit === 1.5 && rp[0].need === "pro" && rp[1].need === "free", rp);
+check("v1.8: a pick with no stored profit says null (the site shows no units for it)", rp[1].profit === null, rp[1]);
 delete PROPS.RESULTS_PUBLIC;
 check("community stays off until a bot token + channels are set", post({ task: "community" }).live === false);
 // v1.7 boards

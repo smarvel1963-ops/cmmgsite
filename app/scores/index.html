@@ -163,13 +163,14 @@ function draw() {
     : `${PICKS.length} picks today${PICKS.length ? " · members-only details" : ""}. <a href="/app/" style="color:var(--ice)">Pro Track →</a>`;
 }
 
-function perf() {   // today's graded CMMG picks the viewer can see (results already shown on the cards)
-  const g = PICKS.filter(p => p.result && !p.locked), w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length, pu = g.filter(p => p.result === "PUSH").length;
-  const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
-  const u = g.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((dec(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
-  const open = PICKS.filter(p => !p.result).length;
-  $("perf").innerHTML = g.length ? `<div class="stats"><div><b>${w}-${l}${pu ? "-" + pu : ""}</b><span>Record</span></div><div><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}">${u > 0 ? "+" : ""}${u.toFixed(2)}</b><span>Units</span></div><div><b>${open}</b><span>Still open</span></div></div>`
-    : `No graded picks yet today${open ? ` · ${open} open` : ""}.`;
+function perf() {   // today's graded PRO TRACK picks the viewer can see; the Free Pick is its own line (Scott 10/12)
+  const vis = PICKS.filter(p => p.result && !p.locked), g = CMMG.byNeed(vis, "pro");
+  const w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length, pu = g.filter(p => p.result === "PUSH").length;
+  const u = CMMG.net(g);              // stored profit (real graded payout), never odds x units; null = a payout is missing
+  const open = PICKS.filter(p => !p.result).length, fr = CMMG.byNeed(vis, "free")[0], fu = fr ? CMMG.pl(fr) : null;
+  const free = fr ? `<p class="game" style="margin:8px 0 0">Free Pick: <b>${E(fr.result)}</b>${fu != null ? ` · ${fu > 0 ? "+" : ""}${fu.toFixed(2)}u` : ""}</p>` : "";
+  $("perf").innerHTML = (g.length ? `<div class="stats"><div><b>${w}-${l}${pu ? "-" + pu : ""}</b><span>Pro Track</span></div><div><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}">${u == null ? "—" : (u > 0 ? "+" : "") + u.toFixed(2)}</b><span>Units</span></div><div><b>${open}</b><span>Still open</span></div></div>`
+    : `No graded Pro Track picks yet today${open ? ` · ${open} open` : ""}.`) + free;
 }
 function focusList() {
   const live = GAMES.filter(g => g.state === "in"), pool = live.length ? live : GAMES.filter(g => g.state === "post").slice(0, 6);

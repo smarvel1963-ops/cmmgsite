@@ -91,6 +91,8 @@ const fam = x => FAMILY[String(x || "").toUpperCase()] || "other";
 // Grades (WEB_DESIGNS #9, Scott 10/11 "thoughts on wins and losses"): a graded card turns green / red / gold / grey with a
 // big W / L / P / V badge where the button was; each sport banner gets its tally. Results only come from the feed's
 // grades (MasterHub). Locked premium picks stay locked after grading (their results are VIP receipts).
+// Records fix (Scott 10/12): today's record + units are PRO TRACK only, at each pick's STORED profit (real graded payout,
+// never odds x units); the Free Pick's result is its own line, never added in. The sport banners tally Pro Track cards.
 const RES = { WIN: ["W", "WON"], LOSS: ["L", "LOST"], PUSH: ["P", "PUSH"], VOID: ["V", "VOID"] };
 const gradeBadge = r => RES[r] ? `<div class="grade g-${r}"><span class="hex">${RES[r][0]}</span><b>${RES[r][1]}</b></div>` : "";
 const sid = x => "sec-" + String(x || "other").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -126,13 +128,12 @@ async function load() {
 
 function draw() {
   const count = t => PICKS.filter(p => p.tier === t).length;
-  const graded = PICKS.filter(p => p.result && !p.locked), gw = graded.filter(p => p.result === "WIN").length, gl = graded.filter(p => p.result === "LOSS").length;
-  const decO = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
-  const gu = graded.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((decO(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
+  const graded = CMMG.byNeed(PICKS.filter(p => p.result && !p.locked), "pro"), gw = graded.filter(p => p.result === "WIN").length, gl = graded.filter(p => p.result === "LOSS").length;
+  const gu = CMMG.net(graded);       // stored profit; null = a payout is missing -> "—", never re-priced
   document.getElementById("tiles").innerHTML = ["ICE", "EDGE", "FIRE"].map(t => `<div class="tile ${t.toLowerCase()}"><div class="l">${TIER_ICON[t]} ${t} PICKS</div><div class="n">${count(t)}</div></div>`).join("")
     + `<div class="tile"><div class="l">TOTAL PICKS</div><div class="n">${PICKS.length}</div></div>`
-    + `<div class="tile"><div class="l">TODAY'S RECORD</div><div class="n">${graded.length ? `${gw}-${gl}` : "—"}</div></div>`
-    + `<div class="tile"><div class="l">TODAY'S UNITS</div><div class="n ${gu > 0 ? "pos" : gu < 0 ? "neg" : ""}">${graded.length ? (gu > 0 ? "+" : "") + gu.toFixed(1) + "u" : "—"}</div></div>`;
+    + `<div class="tile"><div class="l">PRO TRACK TODAY</div><div class="n">${graded.length ? `${gw}-${gl}` : "—"}</div></div>`
+    + `<div class="tile"><div class="l">PRO TRACK UNITS</div><div class="n ${gu > 0 ? "pos" : gu < 0 ? "neg" : ""}">${graded.length && gu != null ? (gu > 0 ? "+" : "") + gu.toFixed(1) + "u" : "—"}</div></div>`;
   side();
   const sports = ["ALL", ...new Set(PICKS.map(p => p.sport).filter(Boolean))];
   document.getElementById("sports").innerHTML = sports.map(x => `<button class="chip ${x === SPORT ? "on" : ""}" data-sport="${E(x)}">${x === "ALL" ? "All Sports" : sp(x)}</button>`).join("");
@@ -167,7 +168,7 @@ function draw() {
   const best = g => Math.min(...g.picks.map(p => TIER_ORDER[p.tier] ?? 9)), first = g => g.picks.map(p => String(p.time)).sort()[0];
   groups.sort((a, b) => best(a) - best(b) || first(a).localeCompare(first(b)));
   const tally = ps => {
-    const n = r => ps.filter(p => !p.locked && p.result === r).length, w = n("WIN"), l = n("LOSS"), pu = n("PUSH");
+    const n = r => ps.filter(p => !p.locked && (p.need || "pro") === "pro" && p.result === r).length, w = n("WIN"), l = n("LOSS"), pu = n("PUSH");
     return w + l + pu ? `<span class="stally"><i class="tw">${w}W</i><i class="tl">${l}L</i><i class="tp">${pu}P</i></span>` : "";
   };
   el.innerHTML = groups.map(g => `<section class="sportsec" id="${sid(g.sport)}">
@@ -185,12 +186,13 @@ function donut(parts) {   // parts: [[label, value, colour]]
     <div class="lg">${parts.map(([l, v, c]) => `<span><i style="background:${c}"></i>${E(l)} · ${Math.round(v * 10) / 10} (${Math.round(v / tot * 100)}%)</span>`).join("")}</div></div>`;
 }
 function ring() {
-  const g = PICKS.filter(p => p.result && !p.locked && p.result !== "VOID"), w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length;
-  const decO = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; };
-  const u = g.reduce((a, p) => a + (p.result === "WIN" ? (Number(p.units) || 1) * ((decO(p.odds) || 2) - 1) : p.result === "LOSS" ? -(Number(p.units) || 1) : 0), 0);
+  const vis = PICKS.filter(p => p.result && !p.locked && p.result !== "VOID"), g = CMMG.byNeed(vis, "pro");
+  const w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length, u = CMMG.net(g);
+  const fr = CMMG.byNeed(vis, "free")[0], fu = fr ? CMMG.pl(fr) : null;      // the Free Pick: its own line, never added in
+  const free = fr ? `<p class="game" style="margin:8px 0 0">Free Pick: <b>${fr.result === "WIN" ? "WON" : fr.result === "LOSS" ? "LOST" : E(fr.result)}</b>${fu != null ? ` · ${fu > 0 ? "+" : ""}${fu.toFixed(2)}u` : ""}</p>` : "";
   const wr = w + l ? w / (w + l) : 0, C = 2 * Math.PI * 40;
-  document.getElementById("ring").innerHTML = w + l ? `<div class="ringw"><svg viewBox="0 0 100 100" width="104"><circle r="40" cx="50" cy="50" fill="none" stroke="#1e293b" stroke-width="10"/><circle r="40" cx="50" cy="50" fill="none" stroke="${u >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${wr * C} ${C}" transform="rotate(-90 50 50)" style="filter:drop-shadow(0 0 6px ${u >= 0 ? "#22c55e" : "#ef4444"})"/><text x="50" y="57" text-anchor="middle" font-family="Saira" font-weight="800" font-size="20" fill="#e8f4ff">${Math.round(wr * 100)}%</text></svg>
-    <div><b>${w}-${l}</b><span>today, graded</span><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}" style="font-size:20px">${u > 0 ? "+" : ""}${u.toFixed(1)}u</b></div></div>` : `<p class="game" style="margin:0">No graded picks yet today.</p>`;
+  document.getElementById("ring").innerHTML = w + l ? `<div class="ringw"><svg viewBox="0 0 100 100" width="104"><circle r="40" cx="50" cy="50" fill="none" stroke="#1e293b" stroke-width="10"/><circle r="40" cx="50" cy="50" fill="none" stroke="${u == null ? "#64748b" : u >= 0 ? "#22c55e" : "#ef4444"}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${wr * C} ${C}" transform="rotate(-90 50 50)" style="filter:drop-shadow(0 0 6px ${u == null ? "#64748b" : u >= 0 ? "#22c55e" : "#ef4444"})"/><text x="50" y="57" text-anchor="middle" font-family="Saira" font-weight="800" font-size="20" fill="#e8f4ff">${Math.round(wr * 100)}%</text></svg>
+    <div><b>${w}-${l}</b><span>Pro Track today, graded</span><b class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}" style="font-size:20px">${u == null ? "—" : (u > 0 ? "+" : "") + u.toFixed(1) + "u"}</b></div></div>${free}` : `<p class="game" style="margin:0">No graded Pro Track picks yet today.</p>${free}`;
 }
 function slip() {
   const legs = SLIP.map(id => PICKS.find(p => p.id === id)).filter(p => p && !p.locked && !p.result);

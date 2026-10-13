@@ -4,7 +4,10 @@
      History, ranges 7D / 30D / 90D / YTD / All. Overview = YOUR results beside CMMG results (CMMG side comes from the relay
      "results" task and shows "goes live soon" until RESULTS_PUBLIC=1), cumulative-units chart (yours + CMMG when
      published), win rate + units by tier (ICE > EDGE > FIRE). Bet type is read from the pick text (ML / spread / total /
-     prop). History keeps Edit / Remove. Member's own data only, graded at THEIR odds. -->
+     prop). History keeps Edit / Remove. Member's own data only, graded at THEIR odds.
+     Records fix (Scott 10/12 "yes"): the CMMG side is PRO TRACK only, at each pick's STORED profit (real graded payout,
+     never odds x units); the Free Pick shows as its own line, never added in. When the range reaches back before the
+     feed's earliest graded date the CMMG card says the date its numbers start. YOUR side is unchanged (your odds). -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Tracker · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -59,8 +62,8 @@ let ROWS = [], CM = null, TAB = "over", RNG = "30", EDIT = null, HF = { sport: "
 try { RNG = localStorage.getItem("cmmg.trkrng") || "30"; } catch (e) {}
 const ctDay = d => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 const odds = o => o == null || o === "" ? "—" : (Number(o) > 0 ? "+" + o : String(o));
-const sgn = n => (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
-const pct = n => (n > 0 ? "+" : "") + (100 * n).toFixed(1) + "%";
+const sgn = n => n == null ? "—" : (n > 0 ? "+" : "") + (Math.round(n * 100) / 100).toFixed(2);
+const pct = n => n == null ? "—" : (n > 0 ? "+" : "") + (100 * n).toFixed(1) + "%";
 const nice = d => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ""); return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3], 12)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : ""; };
 const toast = t => { const el = $("toast"); el.textContent = t; el.style.display = "block"; setTimeout(() => el.style.display = "none", 2600); };
 const rowDay = r => r.date || (r.at ? ctDay(new Date(r.at)) : "");
@@ -83,20 +86,27 @@ function inRange(d) {
   if (RNG === "ytd") return d >= today.slice(0, 4) + "-01-01" && d <= today;
   return d >= new Date(end - (Number(RNG) - 1) * 864e5).toISOString().slice(0, 10) && d <= today;
 }
-function stats(rows, plKey, oddsKey) {
+function stats(rows, plKey, oddsKey, stored) {
   const g = rows.filter(r => r.result === "WIN" || r.result === "LOSS"), w = g.filter(r => r.result === "WIN").length;
   const push = rows.filter(r => r.result === "PUSH").length;
-  const pl = r => plKey && r[plKey] != null ? Number(r[plKey]) : (r.result === "WIN" ? (Number(r.units) || 1) * ((dec(r[oddsKey]) || 1) - 1) : r.result === "LOSS" ? -(Number(r.units) || 1) : 0);
+  // stored = CMMG side: the pick's STORED profit (CMMG.pl), never re-priced; a missing payout makes the total unknown
+  const pl = stored ? r => CMMG.pl(r) : r => plKey && r[plKey] != null ? Number(r[plKey]) : (r.result === "WIN" ? (Number(r.units) || 1) * ((dec(r[oddsKey]) || 1) - 1) : r.result === "LOSS" ? -(Number(r.units) || 1) : 0);
   const done = rows.filter(r => ["WIN", "LOSS", "PUSH"].includes(r.result));
-  const net = done.reduce((a, r) => a + pl(r), 0), risk = done.reduce((a, r) => a + (Number(r.units) || 1), 0);
-  return { w, l: g.length - w, push, n: g.length, wr: g.length ? w / g.length : 0, net, roi: risk ? net / risk : 0, pl };
+  const net = stored ? CMMG.net(done) : done.reduce((a, r) => a + pl(r), 0), risk = done.reduce((a, r) => a + (Number(r.units) || 1), 0);
+  return { w, l: g.length - w, push, n: g.length, wr: g.length ? w / g.length : 0, net, roi: net == null ? null : risk ? net / risk : 0, pl };
 }
-const mineS = rows => stats(rows, "units_pl", "myOdds"), cmmgS = rows => stats(rows, null, "odds");
+const mineS = rows => stats(rows, "units_pl", "myOdds"), cmmgS = rows => stats(rows, null, "odds", true);
+// the start of the selected range ("" = all time) - the CMMG card names the date its data starts when the range
+// reaches back further than the feed's history (Scott 10/12 #7: a label never claims more history than the data holds)
+function rangeStart() {
+  if (RNG === "all") return ""; const today = todayKey();
+  return RNG === "ytd" ? today.slice(0, 4) + "-01-01" : new Date(new Date(today + "T12:00:00Z") - (Number(RNG) - 1) * 864e5).toISOString().slice(0, 10);
+}
 
 function chart(series) {
   const W = 640, H = 200, P = 26;
   const lines = series.map(x => { const g = x.rows.filter(r => ["WIN", "LOSS", "PUSH"].includes(r.result)).sort((a, b) => (rowDay(a) + (a.at || a.time || "")).localeCompare(rowDay(b) + (b.at || b.time || "")));
-    let c = 0; return { ...x, pts: [0, ...g.map(r => (c += x.s.pl(r)))] }; }).filter(x => x.pts.length > 1);
+    let c = 0; return { ...x, pts: x.s.net == null ? [] : [0, ...g.map(r => (c += x.s.pl(r) || 0))] }; }).filter(x => x.pts.length > 1);
   if (!lines.length) return `<p class="game" style="margin:6px 0 0">The chart starts after your first graded pick.</p>`;
   const all = lines.flatMap(x => x.pts), lo = Math.min(0, ...all), hi = Math.max(0, ...all), span = hi - lo || 1, n = Math.max(...lines.map(x => x.pts.length)) - 1 || 1;
   const X = i => P + i * (W - 2 * P) / n, Y = v => H - P - (v - lo) * (H - 2 * P) / span;
@@ -108,12 +118,12 @@ function chart(series) {
       <rect x="${lx - 30}" y="${Math.max(2, Y(last) - 22)}" width="60" height="18" rx="5" fill="${x.color}"/><text x="${lx}" y="${Math.max(2, Y(last) - 22) + 13}" text-anchor="middle" font-size="12" font-weight="800" fill="#04140a" font-family="Saira">${sgn(last)}</text>`; }).join("")}</svg>`;
 }
 
-function card(title, icon, cls, s, empty) {
+function card(title, icon, cls, s, empty, extra) {
   return `<div class="box rc ${cls}"><h3>${ICON.ui(icon)}${title}</h3>${empty ? empty : `
     <div class="row"><span>W-L-P</span><b>${s.w}-${s.l}-${s.push}</b></div>
     <div class="row"><span>Win rate</span><b>${s.n ? (100 * s.wr).toFixed(1) + "%" : "—"}</b></div>
     <div class="row"><span>Units</span><b class="${s.net > 0 ? "pos" : s.net < 0 ? "neg" : ""}">${s.n ? sgn(s.net) : "—"}</b></div>
-    <div class="row"><span>ROI</span><b class="${s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : ""}">${s.n ? pct(s.roi) : "—"}</b></div>`}</div>`;
+    <div class="row"><span>ROI</span><b class="${s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : ""}">${s.n ? pct(s.roi) : "—"}</b></div>`}${extra || ""}</div>`;
 }
 
 function tierBars(rows, kind) {
@@ -140,9 +150,14 @@ function draw() {
   if (!CMMG.session()) { el.innerHTML = `<div class="empty">Sign in with Discord to see your Performance Lab.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; return; }
   const rows = ROWS.filter(r => inRange(rowDay(r)));
   if (TAB === "over") {
-    const me = mineS(rows), cmRows = CM && CM.published ? (CM.picks || []).filter(p => inRange(p.date)) : null;
-    el.innerHTML = `<div class="two">${card("YOUR RESULTS", "star", "you", me)}${card("CMMG RESULTS", "shield", "cm", cmRows ? cmmgS(cmRows) : null,
-        cmRows ? "" : `<div class="lock2"><b>Goes live soon</b>CMMG's verified record appears here once Verified Results launches.</div>`)}</div>
+    const me = mineS(rows), all = CM && CM.published ? (CM.picks || []).filter(p => inRange(p.date)) : null;
+    const cmRows = all ? CMMG.byNeed(all, "pro") : null, frRows = all ? CMMG.byNeed(all, "free") : null;   // two records, never summed
+    const early = CM && CM.published ? CMMG.earliest(CM.picks || []) : "", from = rangeStart();
+    const fs = frRows ? cmmgS(frRows) : null;
+    const extra = cmRows ? `${early && (!from || from < early) ? `<p class="game" style="margin:8px 0 0">CMMG results on record from ${E(nice(early))}.</p>` : ""}
+      <p class="game" style="margin:6px 0 0">Free Pick (its own record): <b>${fs.w}-${fs.l}-${fs.push}</b> · ${fs.n && fs.net != null ? sgn(fs.net) + "u" : "—"}</p>` : "";
+    el.innerHTML = `<div class="two">${card("YOUR RESULTS", "star", "you", me)}${card("CMMG PRO TRACK", "shield", "cm", cmRows ? cmmgS(cmRows) : null,
+        cmRows ? "" : `<div class="lock2"><b>Goes live soon</b>CMMG's verified record appears here once Verified Results launches.</div>`, extra)}</div>
       <div class="box"><h3>UNITS PROFIT CHART</h3>${chart([{ name: "Your units", color: "#22c55e", rows, s: me }, ...(cmRows ? [{ name: "CMMG units", color: "#3b82f6", rows: cmRows, s: cmmgS(cmRows) }] : [])])}</div>
       <div class="two"><div class="box"><h3>WIN RATE BY TIER</h3>${tierBars(rows, "wr")}</div><div class="box"><h3>UNITS BY TIER</h3>${tierBars(rows, "units")}</div></div>`;
   } else if (TAB === "sport") {

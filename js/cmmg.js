@@ -29,5 +29,20 @@ const CMMG = (() => {
   }
   const saveSession = (token, me) => { try { localStorage.setItem(KEY, JSON.stringify({ token, me })); } catch (e) { /* private mode */ } };
   const signOut = () => { try { localStorage.removeItem(KEY); } catch (e) { /* private mode */ } };
-  return { RELAY, REDIRECT, esc, relay, signIn, session, saveSession, signOut };
+  // CMMG records (Scott 10/12, site records fix): a pick's units = its STORED profit from the feed (the real payout as
+  // MasterHub graded it), never odds x units. A graded WIN/LOSS without a stored profit has NO units (null) - a total
+  // that includes one is unknown (null, shown "—"), never re-priced. Pro Track and the Free Pick are two records:
+  // byNeed() splits them, and nothing on the site adds them together. (A member's OWN tracker rows are priced at the
+  // member's odds by the relay - that is units_pl, not this.)
+  const GRADED = { WIN: 1, LOSS: 1, PUSH: 1, VOID: 1 };
+  const pl = p => {
+    if (!p || !GRADED[p.result]) return 0;
+    const v = p.profit;
+    if (v !== null && v !== undefined && v !== "" && isFinite(Number(v))) return Number(v);
+    return p.result === "PUSH" || p.result === "VOID" ? 0 : null;
+  };
+  const net = rows => { let t = 0; for (const p of rows || []) { const v = pl(p); if (v === null) return null; t += v; } return t; };
+  const byNeed = (rows, need) => (rows || []).filter(p => (p.need || "pro") === need);
+  const earliest = rows => (rows || []).reduce((m, p) => p && /^\d{4}-\d\d-\d\d$/.test(p.date || "") && (!m || p.date < m) ? p.date : m, "");
+  return { RELAY, REDIRECT, esc, relay, signIn, session, saveSession, signOut, pl, net, byNeed, earliest };
 })();

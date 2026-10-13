@@ -6,7 +6,7 @@ const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
     ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
-              ["board", "clock", "Live Totals & Boards", "/app/board/?b=lives"],
+              ["lives", "clock", "Live Totals", "/app/lives/"], ["board", "chart", "More Boards", "/app/board/?b=golf"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
@@ -169,7 +169,7 @@ const SHELL = (() => {
     const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
     // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
     const BOARDCHIPS = [["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"]];
-    const BOARDHREF = { horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
+    const BOARDHREF = { lives: "/app/lives/", horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
     const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
     document.body.insertAdjacentHTML("afterbegin", `<header class="top">

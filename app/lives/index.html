@@ -1,0 +1,173 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/lives/index.html
+     Live Totals (Scott 10/12: "build live totals page"): the in-game totals our live engines fire - NBA / NCAAB / WNBA
+     Auto Lives and NFL / NCAAF Football Lives. ON THE CLOCK = every play whose game is live right now, matched to ESPN's
+     public scoreboard (no key): score, clock and a PACE METER (points so far + the straight-line projected total against
+     our line; quarter / half plays count that window only). League tabs, tonight's plays with results as they grade, and
+     recent results once Verified Results are public (RESULTS_PUBLIC) - never a W-L or units total (capped list).
+     Data = relay task "board" name "lives" (same feed + masking as /app/board/?b=lives): a locked play never carries its
+     game, side or line, so it gets no pace meter. Football plays are PAPER (tracked, not official bets), as on Discord. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Totals · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<style>
+.lg { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .lg::-webkit-scrollbar { display:none; }
+.lg button { flex:0 0 auto; display:flex; align-items:center; gap:7px; background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 14px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.lg button .ic { width:18px; height:18px; } .lg button small { color:var(--dim); font-weight:700; } .lg button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .lg button.on small { color:#334155; }
+.sech { display:flex; align-items:center; gap:10px; margin:18px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
+.sech .dot { width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 10px #ef4444; animation:pulse 1.4s infinite; }
+.sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+.livegrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:12px; }
+.lcard { padding:14px 16px; border-radius:16px; border:1px solid rgba(239,68,68,.45); background:radial-gradient(120% 120% at 0% 0%, rgba(239,68,68,.12), transparent 55%), linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.88)); }
+.lcard .ltop { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--dim); letter-spacing:.06em; }
+.lcard .ltop .clk { color:#f87171; } .lcard .sc { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; margin:10px 0 8px; font-weight:800; }
+.lcard .sc span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .lcard .sc b { font-family:Saira; font-size:20px; text-align:right; }
+.lcard .play { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-family:Saira; font-weight:800; font-size:20px; }
+.lcard .why { font-size:12px; color:var(--dim); margin-top:3px; }
+.pace { margin-top:24px; } .pace .bar { position:relative; height:14px; border-radius:999px; background:rgba(255,255,255,.07); overflow:visible; }
+.pace .bar .now { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:linear-gradient(90deg,#1d4ed8,#60a5fa); }
+.pace .bar .proj { position:absolute; top:-4px; bottom:-4px; width:4px; border-radius:2px; background:#ffd700; box-shadow:0 0 8px rgba(255,215,0,.7); }
+.pace .bar .ln { position:absolute; top:-7px; bottom:-7px; width:2px; background:#fff; } .pace .bar .ln::after { content:attr(data-l); position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:10px; font-weight:900; color:#fff; white-space:nowrap; }
+.pace .lbl { display:flex; justify-content:space-between; gap:8px; margin-top:8px; font-size:12px; color:var(--dim); } .pace .lbl b { color:var(--text); }
+.pace .verd { margin-top:6px; font-size:13px; font-weight:800; } .pace .verd.good { color:#4ade80; } .pace .verd.bad { color:#f87171; } .pace .verd.mid { color:#facc15; }
+.prow { display:grid; grid-template-columns:96px minmax(0,1fr) auto; gap:14px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(127,216,255,.08); }
+.prow:last-child { border-bottom:0; } .prow .t b { display:block; font-family:Saira; font-size:15px; } .prow .t span { font-size:12px; color:var(--dim); }
+.prow .pk { font-weight:800; font-size:17px; } .prow .gm { font-size:13px; color:var(--dim); margin-top:2px; } .prow .r { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+.prow .odds { font-family:Saira; font-weight:800; font-size:17px; } .prow .bk { font-size:12px; color:var(--dim); }
+.lsec { border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); margin-bottom:12px; }
+.lsec .h { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line); font-family:Saira; font-style:italic; font-weight:800; font-size:18px; } .lsec .h .ic { width:22px; height:22px; } .lsec .h small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); }
+.rb { display:inline-block; min-width:30px; text-align:center; font-weight:900; border-radius:7px; padding:4px 8px; font-family:Saira, Inter; font-size:12px; }
+.rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
+.livepill { display:inline-block; font-size:10px; font-weight:900; letter-spacing:.1em; color:#fff; background:#dc2626; border-radius:6px; padding:2px 7px; }
+.soonbar { padding:18px 20px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; font-size:15px; } .soonbar b { color:#ffd700; }
+.note2 { font-size:12px; color:var(--dim); margin:2px 2px 16px; }
+@media (max-width:640px) { .prow { grid-template-columns:minmax(0,1fr) auto; } .prow .t { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } .livegrid { grid-template-columns:1fr; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>LIVE TOTALS</h1><p>IN-GAME TOTALS. NBA · NCAAB · WNBA · FOOTBALL.</p></div>
+    <div id="soon"></div>
+    <div class="lg" id="lg"></div>
+    <div id="live"></div>
+    <div id="tonight"></div>
+    <p class="note2">The pace meter is a straight-line projection from the score and clock right now — a guide to where the game is heading, not a prediction. Football plays are tracked paper plays, as posted on Discord.</p>
+    <div id="hist"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+// ESPN path, regulation minutes, period length, periods in regulation
+const LG = { NBA: ["basketball/nba", 48, 12, 4], WNBA: ["basketball/wnba", 40, 10, 4], NCAAB: ["basketball/mens-college-basketball", 40, 20, 2],
+  NFL: ["football/nfl", 60, 15, 4], NCAAF: ["football/college-football", 60, 15, 4] };
+const ORDER = ["NBA", "NCAAB", "WNBA", "NFL", "NCAAF"];
+const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }); };
+const dayOf = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" }); };
+const odds = o => o == null || o === "" ? "" : Number(o) > 0 ? "+" + o : String(o);
+const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+let PICKS = [], HIST = [], PUB = false, DATE = "", LEAGUE = "", EVENTS = {};
+try { LEAGUE = localStorage.getItem("cmmg.lives.lg") || ""; } catch (e) {}
+
+// "Q2 UNDER 16.5" / "1H OVER 29.5" / "UNDER 221.5" -> { win: "Q2"|"1H"|"", side, line }
+const parsePlay = bet => { const m = String(bet || "").match(/^(?:(Q[1-4]|[12]H|OT)\s+)?(OVER|UNDER)\s+([\d.]+)/i);
+  return m ? { win: (m[1] || "").toUpperCase(), side: m[2].toUpperCase(), line: Number(m[3]) } : null; };
+// the ESPN event for a pick: both team names must appear in the pick's game text ("Celtics @ Knicks", "Buffalo Bills @ Los Angeles Rams")
+function eventFor(p) {
+  const evs = EVENTS[p.sport] || [], g = norm(p.game);
+  return evs.find(e => e.competitions[0].competitors.every(c => [c.team.shortDisplayName, c.team.name, c.team.displayName, c.team.location].some(n => n && g.includes(norm(n))))) || null;
+}
+function windowPoints(ev, win) {
+  const cs = ev.competitions[0].competitors, per = i => cs.reduce((a, c) => a + (Number((c.linescores || [])[i]?.value) || 0), 0);
+  if (!win) return cs.reduce((a, c) => a + (Number(c.score) || 0), 0);
+  if (win[0] === "Q") return per(Number(win[1]) - 1);
+  if (win === "1H") return per(0) + per(1);
+  if (win === "2H") return per(2) + per(3);
+  return 0;
+}
+// minutes played inside the play's window (full game / one quarter / one half), from period + clock
+function windowElapsed(lg, ev, win) {
+  const [, reg, plen, nper] = LG[lg], st = ev.status, p = st.period || 0, clk = String(st.displayClock || "0:00").split(":").map(Number);
+  const left = (clk.length === 2 ? clk[0] + clk[1] / 60 : (clk[0] || 0));
+  const inPer = Math.max(0, plen - left);
+  if (!win) return { el: Math.min(reg, (Math.min(p, nper) - 1) * plen + (p <= nper ? inPer : plen)), len: reg, ot: p > nper };
+  if (win[0] === "Q") { const q = Number(win[1]); return { el: p < q ? 0 : p > q ? plen : inPer, len: plen }; }
+  const first = win === "1H" ? 1 : 3; return { el: p < first ? 0 : p > first + 1 ? 2 * plen : (p - first) * plen + inPer, len: 2 * plen };
+}
+function paceMeter(p, ev) {
+  const pl = parsePlay(p.bet); if (!pl || !LG[p.sport]) return "";
+  const pts = windowPoints(ev, pl.win), w = windowElapsed(p.sport, ev, pl.win);
+  const proj = w.el > 0.5 ? pts * w.len / w.el : null, done = w.el >= w.len - 0.01;
+  const max = Math.max(pl.line, proj || 0, pts) * 1.15 || 1, pc = v => Math.max(0, Math.min(100, 100 * v / max));
+  let verd = "", cls = "mid";
+  if (pl.side === "OVER") { if (pts > pl.line) { verd = "Already over the line"; cls = "good"; } else if (proj != null) { const d = proj - pl.line; verd = d >= 0 ? `On pace to clear by ${d.toFixed(1)}` : `Pace ${Math.abs(d).toFixed(1)} short — needs ${(pl.line - pts + .5).toFixed(1)} more`; cls = d >= 0 ? "good" : "bad"; } }
+  else { if (pts > pl.line) { verd = "Over the line"; cls = "bad"; } else if (proj != null) { const d = pl.line - proj; verd = d >= 0 ? `On pace to stay under by ${d.toFixed(1)}` : `Pace ${Math.abs(d).toFixed(1)} over — room left ${(pl.line - pts).toFixed(1)}`; cls = d >= 0 ? "good" : "bad"; } }
+  return `<div class="pace"><div class="bar"><div class="now" style="width:${pc(pts)}%"></div>${proj != null && !done ? `<div class="proj" style="left:calc(${pc(proj)}% - 2px)" title="Projected"></div>` : ""}<div class="ln" data-l="${E(pl.line)}" style="left:${pc(pl.line)}%"></div></div>
+    <div class="lbl"><span>${pl.win ? E(pl.win) + " " : ""}points <b>${E(pts)}</b></span>${proj != null && !done ? `<span>pace <b>${proj.toFixed(1)}</b></span>` : ""}<span>line <b>${E(pl.line)}</b></span></div>
+    ${verd ? `<div class="verd ${cls}">${E(verd)}</div>` : ""}</div>`;
+}
+function liveCard(p, ev) {
+  const cs = ev.competitions[0].competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
+  return `<div class="lcard"><div class="ltop"><span>${ICON.sport(p.sport)} ${E(p.sport)}</span><span class="clk">${E(ev.status.type.shortDetail || "")}</span></div>
+    <div class="sc">${cs.map(c => `<span>${E(c.team.shortDisplayName || c.team.displayName)}</span><b>${E(c.score)}</b>`).join("")}</div>
+    <div class="play">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-family:Inter;font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? '<span class="pill">PAPER</span>' : ""}</div>
+    <div class="why">${odds(p.odds) ? `${odds(p.odds)} ${E(p.book || "")} · ` : ""}${p.units ? `${E(p.units)}u · ` : ""}fired ${ct(p.time)} CT${p.detail ? " · " + E(p.detail) : ""}</div>
+    ${paceMeter(p, ev)}</div>`;
+}
+function row(p) {
+  if (p.locked) return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div><div><div class="pk">${ICON.ui("lock")} Members-only live play</div><div class="gm">Live plays come with an ELITE CMMG Discord membership.</div></div>
+    <div class="r">${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`;
+  const ev = eventFor(p), live = !p.result && ev && ev.status.type.state === "in";
+  return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${live ? '<span class="livepill">LIVE</span>' : "CT"}</span></div>
+    <div><div class="pk">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? ' <span class="pill">PAPER</span>' : ""}</div>
+      <div class="gm">${E(p.game)}${p.detail ? " · " + E(p.detail) : ""}</div></div>
+    <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : ""}</div></div>`;
+}
+function draw() {
+  const lgs = ORDER.filter(k => PICKS.some(p => p.sport === k));
+  if (LEAGUE && !lgs.includes(LEAGUE)) LEAGUE = "";
+  $("lg").innerHTML = lgs.length > 1 ? `<button data-lg="" class="${LEAGUE ? "" : "on"}">All<small>${PICKS.length}</small></button>` +
+    lgs.map(k => `<button data-lg="${k}" class="${LEAGUE === k ? "on" : ""}">${ICON.sport(k)}${k}<small>${PICKS.filter(p => p.sport === k).length}</small></button>`).join("") : "";
+  const vis = PICKS.filter(p => !LEAGUE || p.sport === LEAGUE);
+  const live = vis.filter(p => !p.locked && !p.result).map(p => [p, eventFor(p)]).filter(([, ev]) => ev && ev.status.type.state === "in");
+  $("live").innerHTML = live.length ? `<div class="sech"><span class="dot"></span>ON THE CLOCK NOW<small>${live.length} live play${live.length === 1 ? "" : "s"}</small></div><div class="livegrid">${live.map(([p, ev]) => liveCard(p, ev)).join("")}</div>` : "";
+  if (!vis.length) { $("tonight").innerHTML = `<div class="empty">No live plays yet${DATE ? " for " + E(dayOf(DATE + "T17:00:00Z")) : ""}. Our engines fire once games are under way — this page updates on its own.</div>`; return; }
+  const by = ORDER.map(k => [k, vis.filter(p => p.sport === k).sort((a, b) => String(a.time).localeCompare(String(b.time)))]).filter(([, r]) => r.length);
+  const other = vis.filter(p => !ORDER.includes(p.sport)); if (other.length) by.push(["Members-only", other]);
+  $("tonight").innerHTML = `<div class="sech">TONIGHT'S PLAYS<small>${vis.length} play${vis.length === 1 ? "" : "s"}</small></div>` +
+    by.map(([k, r]) => `<div class="lsec"><div class="h">${ORDER.includes(k) ? ICON.sport(k) : ""}${E(k)}<small>${r.length}</small></div>${r.map(row).join("")}</div>`).join("");
+}
+function drawHist() {
+  if (!PUB || !HIST.length) { $("hist").innerHTML = ""; return; }
+  const h = HIST.filter(p => !LEAGUE || p.sport === LEAGUE).sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
+  // no W-L / units total: the list is capped, so a sum would not be the record (reviewer 10/11)
+  $("hist").innerHTML = h.length ? `<div class="box"><h3>RECENT RESULTS</h3><div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>LEAGUE</th><th>PLAY</th><th>ODDS</th><th>RESULT</th></tr>
+    ${h.map(p => `<tr><td style="white-space:nowrap">${E(p.date || dayOf(p.time))}</td><td>${E(p.sport)}</td><td><b>${E(p.bet)}</b>${p.paper ? ' <span class="pill">PAPER</span>' : ""}<div class="game">${E(p.game || "")}</div></td><td>${odds(p.odds)}</td><td><span class="rb ${E(p.result)}">${E(p.result)}</span></td></tr>`).join("")}</table></div></div>` : "";
+}
+async function scores() {
+  const need = [...new Set(PICKS.filter(p => !p.locked && LG[p.sport]).map(p => p.sport))], key = (DATE || "").replace(/-/g, "");
+  await Promise.all(need.map(async k => {
+    const extra = k === "NCAAF" ? "&groups=80&limit=300" : k === "NCAAB" ? "&groups=50&limit=400" : "";
+    try { const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${LG[k][0]}/scoreboard${key ? `?dates=${key}${extra}` : extra.replace("&", "?")}`)).json(); EVENTS[k] = j.events || []; } catch (e) {}
+  }));
+}
+async function load() {
+  let j; try { j = await CMMG.relay({ task: "board", name: "lives", session: CMMG.session()?.token }); } catch (e) { j = null; }
+  if (!j || !j.ok || !j.live) {
+    $("soon").innerHTML = `<div class="soonbar"><b>Live totals are coming to the site.</b> Until this board is switched on here, our live plays post in the CMMG Discord.${SHELL.STORE ? "" : ` <a href="${SHELL.DISCORD}" style="color:var(--ice)">Open Discord</a>`}</div>`;
+    $("tonight").innerHTML = ""; return;
+  }
+  $("soon").innerHTML = ""; PICKS = j.picks || []; HIST = j.history || []; PUB = !!j.published; DATE = j.date || "";
+  await scores(); draw(); drawHist();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-lg]"); if (!b) return; LEAGUE = b.dataset.lg;
+  try { localStorage.setItem("cmmg.lives.lg", LEAGUE); } catch (x) {} draw(); drawHist(); });
+// plays every 60 s (the feed), scores + pace every 30 s
+setInterval(load, 60000); setInterval(async () => { if (PICKS.length) { await scores(); draw(); } }, 30000);
+SHELL.mount("lives"); load();
+</script>
+</body></html>

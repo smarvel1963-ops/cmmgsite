@@ -4,7 +4,13 @@
      surface - no league logo, no player art), tabs Games / Standings / Teams links, week tabs for NFL + NCAAF (ESPN
      ?week=N&seasontype=2), day tabs for other sports, filter + search, and each game with time (CT), TV, spread /
      moneyline / total WHEN ESPN posts them (shown as listed info, no "bet now"), and the CMMG pick tag on today's board.
-     Teams = abbreviation badges. Rows open My Game Center. -->
+     Teams = abbreviation badges. Rows open My Game Center.
+     10/17 (Scott: "on main sports pages make look simular to pro track at top the cmmg picks and a bar then scheduled
+     games by that sport"): the page now OPENS with today's CMMG picks for this sport as Pro Track cards (same markup and
+     shared css: tier tag, pick, matchup, odds/book, I Took This Pick, FINAL + W/L badge, locked cards stay locked with
+     Unlock), under a Pro-Track-style sport banner with the day's W-L-P tally - then a SCHEDULE bar - then the games.
+     Same stale-board rule as Pro Track (yesterday's board only until 10 AM CT). The old "top picks" side box is gone ON THOSE SPORTS. Rolled out per sport
+     (PT_TOP): NFL first; the others keep the old layout until Scott OKs NFL and names them. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sport Hub · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -25,6 +31,11 @@
 .gt td, .gt th { padding:9px 8px; font-size:13px; white-space:nowrap; } .gt tr[data-go] { cursor:pointer; } .gt tr[data-go]:hover td { background:rgba(127,216,255,.05); }
 .gt .mu2 { display:flex; flex-direction:column; gap:4px; } .gt .mu2 span { display:flex; align-items:center; gap:6px; }
 .ln { display:inline-block; min-width:70px; text-align:center; border:1px solid var(--line); border-radius:7px; padding:3px 6px; background:rgba(5,12,24,.6); font-weight:700; }
+/* 10/17 Pro-Track-style top: picks first, then the schedule bar */
+.schbar { display:flex; align-items:center; gap:10px; margin:18px 0 12px; padding:12px 16px; border-radius:14px; border:1px solid var(--line);
+  background:linear-gradient(90deg, rgba(37,99,235,.35), rgba(8,17,32,.6) 70%); font-family:Saira, Inter, sans-serif; font-weight:800; letter-spacing:.12em; font-size:15px; }
+.schbar .ic { width:22px; height:22px; } .schbar small { margin-left:auto; font-family:Inter, sans-serif; letter-spacing:0; font-weight:600; font-size:12px; color:var(--dim); }
+.nopk { padding:14px 16px; border:1px dashed var(--line); border-radius:14px; color:var(--dim); font-size:13px; }
 .hub2 { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:12px; } @media (max-width:820px) { .hub2 { grid-template-columns:minmax(0,1fr); } }
 .tpr { display:grid; grid-template-columns:26px minmax(0,1fr) minmax(60px,140px) auto; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); }
 .tpr .n { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-weight:900; font-family:Saira; background:#ffd700; color:#241a00; }
@@ -50,11 +61,13 @@
   <main class="main">
     <div class="shero" id="hero"></div>
     <div class="sps" id="sps"></div>
+    <section class="sportsec" id="cmmgPicks"><div class="nopk">Loading today's CMMG picks…</div></section>
+    <div class="schbar" id="schbar"></div>
     <div id="nextup"></div>
     <div class="wk" id="wk"></div>
     <div class="bar4"><select id="fSt"><option value="">All games</option><option value="in">Live</option><option value="pre">Upcoming</option><option value="post">Final</option></select><input id="fQ" placeholder="Search teams">
       <a class="btn ghost" id="stLink" style="text-decoration:none">Standings →</a></div>
-    <div class="hub2"><div class="box"><h3 id="topT">CMMG TOP PICKS</h3><div id="topSport" class="game">Loading…</div></div>
+    <div class="hub2" id="oldTop"><div class="box"><h3 id="topT">CMMG TOP PICKS</h3><div id="topSport" class="game">Loading…</div></div>
       <div class="box"><h3>QUICK LINKS</h3><div class="ql" id="ql"></div></div></div>
     <div class="box"><div style="overflow-x:auto"><table class="rt gt" id="tbl"><tr><td class="game">Loading…</td></tr></table></div><div class="bye" id="bye"></div></div>
   </main>
@@ -136,7 +149,37 @@ function tabs() {
   const on = $("wk").querySelector(".on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
 }
 const pickFor = g => PICKS.find(p => p.sport === L && !p.locked && g.teams.every(t => [t.displayName, t.shortDisplayName, t.name].filter(n => n && n.length > 2).some(n => norm(p.game).includes(norm(n)))));
+// Today's CMMG picks for this sport, as Pro Track cards (10/17). Locked picks stay locked (the relay sends no details).
+const TORD = { ICE: 0, EDGE: 1, FIRE: 2 }, RES = { WIN: ["W", "WON"], LOSS: ["L", "LOST"], PUSH: ["P", "PUSH"], VOID: ["V", "VOID"] };
+const ctT = iso => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }) + " CT"; };
+const oddsT = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : String(o));
+const SPN = L === "MLS" ? "SOCCER" : L;
+let STALE = false;
+// Scott 10/17: "i can list which pages to do that on once nfl is done and oked" - add a league here once he OKs it.
+const PT_TOP = ["NFL"], PT = PT_TOP.includes(L);
+if (PT) { const o = $("oldTop"); o.querySelector(".box").remove(); o.style.gridTemplateColumns = "minmax(0,1fr)"; $("tbl").closest(".box").after(o); }   // quick links go under the games
+else { $("cmmgPicks").remove(); $("schbar").remove(); }
 function topPicks() {
+  if (!PT) return oldTopPicks();
+  const mine = STALE ? [] : PICKS.filter(p => p.sport === L).sort((a, b) => (TORD[a.tier] ?? 9) - (TORD[b.tier] ?? 9) || String(a.time).localeCompare(String(b.time)));
+  const n = r => mine.filter(p => !p.locked && (p.need || "pro") === "pro" && p.result === r).length, w = n("WIN"), l = n("LOSS"), pu = n("PUSH");
+  const banner = `<div class="sbanner sb-${FAM}"><span class="sic">${ICON.sport(L)}</span><b>CMMG ${E(SPN)} PICKS</b>
+    <span class="scount">${mine.length ? `${mine.length} pick${mine.length === 1 ? "" : "s"} today` : "today"}</span>${w + l + pu ? `<span class="stally"><i class="tw">${w}W</i><i class="tl">${l}L</i><i class="tp">${pu}P</i></span>` : ""}</div>`;
+  const card = p => p.locked
+    ? `<div class="card locked sp-${FAM}"><div class="when"><b>${ctT(p.time)}</b><span>${ICON.sport(L)} ${E(SPN)}</span></div>
+        <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span><div class="pick">Premium pick hidden</div>
+        <div class="lockmsg">${ICON.ui("lock")} Members only — your access comes from your CMMG Discord membership.</div></div>
+        <div class="right"><a class="btn" style="background:var(--gold);color:#241a00;text-decoration:none;display:inline-block" href="${SHELL.UPGRADE}">Unlock on Discord</a></div></div>`
+    : `<div class="card sp-${FAM} ${RES[p.result] ? "graded r-" + p.result : ""}"><div class="when"><b>${RES[p.result] ? '<span class="final">FINAL</span> ' : ""}${ctT(p.time)}</b><span>${p.market ? E(p.market) : ICON.sport(L) + " " + E(SPN)}</span>${p.tv ? `<div class="tv">${ICON.ui("tv")} ${E(p.tv)}</div>` : ""}</div>
+        <div><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span> ${p.need === "free" ? '<span class="pill">FREE PICK</span>' : ""}
+          <div class="pick" style="margin-top:6px">${E(p.bet)}</div><div class="game">${E(p.game)}</div></div>
+        <div class="right"><div class="odds">${oddsT(p.odds)}</div><div class="book">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>
+          ${RES[p.result] ? `<div class="grade g-${E(p.result)}"><span class="hex">${RES[p.result][0]}</span><b>${RES[p.result][1]}</b></div>` : SHELL.took(p)}</div></div>`;
+  $("cmmgPicks").innerHTML = banner + (mine.length ? `<div class="cards">${mine.map(card).join("")}</div>`
+    : `<div class="nopk">No CMMG ${E(SPN)} picks posted ${STALE ? "yet today" : "today"}. <a href="/app/" style="color:var(--ice)">See every sport on Pro Track →</a></div>`);
+  $("schbar").innerHTML = `${ICON.sport(L)}<span>${E(SPN)} SCHEDULE</span><small>${WEEKLY ? "by week" : "by day"} · times CT</small>`;
+}
+function oldTopPicks() {
   $("topT").textContent = `CMMG TOP ${L === "MLS" ? "SOCCER" : L} PICKS TODAY`;
   const ord = { ICE: 0, EDGE: 1, FIRE: 2 }, mine = PICKS.filter(p => p.sport === L);
   const vis = mine.filter(p => !p.locked).sort((a, b) => (ord[a.tier] ?? 9) - (ord[b.tier] ?? 9) || (Number(b.units) || 0) - (Number(a.units) || 0)).slice(0, 5);
@@ -165,7 +208,11 @@ document.addEventListener("click", e => {
 });
 ["fSt"].forEach(id => $(id).addEventListener("change", draw)); $("fQ").addEventListener("input", draw);
 SHELL.mount("sport");
-CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => { PICKS = j && j.ok ? j.picks || [] : []; draw(); nextUp(); }).catch(() => {});
+CMMG.relay({ task: "picks", session: CMMG.session()?.token }).then(j => {
+  PICKS = j && j.ok ? j.picks || [] : [];
+  const nowCT = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Chicago" })), todayCT = nowCT.toLocaleDateString("en-CA"), yday = new Date(nowCT - 864e5).toLocaleDateString("en-CA");
+  STALE = !!(j && j.date && j.date < todayCT && !(j.date === yday && nowCT.getHours() < 10));       // same rule as Pro Track
+  draw(); nextUp(); }).catch(() => { if (PT) $("cmmgPicks").innerHTML =`<div class="nopk">Couldn't reach CMMG — try again in a minute.</div>`; });
 load().then(nextUp);           // after load: football needs this week's number (CUR) to look ahead
 </script>
 </body></html>

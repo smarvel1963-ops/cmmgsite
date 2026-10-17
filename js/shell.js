@@ -112,8 +112,53 @@ const SHELL = (() => {
     document.addEventListener("keydown", e => { if (e.key === "Escape") openDrawer(null); });
   }
   const ago = ms => { const m = Math.round((Date.now() - ms) / 6e4); return m < 1 ? "now" : m < 60 ? m + "m" : m < 1440 ? Math.round(m / 60) + "h" : Math.round(m / 1440) + "d"; };
+  // LIVE FEED, CMMG tab (Scott 10/17 "live feeds side panal neds to be in correct order of game tiems and have live score
+  // there as well"): one row per pick on today's card in GAME-TIME order (earliest first), with the game's live score +
+  // clock once it starts and the W / L once graded. Scores = ESPN's public scoreboard read in the browser, the same read
+  // and team matching as Live Scores (/app/scores/; same non-commercial-terms note there). A members-only pick shows its
+  // time, sport and tier only - never its game or score (that would give the pick away).
+  const LF_LEAGUES = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
+    WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
+  let LFG = { day: "", games: {}, at: {} };
+  const lfDay = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
+  const lfCT = ms => new Date(ms).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  const lfNorm = s => String(s || "").toLowerCase();
+  async function lfScores(leagues) {        // today's scoreboard per league, re-read at most every 30 s
+    const day = lfDay();
+    if (LFG.day !== day) LFG = { day, games: {}, at: {} };
+    await Promise.all(leagues.map(async k => {
+      if (Date.now() - (LFG.at[k] || 0) < 30000) return;
+      const extra = k === "NCAAF" ? "&groups=80&limit=300" : k === "NCAAB" ? "&groups=50&limit=400" : "";
+      try {
+        const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${LF_LEAGUES[k]}/scoreboard?dates=${day}${extra}`)).json();
+        LFG.games[k] = (j.events || []).map(e => { const c = (e.competitions || [{}])[0], st = (e.status || c.status || {}).type || {};
+          return { state: st.state || "pre", detail: st.shortDetail || "", date: e.date,
+            teams: (c.competitors || []).map(t => ({ side: t.homeAway, abbr: t.team?.abbreviation || "", name: t.team?.displayName || "", short: t.team?.shortDisplayName || "", score: t.score }))
+              .sort((a, b) => (a.side === "away" ? 0 : 1) - (b.side === "away" ? 0 : 1)) }; });
+        LFG.at[k] = Date.now();
+      } catch (e) { /* keep the last copy */ }
+    }));
+  }
+  function lfGame(p) {                      // the pick's game: both teams named in it; a doubleheader -> the start nearest the pick's time
+    if (p.locked || !p.game) return null;
+    const pt = Date.parse(p.time), hits = (LFG.games[p.sport] || []).filter(g => g.teams.length === 2
+      && g.teams.every(t => (t.short && lfNorm(p.game).includes(lfNorm(t.short))) || (t.name && lfNorm(p.game).includes(lfNorm(t.name)))));
+    return hits.sort((a, b) => Math.abs(Date.parse(a.date) - pt) - Math.abs(Date.parse(b.date) - pt))[0] || null;
+  }
+  function lfRow({ p, g, t }, now) {
+    const what = p.locked ? `${E(p.sport)} · members-only pick` : `${E(p.bet)} <span class="lp-t">${E(p.sport)}</span>`;
+    const tier = p.tier ? `<span class="tag ${E(p.tier)}" style="font-size:10px;padding:1px 6px">${E(p.tier)}</span> ` : "";
+    const st = p.result ? "post" : g ? g.state : isNaN(t) ? "pre" : t <= now ? "in" : "pre";
+    const chip = st === "in" ? (g ? "LIVE" : "STARTED") : st === "post" ? "FINAL" : "UP";
+    const [a, h] = g ? g.teams : [];
+    const score = g && g.state !== "pre" && a && h ? `<div class="lp-sc"><b>${E(a.abbr)} ${E(a.score)} - ${E(h.score)} ${E(h.abbr)}</b> · ${E(g.detail)}</div>`
+      : st === "in" && !g && !p.locked ? `<div class="lp-sc lp-t">no live score for this game</div>` : "";
+    const res = p.result ? `<b class="rb ${E(p.result)}">${E(String(p.result)[0])}</b>` : "";
+    return `<div class="lp-g ${st}"><div class="lp-tm">${isNaN(t) ? "—" : lfCT(t)}<span class="lp-st ${st}">${chip}</span></div><div>${tier}${what}${score}</div><div>${res}</div></div>`;
+  }
   async function livefeed() {
     const el = document.getElementById("lpBody"); if (!el) return; clearTimeout(lpTimer);
+    let live = false;
     if (LPT === "discord") {
       let j; try { j = await CMMG.relay({ task: "community", session: CMMG.session()?.token }); } catch (e) { j = null; }
       const msgs = j && j.live ? (j.channels || []).flatMap(c => (c.messages || []).map(m => ({ ...m, ch: c.name }))).sort((a, b) => String(b.ts).localeCompare(String(a.ts))).slice(0, 40) : [];
@@ -122,16 +167,16 @@ const SHELL = (() => {
         : `<p class="lp-empty">Live Discord messages show here once the CMMG feed is connected.</p><a class="btn disc lp-open" href="${DISCORD}">Open the CMMG Discord</a>`;
     } else {
       let j; try { j = await CMMG.relay({ task: "picks", session: CMMG.session()?.token }); } catch (e) { j = null; }
-      const ps = j && j.ok ? j.picks || [] : [], now = Date.now(), out = [], posted = j && j.at ? Date.parse(j.at) : now;
-      ps.forEach(p => { const t = Date.parse(p.time);
-        if (p.result && !p.locked) out.push([t + 3 * 36e5 < now ? t + 3 * 36e5 : now - 1, `<b class="rb ${E(p.result)}">${E(p.result[0])}</b> ${E(p.bet)} <span class="lp-t">${E(p.sport)}</span>`]);
-        else if (!p.result && t > now - 3 * 36e5 && t <= now) out.push([t, `${typeof ICON !== "undefined" ? ICON.ui("clock") : ""} <b>Game on</b> · ${p.locked ? E(p.sport) + " members-only pick" : E(p.bet)}`]);
-        else if (!p.result && t > now && t - now < 60 * 6e4) out.push([t - 60 * 6e4, `<b>Starting soon</b> · ${p.locked ? E(p.sport) + " members-only pick" : E(p.bet)} · ${new Date(t).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })} CT`]);
-        out.push([posted, `<span class="tag ${E(p.tier)}" style="font-size:10px;padding:1px 6px">${E(p.tier || "")}</span> New pick · ${p.locked ? E(p.sport) + " · members only" : E(p.bet)}`]); });
-      out.sort((a, b) => b[0] - a[0]);
-      el.innerHTML = out.length ? out.slice(0, 40).map(([t, h]) => `<div class="lp-s"><span class="lp-t">${ago(t)}</span><div>${h}</div></div>`).join("") : `<p class="lp-empty">No live updates yet today.</p>`;
+      const ps = j && j.ok ? j.picks || [] : [];
+      await lfScores([...new Set(ps.filter(p => !p.locked && LF_LEAGUES[p.sport]).map(p => p.sport))]);
+      if (LPT !== "site") return;                         // the Discord tab was picked while the scores loaded
+      const now = Date.now(), rows = ps.map(p => { const g = lfGame(p), pt = Date.parse(p.time); return { p, g, t: isNaN(pt) && g ? Date.parse(g.date) : pt }; })
+        .sort((a, b) => (isNaN(a.t) - isNaN(b.t)) || a.t - b.t || String(a.p.sport).localeCompare(String(b.p.sport)));
+      live = rows.some(r => r.g && r.g.state === "in");
+      el.innerHTML = rows.length ? `<p class="lp-t" style="margin:6px 0 2px">Today's card in game-time order (CT)${live ? " · live scores update every 30 s" : ""}</p>`
+        + rows.slice(0, 60).map(r => lfRow(r, now)).join("") : `<p class="lp-empty">No picks on today's card yet.</p>`;
     }
-    if (document.body.classList.contains("dr-open")) lpTimer = setTimeout(livefeed, 60000);
+    if (document.body.classList.contains("dr-open")) lpTimer = setTimeout(livefeed, live ? 30000 : 60000);
   }
   // STAT TILES (Scott 10/11 mockups): big glowing colour icon picked from the tile's label + matching glow
   const KMAP = [[/LIVE/, "live", "red"], [/WIN ?%|WIN RATE|RECORD/, "trophy", "gold"], [/UNIT/, "coins", "green"], [/ROI/, "bars", "green"], [/ODDS/, "target", "red"],

@@ -7,7 +7,7 @@ const b64w = b => Buffer.from(b).toString("base64").replace(/\+/g, "-").replace(
 const env = {
   PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in PROPS ? PROPS[k] : null), setProperty: (k, v) => { PROPS[k] = String(v); },
     setProperties: o => { for (const k in o) PROPS[k] = String(o[k]); }, deleteProperty: k => { delete PROPS[k]; } }) },
-  LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
+  LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return !globalThis.LOCK_BUSY; }, releaseLock() {} }) },
   Logger: { log() {} },
   Utilities: {
     getUuid: () => crypto.randomUUID(),
@@ -171,4 +171,74 @@ check("trackall ON: an edited pick keeps MY numbers, not AUTO", !ar("a1").auto &
 check("trackall ON: no duplicate row for an edited pick", mta.rows.filter(r => r.pick === "a1").length === 1);
 check("trackall: turn OFF -> AUTO rows gone, my own pick stays", (post({ task: "trackall", session: vipS, on: false }).auto === false)
   && (r => !r.rows.some(x => x.auto) && r.rows.length === 1 && r.rows[0].pick === "a1")(post({ task: "mytracker", session: vipS })));
+// v1.9 OWNER_IDS (Scott 10/17 "i am owner why am i locked out of live totals")
+post({ task: "put", key: "wkey", part: "board_lives", data: { date: "2026-10-17", picks: [{ id: "lv1", need: "elite", sport: "NBA", bet: "Lakers/Suns o228.5", odds: -110 }], history: [] } });
+const OWNER = "123456789012345678";
+DISCORD.user = { id: OWNER, username: "owner", global_name: "Owner" }; DISCORD.roles = null;
+delete PROPS.OWNER_IDS;
+L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
+check("v1.9: no OWNER_IDS -> the owner signs in as FREE, exactly as before", L.ok && L.me.access.join() === "free", L.me);
+check("v1.9: ... and Live Totals stays locked", post({ task: "board", name: "lives", session: L.session }).picks[0].locked === true);
+PROPS.OWNER_IDS = " 999999999999999999 ,abc, 12 , " + OWNER + " ";
+L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
+check("v1.9: listed owner (not even in the server) -> elite + pro + top5", L.ok && L.me.access.slice().sort().join() === "elite,pro,top5", L.me);
+check("v1.9: owner sees the Elite Live Totals pick", (r => r.picks[0].bet === "Lakers/Suns o228.5" && !r.picks[0].locked)(post({ task: "board", name: "lives", session: L.session })));
+DISCORD.user = { id: "222222222222222222", username: "fan2", global_name: "Fan2" }; DISCORD.roles = ["1471082166149578936"];
+L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
+check("v1.9: anyone else keeps their own roles (VIP = pro only)", L.ok && L.me.access.join() === "pro", L.me);
+check("v1.9: ... so Live Totals stays locked for VIP", post({ task: "board", name: "lives", session: L.session }).picks[0].locked === true);
+PROPS.OWNER_IDS = "12, abc";
+DISCORD.user = { id: "12", username: "short", global_name: "Short" }; DISCORD.roles = null;
+check("v1.9: a malformed id in OWNER_IDS grants nothing", post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).me.access.join() === "free");
+delete PROPS.OWNER_IDS;
+// v1.9 SCOREBOARD (Scott 10/17 "dashboard should be days total and running totals on all our pages we provide picks on")
+post({ task: "put", key: "wkey", part: "history", data: { picks: [
+  { id: "h1", need: "pro", date: "2026-10-10", result: "WIN", profit: 1 }, { id: "h2", need: "pro", date: "2026-10-11", result: "LOSS", profit: -1.1 },
+  { id: "a1", need: "pro", date: "2026-10-13", result: "WIN", profit: 0.91 },                       // today's pick already archived
+  { id: "h3", need: "free", date: "2026-10-12", result: "LOSS", profit: -1 } ] } });
+post({ task: "put", key: "wkey", part: "board_horses", data: { date: "2026-10-13", picks: [{ id: "hz1", need: "pro", result: "WIN", profit: 2.4, date: "2026-10-13" }, { id: "hz2", need: "pro" }],
+  history: [{ id: "hz0", need: "pro", date: "2026-10-09", result: "LOSS" }] } });
+delete PROPS.RESULTS_PUBLIC;
+let SB = post({ task: "scoreboard" }), sb = k => SB.rows.find(r => r.key === k);
+check("scoreboard ANON: Pro Track today shows nothing about locked picks (0 graded, 2 locked, no units)", (t => t.w + t.l + t.p === 0 && t.locked === 2 && t.net === 0 && t.pending === 0)(sb("pro").today) && !JSON.stringify(SB).includes("OVER 220"), sb("pro"));
+check("scoreboard ANON: Free Pick today = 0-1, -1u", (t => t.w === 0 && t.l === 1 && t.net === -1)(sb("free").today), sb("free"));
+SB = post({ task: "scoreboard", session: vipS });
+check("scoreboard VIP: Pro Track today = 1-0 +0.91u; the Elite pick is a locked count, not pending", (t => t.w === 1 && t.net === 0.91 && t.locked === 1 && t.pending === 0)(sb("pro").today), sb("pro"));
+check("scoreboard: horses W-L only - units never shown (top-3 at each finish's payout)", (r => r.units === false && r.today.w === 1 && r.today.net === null && r.today.pending === 1)(sb("horses")), sb("horses"));
+check("scoreboard: Live Totals carries units and is flagged paper", (r => r.units === true && r.paper === true)(sb("lives")), sb("lives"));
+check("scoreboard: switch OFF -> no running totals anywhere", SB.published === false && SB.rows.every(r => r.total === null));
+PROPS.RESULTS_PUBLIC = "1"; SB = post({ task: "scoreboard", session: vipS });
+check("scoreboard: RESULTS_PUBLIC on but no SCOREBOARD_TOTALS -> still no running totals (each page has its own switch)", SB.rows.every(r => r.total === null) && SB.published === false);
+PROPS.SCOREBOARD_TOTALS = "pro, free,horses"; SB = post({ task: "scoreboard", session: vipS });
+check("scoreboard: Pro running total 2-1, +0.81u since 10-10 (today's archived pick counted once)", (t => t.w === 2 && t.l === 1 && t.net === 0.81 && t.since === "2026-10-10")(sb("pro").total) && SB.published === true, sb("pro").total);
+check("scoreboard: Free running total is its own record (0-2, -2u), never added to Pro", (t => t.w === 0 && t.l === 2 && t.net === -2)(sb("free").total), sb("free").total);
+check("scoreboard: a page not listed (lives) keeps no running total", sb("lives").total === null);
+check("scoreboard: horses running total counts W-L, units stay off", (t => t.w === 1 && t.l === 1 && t.net === null)(sb("horses").total), sb("horses").total);
+delete PROPS.SCOREBOARD_TOTALS;
+delete PROPS.RESULTS_PUBLIC;
+// v1.9 tracker snapshot (Scott 10/17 "pretty sure my tracker is off on its data"): a tracked pick keeps its result after
+// the feed's ~45-day history no longer carries it
+DISCORD.user = { id: "777777777777777777", username: "snap" }; DISCORD.roles = ["1471082166149578936"];
+const snS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+check("snapshot: track a graded history pick", post({ task: "track", session: snS, pick: "h2", odds: -110, units: 1 }).ok);
+let snR = post({ task: "mytracker", session: snS }).rows.find(r => r.pick === "h2");
+check("snapshot: graded LOSS while the feed has it", snR.result === "LOSS" && snR.units_pl === -1, snR);
+post({ task: "put", key: "wkey", part: "history", data: { picks: [{ id: "h1", need: "pro", date: "2026-10-10", result: "WIN", profit: 1 }] } });   // h2 aged out
+snR = post({ task: "mytracker", session: snS }).rows.find(r => r.pick === "h2");
+check("snapshot: after h2 leaves the feed it is STILL a LOSS (not PENDING), date kept", snR.result === "LOSS" && snR.units_pl === -1 && snR.date === "2026-10-11", snR);
+post({ task: "put", key: "wkey", part: "history", data: { picks: [{ id: "h1", need: "pro", date: "2026-10-10", result: "WIN", profit: 1 },
+  { id: "h2", need: "pro", date: "2026-10-11", result: "WIN", profit: 0.91 }] } });                                                                   // a grade correction
+snR = post({ task: "mytracker", session: snS }).rows.find(r => r.pick === "h2");
+check("snapshot: a corrected grade in the feed wins over the old snapshot (LOSS -> WIN)", snR.result === "WIN" && snR.units_pl === 0.91, snR);
+// v1.9 withGrades: today's pick arrives ungraded while history already has its grade (the 10/17 Free Pick)
+post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-17", picks: [{ id: "fp1", need: "free", sport: "WNBA", bet: "OVER 154.5", odds: -110, units: 1, date: "2026-10-17" }] } });
+post({ task: "put", key: "wkey", part: "history", data: { picks: [{ id: "h1", need: "pro", date: "2026-10-10", result: "WIN", profit: 1 },
+  { id: "h2", need: "pro", date: "2026-10-11", result: "WIN", profit: 0.91 }, { id: "fp1", need: "free", date: "2026-10-17", result: "LOSS", profit: -1 }] } });
+check("withGrades: today's ungraded Free Pick shows its history grade (LOSS) on the picks feed", (p => p.result === "LOSS" && p.profit === -1)(post({ task: "picks" }).picks[0]));
+check("withGrades: ... and the scoreboard counts it (0-1, not pending)", (t => t.l === 1 && t.pending === 0)(post({ task: "scoreboard" }).rows.find(r => r.key === "free").today));
+globalThis.LOCK_BUSY = true;
+check("snapshot: a busy lock never fails the tracker read", post({ task: "mytracker", session: snS }).ok === true);
+globalThis.LOCK_BUSY = false;
+post({ task: "trackall", session: snS, on: true });
+check("auto_since = the feed's oldest graded day", post({ task: "mytracker", session: snS }).auto_since === "2026-10-10");
 console.log(`\n${ok} passed, ${bad} failed`);

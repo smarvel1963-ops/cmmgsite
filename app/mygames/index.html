@@ -4,7 +4,12 @@
      Pick" on (relay mytracker: ungraded, or today's) joins automatically, matched to its ESPN game: live score, clock,
      their exact selection (their odds / line / units / book), status Upcoming -> Live -> Final -> Graded W/L/P/V.
      Below: WATCHING - games starred on Scores / Schedules (localStorage cmmg.watch); watching never counts as a pick.
-     Real data only: nothing tracked = empty state. Refreshes every 30 s while a game is live. -->
+     Real data only: nothing tracked = empty state. Refreshes every 30 s while a game is live.
+     10/17 (Scott: "each event should also have last live score as well and be green or red according to winning or
+     losing"): every pick reads its game's score against the bet - moneyline (that team ahead), spread (team score + line
+     vs the other), total (both scores vs the line) - and the card goes GREEN "WINNING" / RED "LOSING" (yellow "EVEN" on a
+     tie / exactly on the line). The last score seen is kept on this phone (cmmg.lastscore), so a card still shows it
+     after ESPN drops the game. A bet the page can't read (props, members-only) shows the score with no colour. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Games · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -25,6 +30,12 @@
 .sel b { font-family:Saira; font-size:18px; display:block; } .sel .game { margin-top:2px; }
 .flow { display:flex; gap:4px; margin-top:8px; } .flow i { flex:1; height:5px; border-radius:4px; background:#1e293b; } .flow i.on { background:#3b82f6; } .flow i.done { background:#22c55e; } .flow i.bad { background:#ef4444; }
 .flowl { display:flex; justify-content:space-between; font-size:10px; color:var(--dim); margin-top:3px; }
+.mg.win { border-color:rgba(34,197,94,.75); box-shadow:0 0 18px rgba(34,197,94,.18); background:linear-gradient(180deg, rgba(22,101,52,.32), rgba(8,17,32,.82)); }
+.mg.lose { border-color:rgba(239,68,68,.75); box-shadow:0 0 18px rgba(239,68,68,.18); background:linear-gradient(180deg, rgba(127,29,29,.32), rgba(8,17,32,.82)); }
+.mg.even { border-color:rgba(250,204,21,.6); }
+.mg.win .sb2 .s { color:#4ade80; } .mg.lose .sb2 .s { color:#f87171; } .mg.even .sb2 .s { color:#fde68a; }
+.wl { font-weight:900; font-size:11px; letter-spacing:.08em; padding:3px 8px; border-radius:6px; } .wl.win { background:#16a34a; color:#04140a; } .wl.lose { background:#dc2626; color:#fff; } .wl.even { background:#ca8a04; color:#1f1600; }
+.last { font-size:11px; color:var(--dim); }
 .unstar { background:none; border:0; color:#ffd700; font-size:18px; }
 </style></head>
 <body>
@@ -56,16 +67,52 @@ async function board(l, day) {   // ESPN scoreboard for league + day (cached per
   return CACHE[k] = fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATHS[l]}/scoreboard?dates=${day}${extra}`).then(r => r.json()).then(j => (j.events || []).map(e => {
     const c = e.competitions[0], st = e.status.type;
     return { id: e.id, l, date: e.date, state: st.state, detail: st.shortDetail, tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", "),
-      teams: c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1)).map(t => ({ abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName, nick: t.team.name, color: t.team.color, alt: t.team.alternateColor, score: t.score })) };
+      teams: c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1)).map(t => ({ abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName, nick: t.team.name, location: t.team.location, color: t.team.color, alt: t.team.alternateColor, score: t.score })) };
   })).catch(() => []);
 }
+// Is the pick winning right now? "win" | "lose" | "even" | "" (can't tell). Totals: OVER/UNDER (or o/u) + line vs both scores.
+// Sides: the team named in the bet (+ its spread, ML = 0) vs the other team. Anything the full-game score can't decide
+// returns "" - no colour beats a wrong colour (masterhub-reviewer 10/17): player props (a word after the line, or a prop
+// word), part-game and team totals (1H / F5 / TT ...), and a bet naming both teams or neither.
+const tnames = t => [t.name, t.location, t.short, t.nick, t.abbr].filter(n => n && n.length > 1);
+const PROP_W = /\b(pts|points|reb|rebounds|ast|assists|pra|sog|shots|hits|hrr|runs|outs|yds|yards|rec|receptions|rush|pass|tds?|ks|tb|bases|saves|strikeouts|rbi|hr|threes|3pm|stl|blk|goals|fantasy|more|less)\b/i;
+const PART_W = /\b(1h|2h|1q|2q|3q|4q|1p|2p|3p|f5|f3|tt|team total|first half|second half)\b/i;
+function standing(bet, g) {
+  if (!g || g.state === "pre" || !bet) return "";
+  const [a, h] = g.teams, sa = Number(a.score), sh = Number(h.score); if (!isFinite(sa) || !isFinite(sh)) return "";
+  const b = String(bet).trim(), cmp = d => d > 0 ? "win" : d < 0 ? "lose" : "even";
+  if (PROP_W.test(b) || PART_W.test(b)) return "";
+  const m = /\b(over|under)\s*([0-9]+(?:\.[0-9]+)?)(.*)$/i.exec(b) || /(?:^|[\s/])([ou])\s?([0-9]+(?:\.[0-9]+)?)(.*)$/i.exec(b);
+  if (m) {
+    if (/[a-z]/i.test(m[3].replace(/\(.*?\)/g, ""))) return "";                  // "u1.5 HRR", "o5.5 rec": a word after the line = a prop
+    const over = /^o/i.test(m[1]), d = sa + sh - Number(m[2]); return cmp(over ? d : -d);
+  }
+  // the side: the team with the LONGEST name found in the bet ("Iowa State" beats "Iowa"); both teams equally / neither = ""
+  const low = norm(b), esc = n => norm(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const best = t => Math.max(0, ...tnames(t).filter(n => new RegExp("(^|[^a-z])" + esc(n) + "([^a-z]|$)").test(low)).map(n => n.length));
+  const la = best(a), lh = best(h); if (la === lh) return "";
+  const side = la > lh ? a : h;
+  // the line: the first signed number under 50 (bigger = odds, e.g. "Red Sox -145", "+1.5 -145"); ML / none = 0
+  const nums = (b.replace(/\(.*?\)/g, " ").match(/[+-]\d+(?:\.\d+)?/g) || []).map(Number), ln = nums.find(x => Math.abs(x) < 50);
+  const line = /\bML\b|moneyline/i.test(b) || ln == null ? 0 : ln;
+  const mine = side === a ? sa : sh, them = side === a ? sh : sa;
+  return cmp(mine + line - them);
+}
+const WL_TXT = { win: "WINNING", lose: "LOSING", even: "EVEN" };
+let LAST = {}; try { LAST = JSON.parse(localStorage.getItem("cmmg.lastscore") || "{}") || {}; } catch (e) {}
+function remember(id, g) {           // the last live/final score seen for this pick, kept on this phone
+  if (!id || !g || g.state === "pre") return;
+  const [a, h] = g.teams; LAST[id] = { a: a.abbr, as: a.score, h: h.abbr, hs: h.score, d: g.state === "post" ? "Final" : g.detail, at: Date.now() };
+  const cut = Date.now() - 14 * 864e5; Object.keys(LAST).forEach(k => { if (!(LAST[k].at > cut)) delete LAST[k]; });   // keep 14 days
+  try { localStorage.setItem("cmmg.lastscore", JSON.stringify(LAST)); } catch (e) {}
+}
 const onGame = (txt, g) => g.teams.every(t => [t.name, t.short, t.nick].filter(n => n && n.length > 2).some(n => norm(txt).includes(norm(n))));
-function card(g, body, cls) {
+function card(g, body, cls, extra) {
   const [a, h] = g ? g.teams : [];
   return `<div class="mg ${cls || ""}" ${g ? `data-go="/app/game/?l=${g.l}&id=${encodeURIComponent(g.id)}"` : ""}>
     <div>${g ? `<div class="sb2"><div class="t">${badge(a)}<span>${E(a.short)}</span></div><div class="s">${g.state === "pre" ? "vs" : `${E(a.score)} - ${E(h.score)}`}</div><div class="t r"><span>${E(h.short)}</span>${badge(h)}</div></div>
       <div class="st3">${ICON.sport(g.l)} ${E(g.l)} <span class="pill2 ${g.state}">${g.state === "in" ? "LIVE" : g.state === "post" ? "FINAL" : "UPCOMING"}</span> ${E(g.state === "pre" ? new Date(g.date).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" }) + " CT" : g.detail)}${g.tv ? ` · ${ICON.ui("tv")} ${E(g.tv)}` : ""}</div>`
-      : `<div class="st3">Game not found on today's scoreboard yet.</div>`}</div>
+      : extra ? "" : `<div class="st3">Game not found on today's scoreboard yet.</div>`}${extra || ""}</div>
     <div>${body}</div></div>`;
 }
 async function load() {
@@ -80,13 +127,19 @@ async function load() {
   const u = done.reduce((a, r) => a + (r.units_pl || 0), 0);
   $("k3").innerHTML = [["MY GAMES", rows.length], ["LIVE NOW", live], ["GRADED", `${w}-${l}`], ["MY UNITS", (u > 0 ? "+" : "") + u.toFixed(2)]].map(([t, v]) => `<div class="kpi"><div class="l">${t}</div><div class="n ${t === "MY UNITS" ? (u > 0 ? "pos" : u < 0 ? "neg" : "") : ""}">${v}</div></div>`).join("");
   const step = (r, g) => r.result && r.result !== "PENDING" ? 4 : g ? { pre: 1, in: 2, post: 3 }[g.state] : 1;
+  rows.forEach((r, i) => remember(r.pick, games[i]));
   $("took").innerHTML = rows.length ? rows.map((r, i) => { const g = games[i], n = step(r, g), res = r.result !== "PENDING" ? r.result : "";
+    const now = res ? (res === "WIN" ? "win" : res === "LOSS" ? "lose" : "") : standing(r.bet, g), ls = LAST[r.pick];
+    const lastLine = !g && !PATHS[r.sport] ? `<div class="st3">${ICON.sport(r.sport)} ${E(r.sport || "This sport")} · no live score on this page${r.sport === "TENNIS" ? " — see Tennis for the match" : ""}</div>`
+      : !g && ls ? `<div class="st3"><span class="last">Last score: <b>${E(ls.a)} ${E(ls.as)} - ${E(ls.hs)} ${E(ls.h)}</b> · ${E(ls.d)}</span></div>`
+      : g && g.state === "post" && !res ? `<div class="st3"><span class="last">Final score · waiting for the grade</span></div>` : "";
+    const chip = now && !res ? ` <span class="wl ${now}">${WL_TXT[now]}</span>` : "";
     return card(g, `<div class="sel">${r.tier ? `<span class="tag ${E(r.tier)}" style="font-size:11px">${TIER_ICON[r.tier] || ""} ${E(r.tier)}</span>` : ""}
-        <b>${E(r.bet || "Members-only pick")}</b><div class="game">My odds ${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}</div>
+        <b>${E(r.bet || "Members-only pick")}</b>${chip}<div class="game">My odds ${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}</div>
         ${res ? `<div style="margin-top:6px"><span class="rb ${E(res)}">${E(res)}</span> <b class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}" style="font-family:Saira;display:inline">${r.units_pl > 0 ? "+" : ""}${r.units_pl ?? ""}u</b></div>` : ""}
         <div class="flow">${[1, 2, 3, 4].map(k => `<i class="${k < n ? (k === 3 && res === "LOSS" ? "bad" : "done") : k === n ? (n === 4 ? (res === "LOSS" ? "bad" : "done") : "on") : ""}"></i>`).join("")}</div>
         <div class="flowl"><span>Upcoming</span><span>Live</span><span>Final</span><span>Graded</span></div></div>`,
-      `${g && g.state === "in" ? "live" : ""} ${res ? "r-" + res : ""}`); }).join("")
+      `${g && g.state === "in" ? "live" : ""} ${res ? "r-" + res : ""} ${now}`, lastLine); }).join("")
     : `<div class="empty" style="border:0">No games yet. Tap <b>✓ I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Pro Track</a> and the game shows up here.</div>`;
   drawWatch(games);
   clearTimeout(timer); timer = setTimeout(load, games.some(g => g && g.state === "in") ? 30000 : 120000);

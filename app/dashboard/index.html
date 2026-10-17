@@ -3,7 +3,10 @@
      Dashboard (storyboard page 1 / web designs #1-#2): today at a glance (tier counts, next game countdown), today's top
      picks (ICE > EDGE > FIRE, locked ones stay locked), the member's own tracker summary, quick links, membership.
      Real data only - NO CMMG win-rate / units headline until the record passes the edge-auditor check (WEB_DESIGNS
-     flag #2: hindsight-selected All Bets numbers never go public). -->
+     flag #2: hindsight-selected All Bets numbers never go public).
+     SCOREBOARD (Scott 10/17 "days total and running totals on all our pages we provide picks on"): relay v1.9 task
+     "scoreboard" - one row per pick page, today's record/units/pending + running total; running totals only once
+     RESULTS_PUBLIC is ON (the relay sends none before that). Pro Track and Free never summed. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -20,6 +23,16 @@
 .mini .card { grid-template-columns:90px 1fr 110px; padding:10px 12px; }
 .links { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 @media (max-width:640px) { .links { grid-template-columns:repeat(2,1fr); } .mini .card { grid-template-columns:1fr auto; gap:6px 10px; } .mini .card .when { grid-column:1 / -1; display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .mini .card .when .tv { margin-top:0; } .hero { background:linear-gradient(180deg, rgba(6,13,26,.9), rgba(6,13,26,.97)), url(/img/crest.jpg) center top / cover no-repeat; } }
+/* SCOREBOARD (Scott 10/17): today + running total for every pick page */
+.sbt { width:100%; border-collapse:collapse; font-size:13px; } .sbt th { font-size:10px; letter-spacing:.12em; color:var(--dim); text-align:left; padding:6px 8px; font-weight:800; }
+.sbt td { padding:10px 8px; border-top:1px solid var(--line); vertical-align:middle; } .sbt td.pg a { color:var(--text); text-decoration:none; font-weight:800; }
+.sbt .rec { font-family:Saira, Inter, sans-serif; font-weight:800; font-size:16px; white-space:nowrap; } .sbt .u { font-family:Saira, Inter, sans-serif; font-weight:800; white-space:nowrap; }
+.sbt .sub { display:block; font-size:11px; color:var(--dim); font-weight:600; margin-top:2px; } .sbt .grp { border-left:1px solid var(--line); }
+.sbsum { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; } .sbsum div { background:var(--panel2); border-radius:10px; padding:10px; text-align:center; }
+.sbsum b { display:block; font-family:Saira, Inter, sans-serif; font-size:22px; } .sbsum span { font-size:11px; color:var(--dim); letter-spacing:.06em; }
+.sbnote { font-size:12px; color:var(--dim); margin:8px 0 0; }
+@media (max-width:640px) { .sbt thead { display:none; } .sbt tr { display:grid; grid-template-columns:1fr 1fr; gap:2px 10px; padding:10px 0; border-top:1px solid var(--line); }
+  .sbt td { border:0; padding:2px 0; } .sbt td.pg { grid-column:1 / -1; } .sbt .grp { border:0; } .sbt td[data-l]::before { content:attr(data-l); display:block; font-size:10px; letter-spacing:.12em; color:var(--dim); font-weight:800; } }
 .link { text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; font-weight:800; }
 .link span { display:block; margin-bottom:6px; } .link span .ic { width:30px; height:30px; color:#7fd8ff; filter:drop-shadow(0 0 6px rgba(127,216,255,.6)); }
 </style></head>
@@ -28,6 +41,7 @@
   <main class="main">
     <div class="hero"><h1>Same picks. Same data. Anywhere.</h1><div class="tag2">ANALYZE. EXECUTE. PROFIT.</div><div class="hi" id="hi"></div></div>
     <div class="kpis" id="glance"><div class="kpi"><div class="l">LOADING</div><div class="n">…</div></div></div>
+    <div class="box"><h3>SCOREBOARD <span id="sbDay" style="font-weight:500;color:var(--dim);letter-spacing:0"></span><a href="/app/results/" style="float:right;font-size:12px;color:var(--ice)">Results →</a></h3><div id="sb"><div class="empty" style="border:0">Loading…</div></div></div>
     <div class="box"><h3>TODAY'S TOP PICKS <a href="/app/" style="float:right;font-size:12px;color:var(--ice)">All picks →</a></h3><div class="mini" id="top"></div></div>
     <div class="links">
       <a class="link" href="/app/"><span data-ic="target"></span>Pro Track</a><a class="link" href="/app/mygames/"><span data-ic="target"></span>My Games</a>
@@ -82,6 +96,36 @@ async function load() {
         <div class="right"><div class="odds">${odds(p.odds)}</div><div class="book">${E(p.book || "")}</div>${SHELL.took(p)}</div></div>`).join("");
 }
 
+// SCOREBOARD (Scott 10/17: "dashboard should be days total and running totals on all our pages we provide picks on"):
+// one row per pick page - today's record + units (and what's still pending), then its running total. Running totals come
+// from the relay only once Verified Results is ON; until then that column says so. Pro Track and the Free Pick are two
+// records and nothing here adds them together. Units = each pick's stored payout; unknown shows "—".
+const SB_LINK = { pro: "/app/", free: "/app/" };
+const rec = t => `${t.w}-${t.l}${t.p ? "-" + t.p : ""}`;
+const uu = n => n == null ? "—" : sgn(n) + "u", cls = n => n > 0 ? "pos" : n < 0 ? "neg" : "";
+async function scoreboard() {
+  const el = document.getElementById("sb");
+  let j; try { j = await CMMG.relay({ task: "scoreboard", session: CMMG.session()?.token }); } catch (e) { j = { ok: false }; }   // today = only what this member can see
+  if (!j.ok || !j.rows) { el.innerHTML = `<div class="empty" style="border:0">Couldn't reach CMMG.</div>`; return; }
+  const day = j.date ? new Date(j.date + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }) : "";
+  document.getElementById("sbDay").textContent = day ? "· " + day : "";
+  const rows = j.rows;                                     // every pick page, even on a day it has none (Scott: "all our pages")
+  const T = rows.reduce((a, r) => ({ g: a.g + r.today.w + r.today.l + r.today.p, pend: a.pend + r.today.pending, pages: a.pages + (r.today.w + r.today.l + r.today.p + r.today.pending + (r.today.locked || 0) ? 1 : 0) }), { g: 0, pend: 0, pages: 0 });
+  const sum = `<div class="sbsum"><div><b>${T.pages}</b><span>PAGES WITH PICKS TODAY</span></div><div><b>${T.g}</b><span>GRADED TODAY</span></div><div><b>${T.pend}</b><span>STILL PENDING</span></div></div>`;
+  if (!rows.length) { el.innerHTML = sum + `<div class="empty" style="border:0">No picks posted yet today.</div>`; return; }
+  el.innerHTML = sum + `<div style="overflow-x:auto"><table class="sbt"><thead><tr><th>PAGE</th><th>TODAY</th><th>TODAY UNITS</th>${j.published ? '<th class="grp">RUNNING TOTAL</th><th>UNITS</th>' : ""}</tr></thead><tbody>` + rows.map(r => {
+    const t = r.today, g = t.w + t.l, a = r.total, ag = a ? a.w + a.l : 0;
+    const since = a && a.since ? new Date(a.since + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
+    // review 10/17: today = only the picks this member can see (the rest = "members only"); units only on real-money pages
+    const sub = [t.pending ? t.pending + " pending" : "", t.locked ? `${t.locked} members-only` : "", !t.pending && !t.locked ? (g + t.p ? "all graded" : "no picks today") : ""].filter(Boolean).join(" · ");
+    return `<tr><td class="pg"><a href="${SB_LINK[r.key] || "/app/board/?b=" + encodeURIComponent(r.key)}">${E(r.name)}</a>${r.key === "free" ? '<span class="sub">its own record</span>' : r.paper ? '<span class="sub">paper alerts</span>' : !r.units ? '<span class="sub">win-loss only</span>' : ""}</td>
+      <td data-l="TODAY"><span class="rec">${g + t.p ? rec(t) : "—"}</span><span class="sub">${sub}</span></td>
+      <td data-l="TODAY UNITS"><span class="u ${cls(t.net)}">${g + t.p && r.units ? uu(t.net) : "—"}</span></td>
+      ${!j.published ? "" : `<td data-l="RUNNING TOTAL" class="grp">${a && !(ag + a.p) ? '<span class="sub">no graded picks yet</span>' : a ? `<span class="rec">${rec(a)}</span><span class="sub">${ag ? (100 * a.w / ag).toFixed(1) + "%" : ""}${since ? " · rolling, since " + since : ""}</span>` : '<span class="sub">not published yet</span>'}</td>
+      <td data-l="UNITS">${a && ag + a.p && r.units ? `<span class="u ${cls(a.net)}">${uu(a.net)}</span>` : ""}</td>`}</tr>`; }).join("") + `</tbody></table></div>
+    <p class="sbnote">Each page is its own record, at each pick's real graded payout. Pro Track and the Free Pick are never added together.${j.published ? " Past results don't promise future results." : " Running totals go live page by page, once each page's record is verified."}</p>`;
+}
+
 function tick() {
   const el = document.getElementById("cd"); if (!el || !NEXT) return;
   const ms = NEXT - Date.now();
@@ -101,7 +145,7 @@ async function tracker() {
     <p style="margin:8px 0 0">${wl ? `${(100 * m.won / wl).toFixed(1)}% win rate on ${wl} graded picks, at your odds.` : "Tap “✓ I Took This Pick” on a pick to start."}</p>`;
 }
 
-SHELL.mount("dashboard"); document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic)); hello(); load(); tracker();
-setInterval(tick, 1000); setInterval(load, 5 * 60000);
+SHELL.mount("dashboard"); document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic)); hello(); load(); tracker(); scoreboard();
+setInterval(tick, 1000); setInterval(load, 5 * 60000); setInterval(scoreboard, 5 * 60000);
 </script>
 </body></html>

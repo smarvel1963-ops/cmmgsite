@@ -2,7 +2,11 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.8 (v1.8: "results" rows carry "profit" - each graded pick's STORED payout from MasterHub, which
+ * CMMG SPORTS EDGE RELAY v1.9 (v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
+ *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
+ *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   Also v1.9: task "scoreboard" - today's total + running total for every pick page; totals only with RESULTS_PUBLIC.)
+ * was v1.8 (v1.8: "results" rows carry "profit" - each graded pick's STORED payout from MasterHub, which
  *   the site totals instead of odds x units (Scott 10/12 records fix #2). Storage guard (reviewer 10/12): putBig stores
  *   pure ASCII (non-ASCII escaped to \uXXXX, so an 8000-char chunk is 8000 bytes), feedPut refuses a part over its cap,
  *   a member keeps at most 300 tracked picks. Needs a redeploy of the live copy to take effect.)
@@ -29,6 +33,7 @@
  *   CMMG_FEED       = {"write":"<long random>"} (Scott pastes once from his clipboard; the PC config holds the same)
  *   SESSION_SECRET  = made by setup() the first time - never leaves the relay
  *   ROLE_MAP        = optional JSON override of ROLE_MAP below (role id -> list of entitlements)
+ *   OWNER_IDS       = optional, v1.9: Discord user ids (comma-separated) that get full access - Scott's own account
  */
 const DISCORD_CLIENT_ID = "1558985290188857356";        // public (it's in the login link)
 const GUILD_ID = "1469251277752893573";                  // the CMMG Discord server (eve_bot.EVE_GUILD_ID)
@@ -64,6 +69,7 @@ function doPost(e) {
       case "record": return out(records(P));
       case "results": return out(results(P));
       case "board": return out(board(P, session(P, req.session), req));
+      case "scoreboard": return out(scoreboard(P, session(P, req.session)));
       case "community": return out(community(P, session(P, req.session)));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
@@ -110,11 +116,17 @@ function login(P, req) {
   const user = JSON.parse(u.getContentText());
   const m = UrlFetchApp.fetch("https://discord.com/api/v10/users/@me/guilds/" + GUILD_ID + "/member", H);
   const member = m.getResponseCode() === 200 ? JSON.parse(m.getContentText()) : null;   // 404 = not in the CMMG server
-  const ent = entitlements(P, member ? member.roles || [] : []);
+  const ent = isOwner(P, user.id) ? OWNER_ENT.slice() : entitlements(P, member ? member.roles || [] : []);
   const s = { uid: String(user.id), name: String(user.global_name || user.username || "member").slice(0, 40),
               av: user.avatar ? "https://cdn.discordapp.com/avatars/" + user.id + "/" + user.avatar + ".png?size=64" : "",
               inServer: !!member, ent: ent, exp: Date.now() + SESSION_HOURS * 3600000 };
   return { ok: true, session: sign(P, s), me: publicMe(s) };
+}
+// v1.9 OWNER: the account(s) in OWNER_IDS see everything a member can buy (every need canSee knows: elite, pro, top5).
+const OWNER_ENT = ["elite", "pro", "top5"];
+function isOwner(P, uid) {
+  const ids = String(P.getProperty("OWNER_IDS") || "").split(/[\s,]+/).filter(function (x) { return /^\d{15,22}$/.test(x); });
+  return !!uid && ids.indexOf(String(uid)) >= 0;
 }
 function entitlements(P, roles) {
   let map = ROLE_MAP_DEFAULT;
@@ -149,10 +161,20 @@ function session(P, tok) {
 // ---------------------------------------------------------------- picks by entitlement
 // A pick's "need" comes from the feed: "free", "pro", "elite" or "top5". Only the server decides what a session sees.
 function canSee(s, need) { return need === "free" || (!!s && s.ent.indexOf(need) >= 0) || (!!s && need === "top5" && s.ent.indexOf("pro") >= 0); }
+// v1.9 (found 10/17): today's Free Pick reached the feed UNGRADED while its graded copy was already in the history part
+// (free OVER 154.5 lost 64-68; the live panel showed no L and the scoreboard called it pending). A today pick with no
+// result takes its result + stored profit from the history copy with the same id. Never the other way round.
+function withGrades(P, list, hist) {
+  const g = {};
+  if (!hist) { const h = getBig(P, "F_history"); hist = h && h.data && h.data.picks || []; }
+  hist.forEach(function (p) { if (p && p.id && p.result) g[p.id] = p; });
+  return list.map(function (p) { const x = p && !p.result && g[p.id];
+    return x ? Object.assign({}, p, { result: x.result, profit: x.profit == null ? null : x.profit }) : p; });
+}
 function picks(P, s) {
   const f = getBig(P, "F_today");
   if (!f) return { ok: true, at: null, picks: [], note: "No picks published yet today." };
-  const list = (f.data && f.data.picks || []).map(function (p) {
+  const list = withGrades(P, f.data && f.data.picks || []).map(function (p) {
     if (canSee(s, p.need || "pro")) return p;
     return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };   // no pick/odds/line
   });
@@ -168,13 +190,68 @@ function board(P, s, req) {
   const f = getBig(P, "F_board_" + name);
   if (!f) return { ok: true, live: false, picks: [] };
   const d = f.data || {};
-  const list = (d.picks || []).map(function (p) {
+  const list = withGrades(P, d.picks || [], d.history || []).map(function (p) {
     if (canSee(s, p.need || "pro")) return p;
     return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
   });
   const pub = P.getProperty("RESULTS_PUBLIC") === "1";
   return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub,
            history: pub ? (d.history || []).filter(function (p) { return p.result; }) : [] };
+}
+// v1.9 SCOREBOARD (Scott 10/17: "dashboard should be days total and running totals on all our pages we provide picks
+// on"): one row per pick page - Pro Track, Free Pick, then every board. TODAY = today's graded picks (results only, no
+// bet text, so a locked pick gives nothing away) + how many are still pending. RUNNING TOTAL = graded history plus
+// today's graded picks not in it yet, and ONLY once RESULTS_PUBLIC = "1" (same switch as Verified Results). Units =
+// each pick's STORED profit; a graded W/L with no stored profit makes that total unknown (null), never re-priced.
+// Review 10/17 (masterhub-reviewer FIX FIRST + edge-auditor):
+//  - TODAY counts only the picks THIS viewer can see (canSee, same rule as the picks feed); the rest are a "locked"
+//    count. An anonymous visitor gets the Free Pick's day and nothing about a locked pick, not even its price.
+//  - UNITS only on pages whose stored payouts are real money: Pro Track, Free Pick, Live Totals (paper alerts - the
+//    page labels it). Horses (top-3 "in the money" at each finish's payout), PrizePicks (made-up -110), F1/NASCAR (no
+//    odds) show W-L only.
+//  - RUNNING TOTAL per page only when RESULTS_PUBLIC = "1" AND the page is listed in Script Property SCOREBOARD_TOTALS
+//    (comma list, e.g. "pro,free"); none by default. It is the feed's rolling window (~45 days), shown "since <date>".
+const SB_UNITS = { pro: 1, free: 1, lives: 1 };
+const SB_NAMES = { pro: "Pro Track", free: "Free Pick", lives: "Live Totals", horses: "Horse Racing", f1: "F1", nascar: "NASCAR",
+                   golf: "Golf", dk: "DK Lineups", prizepicks: "PrizePicks" };
+function sbTally(rows) {
+  const t = { w: 0, l: 0, p: 0, v: 0, pending: 0, net: 0 };
+  rows.forEach(function (p) {
+    const r = p.result;
+    if (r === "WIN") t.w++; else if (r === "LOSS") t.l++; else if (r === "PUSH") t.p++; else if (r === "VOID") t.v++; else { t.pending++; return; }
+    if (t.net === null) return;
+    const v = p.profit;
+    if (v !== null && v !== undefined && v !== "" && isFinite(Number(v))) t.net += Number(v);
+    else if (r === "WIN" || r === "LOSS") t.net = null;
+  });
+  if (t.net !== null) t.net = Math.round(t.net * 100) / 100;
+  return t;
+}
+function sbRow(key, today, hist, s, totalsOn) {
+  const vis = today.filter(function (p) { return canSee(s, p.need || "pro"); });
+  const td = sbTally(vis); td.locked = today.length - vis.length;
+  if (!SB_UNITS[key]) td.net = null;
+  let tot = null;
+  if (totalsOn) {
+    const seen = {}; hist.forEach(function (p) { if (p.id) seen[p.id] = 1; });
+    const all = hist.filter(function (p) { return p.result; }).concat(today.filter(function (p) { return p.result && !(p.id && seen[p.id]); }));
+    tot = sbTally(all); delete tot.pending; if (!SB_UNITS[key]) tot.net = null;
+    tot.since = all.reduce(function (m, p) { return /^\d{4}-\d\d-\d\d$/.test(p.date || "") && (!m || p.date < m) ? p.date : m; }, "");
+  }
+  return { key: key, name: SB_NAMES[key], units: !!SB_UNITS[key], paper: key === "lives", today: td, total: tot };
+}
+function scoreboard(P, s) {
+  const pub = P.getProperty("RESULTS_PUBLIC") === "1", t = getBig(P, "F_today"), h = getBig(P, "F_history");
+  const on = pub ? String(P.getProperty("SCOREBOARD_TOTALS") || "").split(/[\s,]+/).filter(Boolean) : [];
+  const td = t && t.data || {}, tp = withGrades(P, td.picks || []), hp = h && h.data && h.data.picks || [];
+  const isFree = function (p) { return (p.need || "pro") === "free"; }, notFree = function (p) { return !isFree(p); };   // same split both sides
+  const rows = [sbRow("pro", tp.filter(notFree), hp.filter(notFree), s, on.indexOf("pro") >= 0),
+                sbRow("free", tp.filter(isFree), hp.filter(isFree), s, on.indexOf("free") >= 0)];
+  BOARDS.forEach(function (b) {
+    const f = getBig(P, "F_board_" + b); if (!f) return;
+    const d = f.data || {}; rows.push(sbRow(b, withGrades(P, d.picks || [], d.history || []), d.history || [], s, on.indexOf(b) >= 0));
+  });
+  return { ok: true, date: td.date || "", published: rows.some(function (r) { return r.total; }), rows: rows };
 }
 function records(P) {
   const r = getBig(P, "F_records");
@@ -272,6 +349,26 @@ function myTracker(P, s) {
   const mine = getBig(P, "T_" + s.uid) || [];
   const byId = feedPicksById(P, true), core = feedPicksById(P);
   const auto = P.getProperty("A_" + s.uid) === "1";
+  // v1.9 (Scott 10/17 "pretty sure my tracker is off on its data"): the feed only carries ~45 days, so a pick tracked by
+  // hand used to fall back to PENDING with no bet text once it aged out. Now a tracked pick keeps a SNAPSHOT of its
+  // graded result + details in the member's own list (m.snap); the feed's copy still wins while it has one (so a grade
+  // correction flows through), and the snapshot answers after it's gone.
+  // minimal (reviewer 10/17 #3: Script Properties is ONE ~500 KB pool shared with the feed - keep each snapshot ~80 bytes)
+  const snapOf = function (p) { return { date: p.date || "", bet: String(p.bet || "").slice(0, 60), sport: p.sport || "",
+    tier: p.tier || "", need: p.need || "pro", result: p.result, odds: p.odds != null ? p.odds : null }; };
+  const fresh = {};
+  mine.forEach(function (m) { const p = byId[m.pick];
+    if (p && p.result) { const sn = snapOf(p); if (JSON.stringify(sn) !== JSON.stringify(m.snap || null)) fresh[m.pick] = sn; } });
+  if (Object.keys(fresh).length) {
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(1500)) {                   // busy? skip the save - this read still answers, the next read saves it
+      try { const cur = getBig(P, "T_" + s.uid) || []; cur.forEach(function (m) { if (fresh[m.pick]) m.snap = fresh[m.pick]; });
+            putBig(P, "T_" + s.uid, JSON.stringify(cur.slice(-TRACK_MAX))); } finally { lock.releaseLock(); }
+    }
+    mine.forEach(function (m) { if (fresh[m.pick]) m.snap = fresh[m.pick]; });
+  }
+  // where the automatic CMMG rows start (the feed's oldest graded day) - the page says so when a range reaches back further
+  const autoSince = Object.keys(core).reduce(function (a, id) { const d = core[id].date || ""; return /^\d{4}-\d\d-\d\d$/.test(d) && (!a || d < a) ? d : a; }, "");
   if (auto) {                                   // every visible Pro Track / Free pick the member hasn't tracked by hand
     const have = {}; mine.forEach(function (m) { have[m.pick] = true; });
     Object.keys(core).forEach(function (id) {
@@ -283,7 +380,7 @@ function myTracker(P, s) {
     mine.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
   }
   const rows = mine.map(function (m) {
-    let p = byId[m.pick] || {};
+    let p = byId[m.pick] || m.snap || {};
     if (p.id && !canSee(s, p.need || "pro") && !p.result) p = { need: p.need, sport: p.sport, tier: p.tier };   // never leak a locked pick
     const res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
     let pl = null;
@@ -291,13 +388,13 @@ function myTracker(P, s) {
     else if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
     else if (res === "LOSS") pl = -u; else if (res === "PUSH" || res === "VOID") pl = 0;
     return { pick: m.pick, at: m.at, date: p.date || "", time: p.time || "", game: p.game || "", bet: p.bet || "",
-             sport: p.sport || "", tier: p.tier || "", myOdds: odds || null, units: u, myBook: m.book || "", note: m.note || "", auto: !!m.auto,
+             sport: p.sport || "", tier: p.tier || "", need: p.need || "", myOdds: odds || null, units: u, myBook: m.book || "", note: m.note || "", auto: !!m.auto,
              result: res || "PENDING", units_pl: pl == null ? null : Math.round(pl * 100) / 100 };
   });
   const done = rows.filter(function (r) { return r.result === "WIN" || r.result === "LOSS"; });
   const w = done.filter(function (r) { return r.result === "WIN"; }).length;
   const net = rows.reduce(function (a, r) { return a + (r.units_pl || 0); }, 0);
-  return { ok: true, auto: auto, rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
+  return { ok: true, auto: auto, auto_since: auto ? autoSince : "", rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
 }

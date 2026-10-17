@@ -327,6 +327,14 @@ body.dr-open .drawer-r { transform:none; }
 .lp-t { color:var(--dim); font-size:11px; } .lp-m { display:grid; grid-template-columns:30px minmax(0,1fr); gap:8px; padding:9px 0; border-bottom:1px solid var(--line); }
 .lp-a { width:30px; height:30px; border-radius:50%; background:#1e3a8a; display:grid; place-items:center; font-weight:800; } .lp-m p { margin:3px 0 0; color:#dbeafe; overflow-wrap:anywhere; } .lp-e { border-left:3px solid #3b82f6; padding-left:8px; color:#c9dcef !important; }
 .lp-empty { color:var(--dim); } .lp-open { display:block; text-align:center; text-decoration:none; margin-top:12px; }
+/* live feed CMMG tab (10/17): one row per pick in game-time order - time + status chip | pick + live score | result */
+.lp-g { display:grid; grid-template-columns:64px minmax(0,1fr) auto; gap:8px; align-items:start; padding:9px 0; border-bottom:1px solid var(--line); }
+.lp-tm { font-weight:800; font-size:12px; color:#e8f4ff; display:flex; flex-direction:column; gap:4px; }
+.lp-st { align-self:flex-start; font-weight:900; font-size:10px; letter-spacing:.08em; border-radius:6px; padding:2px 6px; }
+.lp-st.in { background:#dc2626; color:#fff; box-shadow:0 0 10px rgba(220,38,38,.55); } .lp-st.post { background:#334155; color:#e2e8f0; }
+.lp-st.pre { background:#0c2a4a; color:#7fd8ff; border:1px solid rgba(127,216,255,.4); }
+.lp-sc { margin-top:4px; font-size:12px; color:#c3d6ea; } .lp-sc b { color:#fff; font-family:Saira, Inter, sans-serif; letter-spacing:.02em; }
+.lp-g.in .lp-sc b { color:#fde68a; }
 @media (max-width:760px) { .livebtn span { display:none; } }
 @media (max-width:760px) { #who .btn.disc { padding:7px 10px; font-size:12px; white-space:nowrap; } .wm span { display:none; } }
 

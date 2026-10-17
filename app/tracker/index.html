@@ -27,7 +27,7 @@
 .two { display:grid; grid-template-columns:1fr 1fr; gap:12px; } @media (max-width:640px) { .two { gap:8px; } } .two > * { min-width:0; }
 .rc h3 { display:flex; align-items:center; gap:8px; } .rc h3 .ic { width:22px; height:22px; } .rc.you h3 .ic { color:#4ade80; } .rc.cm h3 .ic { color:#ffd700; }
 .rc .row b { font-family:Saira; font-size:17px; }
-.bars { display:flex; align-items:flex-end; justify-content:space-around; gap:10px; height:150px; padding-top:20px; }
+.bars { display:flex; align-items:flex-end; justify-content:space-around; gap:10px; height:180px; padding-top:10px; }
 .bars > div { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:4px; min-width:0; }
 .bars .v { font-family:Saira; font-weight:800; font-size:15px; } .bars i { display:block; width:70%; border-radius:6px 6px 2px 2px; min-height:3px; }
 .bars .lb { font-size:11px; font-weight:800; display:flex; flex-direction:column; align-items:center; gap:2px; } .bars .lb small { color:var(--dim); font-weight:600; }
@@ -61,7 +61,7 @@
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"];
 const TCOL = { ICE: "#3b82f6", EDGE: "#22c55e", FIRE: "#ef4444" };
-let ROWS = [], CM = null, TAB = "over", RNG = "30", EDIT = null, HF = { sport: "", tier: "", type: "" };
+let ROWS = [], AUTO_SINCE = "", CM = null, TAB = "over", RNG = "30", EDIT = null, HF = { sport: "", tier: "", type: "" };
 try { RNG = localStorage.getItem("cmmg.trkrng") || "30"; } catch (e) {}
 const ctDay = d => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 const odds = o => o == null || o === "" ? "—" : (Number(o) > 0 ? "+" + o : String(o));
@@ -132,9 +132,11 @@ function card(title, icon, cls, s, empty, extra) {
 function tierBars(rows, kind) {
   const st = TIERS.map(t => mineS(rows.filter(r => r.tier === t)));
   const max = kind === "wr" ? 1 : Math.max(1, ...st.map(s => Math.abs(s.net)));
-  return `<div class="bars">${TIERS.map((t, i) => { const s = st[i], v = kind === "wr" ? s.wr : s.net, h = s.n ? Math.max(4, Math.abs(v) / max * 100) : 3;
+  // bar heights in px (10/17: a % height inside the flex column was squeezed to the same size for every tier, so 45% and
+  // 61% drew identical bars); 90px = the full bar, never shrunk
+  return `<div class="bars">${TIERS.map((t, i) => { const s = st[i], v = kind === "wr" ? s.wr : s.net, h = s.n ? Math.max(4, Math.abs(v) / max * 90) : 3;
     return `<div><span class="v" style="color:${kind === "units" && v < 0 ? "#f87171" : "#e8f4ff"}">${s.n ? (kind === "wr" ? (100 * v).toFixed(0) + "%" : sgn(v)) : "—"}</span>
-      <i style="height:${h}%;background:linear-gradient(180deg,${TCOL[t]},${TCOL[t]}88);box-shadow:0 0 12px ${TCOL[t]}88"></i>
+      <i style="height:${h.toFixed(0)}px;flex:none;background:linear-gradient(180deg,${TCOL[t]},${TCOL[t]}88);box-shadow:0 0 12px ${TCOL[t]}88"></i>
       <span class="lb" style="color:${TCOL[t]}">${ICON.tier(t)}${t}<small>${s.w}-${s.l}-${s.push}</small></span></div>`; }).join("")}</div>`;
 }
 
@@ -159,7 +161,12 @@ function draw() {
     const fs = frRows ? cmmgS(frRows) : null;
     const extra = cmRows ? `${early && (!from || from < early) ? `<p class="game" style="margin:8px 0 0">CMMG results on record from ${E(nice(early))}.</p>` : ""}
       <p class="game" style="margin:6px 0 0">Free Pick (its own record): <b>${fs.w}-${fs.l}-${fs.push}</b> · ${fs.n && fs.net != null ? sgn(fs.net) + "u" : "—"}</p>` : "";
-    el.innerHTML = `<div class="two">${card("YOUR RESULTS", "star", "you", me)}${card("CMMG PRO TRACK", "shield", "cm", cmRows ? cmmgS(cmRows) : null,
+    // what YOUR side holds (Scott 10/17 "pretty sure my tracker is off on its data"): with "I play every CMMG pick" it is
+    // Pro Track + the Free Pick together, so it never equals the Pro-only CMMG card; and the automatic rows only reach
+    // back to the feed's oldest graded day - say both instead of letting the numbers look wrong.
+    const autoN = rows.filter(r => r.auto).length, freeN = rows.filter(r => r.need === "free").length;
+    const youX = AUTO_SINCE ? `<p class="game" style="margin:8px 0 0">Counting every CMMG pick automatically${from && from < AUTO_SINCE || !from ? ` from ${E(nice(AUTO_SINCE))}` : ""} (${autoN} in range)${freeN ? " · includes the Free Pick, so it won't match the Pro Track card" : ""}.</p>` : "";
+    el.innerHTML = `<div class="two">${card("YOUR RESULTS", "star", "you", me, "", youX)}${card("CMMG PRO TRACK", "shield", "cm", cmRows ? cmmgS(cmRows) : null,
         cmRows ? "" : `<div class="lock2"><b>Goes live soon</b>CMMG's verified record appears here once Verified Results launches.</div>`, extra)}</div>
       <div class="box"><h3>UNITS PROFIT CHART</h3>${chart([{ name: "Your units", color: "#22c55e", rows, s: me }, ...(cmRows ? [{ name: "CMMG units", color: "#3b82f6", rows: cmRows, s: cmmgS(cmRows) }] : [])])}</div>
       <div class="two"><div class="box"><h3>WIN RATE BY TIER</h3>${tierBars(rows, "wr")}</div><div class="box"><h3>UNITS BY TIER</h3>${tierBars(rows, "units")}</div></div>`;
@@ -189,7 +196,7 @@ async function load() {
   const s = CMMG.session(); if (!s) return draw();
   let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { j = { ok: false, error: "Couldn't reach CMMG. Try again in a minute." }; }
   if (!j.ok) { if (/sign in/.test(j.error || "")) { CMMG.signOut(); location.reload(); return; } $("body").innerHTML = `<div class="empty">${E(j.error)}</div>`; return; }
-  ROWS = j.rows || [];
+  ROWS = j.rows || []; AUTO_SINCE = j.auto ? j.auto_since || "" : "";
   $("autoBox").hidden = false; $("autoAll").checked = !!j.auto;
   try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
   draw();

@@ -5,7 +5,11 @@
      leaders, team stats, injuries. Open with ?l=NFL&id=<espn event id> (Live Scores / Schedules link here) or with no id to
      choose from today's games that carry a CMMG pick or one of my tracked picks. Data: ESPN public scoreboard + game
      summary in the browser (non-commercial terms - licensed swap is on ACTIVE_TODO); picks + tracker from the relay.
-     Teams = abbreviation + team-colour badges (no logos). Refreshes every 30 s while live. -->
+     Teams = abbreviation + team-colour badges (no logos). Refreshes every 30 s while live.
+     10/17 (Scott: "it leave huge openess in middle can we slide score closer to match and use that space better"): the
+     two teams and the score sit together as one cluster, and the freed width carries a period-by-period LINE SCORE
+     (ESPN header competitors[].linescores: quarters / periods / innings + total). Wide: cluster | line score side by
+     side; phone: stacked. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Game Center · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -15,7 +19,14 @@
 <style>
 .board { padding:22px; margin-bottom:14px; text-align:center; position:relative; overflow:hidden; }
 .board::before { content:""; position:absolute; inset:0; background:radial-gradient(600px 200px at 50% 0%, rgba(59,169,255,.18), transparent 70%); pointer-events:none; }
-.bt { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:16px; position:relative; }
+.bwrap { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:22px; align-items:center; position:relative; }
+@media (max-width:900px) { .bwrap { grid-template-columns:minmax(0,1fr); } }
+.bt { display:grid; grid-template-columns:auto auto auto; justify-content:center; align-items:center; gap:clamp(12px, 2.4vw, 26px); position:relative; }
+.ls { width:100%; border-collapse:collapse; font-size:13px; } .ls th { color:var(--dim); font-size:11px; letter-spacing:.08em; font-weight:800; padding:4px 6px; text-align:center; }
+.ls td { padding:7px 6px; text-align:center; border-top:1px solid var(--line); font-family:Saira, Inter, sans-serif; font-weight:700; }
+.ls td:first-child, .ls th:first-child { text-align:left; } .ls td.tot { font-size:16px; font-weight:800; color:#fff; } .ls .cur { color:#fde68a; }
+.lsbox { background:rgba(5,12,24,.45); border:1px solid var(--line); border-radius:12px; padding:8px 10px; overflow-x:auto; }
+.lsbox h4 { margin:0 0 4px; font-size:11px; letter-spacing:.14em; color:#9fd2ff; text-align:left; }
 .side2 { display:flex; flex-direction:column; align-items:center; gap:6px; }
 .side2 .tb { font-size:20px; min-width:70px; padding:12px 10px; border-width:3px; border-radius:12px; }
 .side2 b { font-family:Saira; font-size:18px; } .side2 span { color:var(--dim); font-size:12px; }
@@ -86,6 +97,19 @@ async function chooser() {   // no id: today's games that carry a CMMG pick or o
       : `<div class="empty">No games with a CMMG pick right now. Open any game from <a href="/app/scores/" style="color:var(--ice)">Live Scores</a>.</div>`);
 }
 
+// Period-by-period line score from the ESPN summary header (10/17). Labels: Q1-Q4/OT (basketball, football), P1-P3/OT
+// (hockey), 1-9/extra innings (baseball), 1H/2H (soccer). Before the game: the box says when it starts instead.
+function lineScore(l, a, h, st, sc) {
+  const la = a.linescores || [], lh = h.linescores || [], played = Math.max(la.length, lh.length);
+  const n = played ? Math.max(played, { MLB: 9, NHL: 3, MLS: 2 }[l] || 4) : 0;   // the full regulation grid, empty until played
+  if (!sc || !n) return `<div class="lsbox"><h4>BY ${l === "MLB" ? "INNING" : l === "NHL" ? "PERIOD" : l === "MLS" ? "HALF" : "QUARTER"}</h4><p class="game" style="margin:6px 0">${sc ? "Line score not posted yet." : "Starts " + E(ct(st.date || "")) + " — the score by " + (l === "MLB" ? "inning" : "period") + " shows here."}</p></div>`;
+  const lab = i => l === "MLB" ? String(i + 1) : l === "NHL" ? (i < 3 ? "P" + (i + 1) : i === 3 ? "OT" : "SO") : l === "MLS" ? (i < 2 ? (i + 1) + "H" : "ET") : (i < 4 ? "Q" + (i + 1) : "OT" + (i > 4 ? i - 3 : ""));
+  const v = (arr, i) => arr[i] ? E(arr[i].displayValue ?? arr[i].value ?? "") : "";
+  const cur = st.state === "in" ? n - 1 : -1;
+  const row = (c, arr) => `<tr><td>${badge({ ...c.team, abbr: c.team.abbreviation })}</td>${Array.from({ length: n }, (_, i) => `<td class="${i === cur ? "cur" : ""}">${v(arr, i)}</td>`).join("")}<td class="tot">${E(c.score)}</td></tr>`;
+  return `<div class="lsbox"><h4>BY ${l === "MLB" ? "INNING" : l === "NHL" ? "PERIOD" : l === "MLS" ? "HALF" : "QUARTER"}</h4><table class="ls"><tr><th></th>${Array.from({ length: n }, (_, i) => `<th>${lab(i)}</th>`).join("")}<th>T</th></tr>${row(a, la)}${row(h, lh)}</table></div>`;
+}
+
 async function game(l, id) {
   const path = PATHS[l]; if (!path) { $("root").innerHTML = `<div class="empty">Unknown league.</div>`; return; }
   let j; try { j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${path}/summary?event=${encodeURIComponent(id)}`)).json(); } catch (e) { j = null; }
@@ -100,7 +124,7 @@ async function game(l, id) {
   const rec = c => (c.record || [])[0]?.summary || (c.record || [])[0]?.displayValue || "";
   const t = c => ({ ...c.team, abbr: c.team.abbreviation });
   let html = `<p style="margin:0 0 10px"><a href="/app/scores/" style="color:var(--ice);font-size:13px">← Live Scores</a></p>
-    <div class="box board"><div class="bt">
+    <div class="box board"><div class="bwrap"><div><div class="bt">
       <div class="side2">${badge(t(a))}<b>${E(a.team.shortDisplayName)}</b><span>${E(rec(a))}</span></div>
       <div><div class="big">${sc ? `<span class="${h.winner ? "lose" : ""}">${E(a.score)}</span> - <span class="${a.winner ? "lose" : ""}">${E(h.score)}</span>` : "vs"}</div>
         <div class="stat"><span class="st ${st.state}">${live ? "LIVE" : st.state === "post" ? "FINAL" : "UPCOMING"}</span>${E(live ? st.shortDetail : st.state === "pre" ? ct(comp.date) : st.shortDetail)}</div></div>
@@ -108,6 +132,7 @@ async function game(l, id) {
       <div class="meta">${ICON.sport(l)} ${E(l)}${tv ? `<span>${ICON.ui("tv")} ${E(tv)}</span>` : ""}${j.gameInfo?.venue?.fullName ? `<span>${ICON.ui("stadium")} ${E(j.gameInfo.venue.fullName)}</span>` : ""}</div>
       ${wp ? `<div class="wp"><div class="bar"><i style="width:${(100 - wp.homeWinPercentage * 100).toFixed(1)}%;background:${hex(a.team.color)}"></i><i style="width:${(wp.homeWinPercentage * 100).toFixed(1)}%;background:${hex(h.team.color)}"></i></div>
         <div class="lbl"><span>${E(a.team.abbreviation)} ${(100 - wp.homeWinPercentage * 100).toFixed(0)}%</span><span>Win probability</span><span>${(wp.homeWinPercentage * 100).toFixed(0)}% ${E(h.team.abbreviation)}</span></div></div>` : ""}
+      </div>${lineScore(l, a, h, { ...st, date: comp.date }, sc)}</div>
     </div><div class="gc"><div>`;
   html += `<div class="box"><h3>CMMG PICK</h3>${picks.length ? picks.map(p => `<div class="pc"><span class="tag ${E(p.tier)}">${TIER_ICON[p.tier] || ""} ${E(p.tier)}</span>
       <div class="pk">${E(p.bet)}</div><div class="game">${E(p.market || "")} · ${odds(p.odds)} · ${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>

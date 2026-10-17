@@ -5,6 +5,9 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.10 (Scott 10/17 "per sport daily and lifetime totals page by page"): scoreboard adds per-SPORT rows (Pro Track
+ *   split by sport) and uses the feed's LIFETIME part ("records", cmmg_feed_lifetime.py) for pro/free/sport totals;
+ *   "records" task now gated like the scoreboard. Totals still need RESULTS_PUBLIC + SCOREBOARD_TOTALS ("pro,free,sports").
  *   Also v1.9: task "scoreboard" - today's total + running total for every pick page; totals only with RESULTS_PUBLIC.)
  * was v1.8 (v1.8: "results" rows carry "profit" - each graded pick's STORED payout from MasterHub, which
  *   the site totals instead of odds x units (Scott 10/12 records fix #2). Storage guard (reviewer 10/12): putBig stores
@@ -231,35 +234,57 @@ function sbTally(rows) {
   if (t.net !== null) t.net = Math.round(t.net * 100) / 100;
   return t;
 }
-function sbRow(key, today, hist, s, totalsOn) {
+// lt = LIFETIME tally from the feed's "records" part (cmmg_feed_lifetime.py: full archive from where it is complete,
+// same dedupe/pregame/stored-profit rules) - when present the total is LIFETIME: lt + today's graded picks dated after
+// lt.through. Without lt the total is the rolling ~45-day window, as before.
+function sbRow(key, today, hist, s, totalsOn, lt, name) {
   const vis = today.filter(function (p) { return canSee(s, p.need || "pro"); });
   const td = sbTally(vis); td.locked = today.length - vis.length;
-  if (!SB_UNITS[key]) td.net = null;
+  if (!SB_UNITS[key] && key.indexOf("sport:") !== 0) td.net = null;
   let tot = null;
-  if (totalsOn) {
+  if (totalsOn && lt) {
+    const extra = sbTally(today.filter(function (p) { return p.result && String(p.date || "") > String(lt.through || ""); }));
+    tot = { w: lt.w + extra.w, l: lt.l + extra.l, p: lt.p + extra.p, v: lt.v + extra.v,
+            net: lt.net == null || extra.net == null ? null : Math.round((lt.net + extra.net) * 100) / 100,
+            since: lt.since || "", lifetime: true };
+  } else if (totalsOn) {
     const seen = {}; hist.forEach(function (p) { if (p.id) seen[p.id] = 1; });
     const all = hist.filter(function (p) { return p.result; }).concat(today.filter(function (p) { return p.result && !(p.id && seen[p.id]); }));
     tot = sbTally(all); delete tot.pending; if (!SB_UNITS[key]) tot.net = null;
     tot.since = all.reduce(function (m, p) { return /^\d{4}-\d\d-\d\d$/.test(p.date || "") && (!m || p.date < m) ? p.date : m; }, "");
   }
-  return { key: key, name: SB_NAMES[key], units: !!SB_UNITS[key], paper: key === "lives", today: td, total: tot };
+  return { key: key, name: name || SB_NAMES[key], units: !!SB_UNITS[key] || key.indexOf("sport:") === 0, paper: key === "lives", today: td, total: tot };
 }
 function scoreboard(P, s) {
   const pub = P.getProperty("RESULTS_PUBLIC") === "1", t = getBig(P, "F_today"), h = getBig(P, "F_history");
   const on = pub ? String(P.getProperty("SCOREBOARD_TOTALS") || "").split(/[\s,]+/).filter(Boolean) : [];
   const td = t && t.data || {}, tp = withGrades(P, td.picks || []), hp = h && h.data && h.data.picks || [];
   const isFree = function (p) { return (p.need || "pro") === "free"; }, notFree = function (p) { return !isFree(p); };   // same split both sides
-  const rows = [sbRow("pro", tp.filter(notFree), hp.filter(notFree), s, on.indexOf("pro") >= 0),
-                sbRow("free", tp.filter(isFree), hp.filter(isFree), s, on.indexOf("free") >= 0)];
+  const rec = getBig(P, "F_records"), life = rec && rec.data || {}, lp = life.pages || {}, ls = life.sports || {};
+  const rows = [sbRow("pro", tp.filter(notFree), hp.filter(notFree), s, on.indexOf("pro") >= 0, lp.pro),
+                sbRow("free", tp.filter(isFree), hp.filter(isFree), s, on.indexOf("free") >= 0, lp.free)];
   BOARDS.forEach(function (b) {
     const f = getBig(P, "F_board_" + b); if (!f) return;
     const d = f.data || {}; rows.push(sbRow(b, withGrades(P, d.picks || [], d.history || []), d.history || [], s, on.indexOf(b) >= 0));
   });
-  return { ok: true, date: td.date || "", published: rows.some(function (r) { return r.total; }), rows: rows };
+  // PER SPORT (Scott 10/17 "yes per sport daily"): Pro Track's picks split by sport - every sport with a pick today or a
+  // lifetime record. Totals only with "sports" in SCOREBOARD_TOTALS (and only from the lifetime part - no rolling cut).
+  const sportsOn = on.indexOf("sports") >= 0, pro = tp.filter(notFree), names = {};
+  pro.forEach(function (p) { names[String(p.sport || "OTHER").toUpperCase()] = 1; });
+  if (sportsOn) Object.keys(ls).forEach(function (k) { names[k] = 1; });
+  const sports = Object.keys(names).sort().map(function (sp) {
+    return sbRow("sport:" + sp, pro.filter(function (p) { return String(p.sport || "OTHER").toUpperCase() === sp; }), [], s, sportsOn && !!ls[sp], ls[sp], sp);
+  });
+  return { ok: true, date: td.date || "", published: rows.concat(sports).some(function (r) { return r.total; }), rows: rows, sports: sports };
 }
+// v1.10: the "records" part now holds LIFETIME totals (cmmg_feed_lifetime.py) - never public on its own: served only
+// with RESULTS_PUBLIC and only the pages/sports listed in SCOREBOARD_TOTALS (the scoreboard task is what the site uses).
 function records(P) {
-  const r = getBig(P, "F_records");
-  return { ok: true, at: r ? r.at : null, records: r ? r.data : null };
+  if (P.getProperty("RESULTS_PUBLIC") !== "1") return { ok: true, at: null, records: null };
+  const on = String(P.getProperty("SCOREBOARD_TOTALS") || "").split(/[\s,]+/).filter(Boolean);
+  const r = getBig(P, "F_records"), d = r && r.data || {}, pages = {};
+  Object.keys(d.pages || {}).forEach(function (k) { if (on.indexOf(k) >= 0) pages[k] = d.pages[k]; });
+  return { ok: true, at: r ? r.at : null, records: { pages: pages, sports: on.indexOf("sports") >= 0 ? d.sports || {} : {} } };
 }
 
 // v1.5 Verified Results: every GRADED pick from the feed's history (wins, losses, pushes, voids), OFF until Scott sets

@@ -31,6 +31,7 @@
 .sbsum { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:10px; } .sbsum div { background:var(--panel2); border-radius:10px; padding:10px; text-align:center; }
 .sbsum b { display:block; font-family:Saira, Inter, sans-serif; font-size:22px; } .sbsum span { font-size:11px; color:var(--dim); letter-spacing:.06em; }
 .sbnote { font-size:12px; color:var(--dim); margin:8px 0 0; }
+.sbh { margin:16px 0 4px; font-size:12px; letter-spacing:.14em; color:#9fd2ff; } .sbh span { color:var(--dim); letter-spacing:0; font-weight:500; }
 @media (max-width:640px) { .sbt thead { display:none; } .sbt tr { display:grid; grid-template-columns:1fr 1fr; gap:2px 10px; padding:10px 0; border-top:1px solid var(--line); }
   .sbt td { border:0; padding:2px 0; } .sbt td.pg { grid-column:1 / -1; } .sbt .grp { border:0; } .sbt td[data-l]::before { content:attr(data-l); display:block; font-size:10px; letter-spacing:.12em; color:var(--dim); font-weight:800; } }
 .link { text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:14px; text-align:center; font-weight:800; }
@@ -113,17 +114,26 @@ async function scoreboard() {
   const T = rows.reduce((a, r) => ({ g: a.g + r.today.w + r.today.l + r.today.p, pend: a.pend + r.today.pending, pages: a.pages + (r.today.w + r.today.l + r.today.p + r.today.pending + (r.today.locked || 0) ? 1 : 0) }), { g: 0, pend: 0, pages: 0 });
   const sum = `<div class="sbsum"><div><b>${T.pages}</b><span>PAGES WITH PICKS TODAY</span></div><div><b>${T.g}</b><span>GRADED TODAY</span></div><div><b>${T.pend}</b><span>STILL PENDING</span></div></div>`;
   if (!rows.length) { el.innerHTML = sum + `<div class="empty" style="border:0">No picks posted yet today.</div>`; return; }
-  el.innerHTML = sum + `<div style="overflow-x:auto"><table class="sbt"><thead><tr><th>PAGE</th><th>TODAY</th><th>TODAY UNITS</th>${j.published ? '<th class="grp">RUNNING TOTAL</th><th>UNITS</th>' : ""}</tr></thead><tbody>` + rows.map(r => {
-    const t = r.today, g = t.w + t.l, a = r.total, ag = a ? a.w + a.l : 0;
+  const tblRow = r => {
+    const t = r.today, g = t.w + t.l, a = r.total, ag = a ? a.w + a.l : 0, sport = r.key.indexOf("sport:") === 0;
     const since = a && a.since ? new Date(a.since + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
     // review 10/17: today = only the picks this member can see (the rest = "members only"); units only on real-money pages
     const sub = [t.pending ? t.pending + " pending" : "", t.locked ? `${t.locked} members-only` : "", !t.pending && !t.locked ? (g + t.p ? "all graded" : "no picks today") : ""].filter(Boolean).join(" · ");
-    return `<tr><td class="pg"><a href="${SB_LINK[r.key] || "/app/board/?b=" + encodeURIComponent(r.key)}">${E(r.name)}</a>${r.key === "free" ? '<span class="sub">its own record</span>' : r.paper ? '<span class="sub">paper alerts</span>' : !r.units ? '<span class="sub">win-loss only</span>' : ""}</td>
+    // sport rows open that sport's own page; a sport with none (KBO, NPB, CFL...) gets no link (reviewer 10/17)
+    const SPORT_PAGE = { NFL: 1, NCAAF: 1, NBA: 1, NCAAB: 1, WNBA: 1, MLB: 1, NHL: 1, MLS: 1 }, OWN = { TENNIS: "/app/tennis/", UFC: "/app/ufc/" };
+    const href = sport ? (OWN[r.name] || (SPORT_PAGE[r.name] ? "/app/sport/?l=" + encodeURIComponent(r.name) : "")) : SB_LINK[r.key] || "/app/board/?b=" + encodeURIComponent(r.key);
+    const tag = sport ? "" : r.key === "free" ? '<span class="sub">its own record</span>' : r.paper ? '<span class="sub">paper alerts</span>' : !r.units ? '<span class="sub">win-loss only</span>' : "";
+    const label = `${sport ? ICON.sport(r.name) + " " : ""}${E(r.name)}`;
+    return `<tr><td class="pg">${href ? `<a href="${href}">${label}</a>` : `<b>${label}</b>`}${tag}</td>
       <td data-l="TODAY"><span class="rec">${g + t.p ? rec(t) : "—"}</span><span class="sub">${sub}</span></td>
       <td data-l="TODAY UNITS"><span class="u ${cls(t.net)}">${g + t.p && r.units ? uu(t.net) : "—"}</span></td>
-      ${!j.published ? "" : `<td data-l="RUNNING TOTAL" class="grp">${a && !(ag + a.p) ? '<span class="sub">no graded picks yet</span>' : a ? `<span class="rec">${rec(a)}</span><span class="sub">${ag ? (100 * a.w / ag).toFixed(1) + "%" : ""}${since ? " · rolling, since " + since : ""}</span>` : '<span class="sub">not published yet</span>'}</td>
-      <td data-l="UNITS">${a && ag + a.p && r.units ? `<span class="u ${cls(a.net)}">${uu(a.net)}</span>` : ""}</td>`}</tr>`; }).join("") + `</tbody></table></div>
-    <p class="sbnote">Each page is its own record, at each pick's real graded payout. Pro Track and the Free Pick are never added together.${j.published ? " Past results don't promise future results." : " Running totals go live page by page, once each page's record is verified."}</p>`;
+      ${!j.published ? "" : `<td data-l="${a && a.lifetime ? "LIFETIME" : "RUNNING TOTAL"}" class="grp">${a && !(ag + a.p) ? '<span class="sub">no graded picks yet</span>' : a ? `<span class="rec">${rec(a)}</span><span class="sub">${ag ? (100 * a.w / ag).toFixed(1) + "%" : ""}${since ? (a.lifetime ? " · lifetime, since " : " · rolling, since ") + since : ""}</span>` : '<span class="sub">not published yet</span>'}</td>
+      <td data-l="UNITS">${a && ag + a.p && r.units ? `<span class="u ${cls(a.net)}">${uu(a.net)}</span>` : ""}</td>`}</tr>`; };
+  const head = first => `<thead><tr><th>${first}</th><th>TODAY</th><th>TODAY UNITS</th>${j.published ? '<th class="grp">TOTAL</th><th>UNITS</th>' : ""}</tr></thead>`;
+  const sports = j.sports || [];       // Pro Track split by sport (Scott 10/17 "yes per sport daily")
+  el.innerHTML = sum + `<div style="overflow-x:auto"><table class="sbt">${head("PAGE")}<tbody>${rows.map(tblRow).join("")}</tbody></table></div>`
+    + (sports.length ? `<h4 class="sbh">BY SPORT <span>· Pro Track picks</span></h4><div style="overflow-x:auto"><table class="sbt">${head("SPORT")}<tbody>${sports.map(tblRow).join("")}</tbody></table></div>` : "")
+    + `<p class="sbnote">Each page is its own record, at each pick's real graded payout. Pro Track and the Free Pick are never added together; the sport rows are Pro Track split by sport.${j.published ? " Past results don't promise future results." : " Lifetime totals go live page by page, once each page's record is verified."}</p>`;
 }
 
 function tick() {

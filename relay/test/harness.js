@@ -220,6 +220,25 @@ check("scoreboard: a page not listed (lives) keeps no running total", sb("lives"
 check("scoreboard: horses running total counts W-L, units stay off", (t => t.w === 1 && t.l === 1 && t.net === null)(sb("horses").total), sb("horses").total);
 delete PROPS.SCOREBOARD_TOTALS;
 delete PROPS.RESULTS_PUBLIC;
+// v1.10 LIFETIME + per-sport (Scott 10/17 "yes per sport daily and lifetime totals page by page")
+post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, since: "2026-09-01", through: "2026-10-12" },
+  free: { w: 28, l: 41, p: 0, v: 0, net: -12.2, since: "2026-07-03", through: "2026-10-12" } }, sports: { NFL: { w: 11, l: 7, p: 0, v: 0, net: 2.26, since: "2026-09-09", through: "2026-10-12" } } } });
+check("records task: nothing without RESULTS_PUBLIC", post({ task: "record" }).records === null);
+SB = post({ task: "scoreboard", session: vipS });
+check("per-sport rows: today's Pro picks split by sport (NFL 1-0 +0.91u for VIP; NBA elite = 1 locked)", (r => r && r.today.w === 1 && r.today.net === 0.91)(SB.sports.find(r => r.key === "sport:NFL")) && (r => r && r.today.locked === 1)(SB.sports.find(r => r.key === "sport:NBA")), SB.sports);
+check("per-sport rows: no totals while switches are off", SB.sports.every(r => r.total === null));
+PROPS.RESULTS_PUBLIC = "1"; PROPS.SCOREBOARD_TOTALS = "pro";
+SB = post({ task: "scoreboard", session: vipS });
+check("lifetime: Pro total = lifetime 160-110-6 + today's graded pick after 10-12 (a1 WIN +0.91) = 161-110, +12.41u, since 09-01", (t => t && t.lifetime && t.w === 161 && t.l === 110 && t.net === 12.41 && t.since === "2026-09-01")(sb("pro").total), sb("pro").total);
+check("lifetime: Free not listed -> no total", sb("free").total === null);
+check("lifetime: sport totals need 'sports' listed", SB.sports.every(r => r.total === null));
+check("records task: only the listed pages (pro), no sports", (r => r.pages.pro && !r.pages.free && !Object.keys(r.sports).length)(post({ task: "record" }).records));
+PROPS.SCOREBOARD_TOTALS = "pro,sports"; SB = post({ task: "scoreboard", session: vipS });
+check("lifetime: NFL sport total = 11-7 +2.26 lifetime + today's NFL WIN = 12-7, +3.17u", (t => t && t.w === 12 && t.l === 7 && t.net === 3.17)((SB.sports.find(r => r.key === "sport:NFL") || {}).total), SB.sports);
+post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, since: "2026-09-03", through: "2026-10-13" } }, sports: {} } });
+SB = post({ task: "scoreboard", session: vipS });
+check("lifetime: a today pick dated the SAME day as through is never added twice (total = lifetime alone)", (t => t && t.w === 160 && t.l === 110 && t.net === 11.5)(sb("pro").total), sb("pro").total);
+delete PROPS.RESULTS_PUBLIC; delete PROPS.SCOREBOARD_TOTALS;
 // v1.9 tracker snapshot (Scott 10/17 "pretty sure my tracker is off on its data"): a tracked pick keeps its result after
 // the feed's ~45-day history no longer carries it
 DISCORD.user = { id: "777777777777777777", username: "snap" }; DISCORD.roles = ["1471082166149578936"];

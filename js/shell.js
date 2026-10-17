@@ -308,7 +308,10 @@ const SHELL = (() => {
       ["learn", "star", "Learn", "/app/learn/"], ["community", "chat", "Community", "/app/community/"]];
     const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
     // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
-    const BOARDCHIPS = [["tennis", "TENNIS", "TENNIS"], ["ufc", "UFC", "UFC"], ["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"]];
+    const BOARDCHIPS = [["tennis", "TENNIS", "TENNIS"], ["ufc", "UFC", "UFC"], ["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"],
+      // CMMG pick pages (Scott 10/17 "midnite madness prime 4+ parlay free edge ice top 5" + "KBO and NPB")
+      ["mm", "TENNIS", "MIDNIGHT MADNESS"], ["prime4", "PRIME4", "PRIME 4+"], ["parlay", "PARLAY", "PARLAY"], ["freepick", "FREE", "FREE"],
+      ["edge", "EDGE", "EDGE"], ["ice", "ICE", "ICE"], ["top5", "TOP5", "TOP 5"], ["kbo", "KBO", "KBO"], ["npb", "NPB", "NPB"]];
     const BOARDHREF = { tennis: "/app/tennis/", ufc: "/app/ufc/", golf: "/app/golf/", lives: "/app/lives/", horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
     const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
@@ -320,7 +323,7 @@ const SHELL = (() => {
       <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${typeof ICON.color === "function" ? ICON.color("crown") : ic("star")}</a>`}
       <a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON.color === "function" ? ICON.color("bell") : ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
       <nav class="sportrow" aria-label="Sports">${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
-        ${BOARDCHIPS.map(([k, ik, l]) => `<a class="${curBoard === k || active === k ? "on" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? ICON.sport(ik) : ""}${l}</a>`).join("")}
+        ${BOARDCHIPS.map(([k, ik, l]) => `<a class="${curBoard === k || active === k ? "on" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? (ik === "ICE" || ik === "EDGE" ? ICON.tier(ik) : ICON.sport(ik)) : ""}${l}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("")

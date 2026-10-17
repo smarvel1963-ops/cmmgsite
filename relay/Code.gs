@@ -5,6 +5,7 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.11 (Scott 10/17): nine CMMG pick-page boards (mm, prime4, parlay, freepick, edge, ice, top5, kbo, npb).
  *   v1.10 (Scott 10/17 "per sport daily and lifetime totals page by page"): scoreboard adds per-SPORT rows (Pro Track
  *   split by sport) and uses the feed's LIFETIME part ("records", cmmg_feed_lifetime.py) for pro/free/sport totals;
  *   "records" task now gated like the scoreboard. Totals still need RESULTS_PUBLIC + SCOREBOARD_TOTALS ("pro,free,sports").
@@ -190,7 +191,10 @@ function picks(P, s) {
 // v1.7 BOARDS (Scott 10/11: "horses f1 nascar golf dk and prizepicks need pages", "auto live totals 3 basketball and
 // football"). The feed sends part "board_<name>" = {date, picks:[...], history:[...]}. Today's picks are masked like
 // Pro Track (a locked pick never carries its bet/odds); graded history only once RESULTS_PUBLIC = "1", same as Results.
-const BOARDS = ["lives", "horses", "f1", "nascar", "golf", "dk", "prizepicks"];
+const BOARDS = ["lives", "horses", "f1", "nascar", "golf", "dk", "prizepicks",
+  // v1.11 CMMG pick pages (Scott 10/17: "midnite madness prime 4+ parlay free edge ice top 5" + "KBO and NPB") - MasterHub
+  // cmmg_feed_pages.py, published picks only, each OFF until its feed switch is on. Access rides on each pick's "need".
+  "mm", "prime4", "parlay", "freepick", "edge", "ice", "top5", "kbo", "npb"];
 function board(P, s, req) {
   const name = String(req.name || "");
   if (BOARDS.indexOf(name) < 0) return { ok: false, error: "unknown board" };
@@ -202,7 +206,8 @@ function board(P, s, req) {
     return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
   });
   const pub = P.getProperty("RESULTS_PUBLIC") === "1";
-  return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub,
+  // review = MasterHub page_bench's PAGE UNDER REVIEW (the banner it posts once to Discord) - the page shows the same (v1.11)
+  return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub, review: d.review || null,
            history: pub ? (d.history || []).filter(function (p) { return p.result; }) : [] };
 }
 // v1.9 SCOREBOARD (Scott 10/17: "dashboard should be days total and running totals on all our pages we provide picks
@@ -218,9 +223,11 @@ function board(P, s, req) {
 //    odds) show W-L only.
 //  - RUNNING TOTAL per page only when RESULTS_PUBLIC = "1" AND the page is listed in Script Property SCOREBOARD_TOTALS
 //    (comma list, e.g. "pro,free"); none by default. It is the feed's rolling window (~45 days), shown "since <date>".
-const SB_UNITS = { pro: 1, free: 1, lives: 1 };
+const SB_UNITS = { pro: 1, free: 1, lives: 1, edge: 1, prime4: 1, top5: 1, kbo: 1, npb: 1, parlay: 1 };
+const SB_SKIP = { freepick: 1 };       // the Free page IS the Free Pick row - never a second copy of that record
 const SB_NAMES = { pro: "Pro Track", free: "Free Pick", lives: "Live Totals", horses: "Horse Racing", f1: "F1", nascar: "NASCAR",
-                   golf: "Golf", dk: "DK Lineups", prizepicks: "PrizePicks" };
+                   golf: "Golf", dk: "DK Lineups", prizepicks: "PrizePicks", mm: "Midnight Madness", prime4: "Prime 4+",
+                   parlay: "Parlay", freepick: "Free", edge: "EDGE", ice: "ICE", top5: "Top 5", kbo: "KBO", npb: "NPB" };
 function sbTally(rows) {
   const t = { w: 0, l: 0, p: 0, v: 0, pending: 0, net: 0 };
   rows.forEach(function (p) {
@@ -264,7 +271,7 @@ function scoreboard(P, s) {
   const rows = [sbRow("pro", tp.filter(notFree), hp.filter(notFree), s, on.indexOf("pro") >= 0, lp.pro),
                 sbRow("free", tp.filter(isFree), hp.filter(isFree), s, on.indexOf("free") >= 0, lp.free)];
   BOARDS.forEach(function (b) {
-    const f = getBig(P, "F_board_" + b); if (!f) return;
+    const f = getBig(P, "F_board_" + b); if (!f || SB_SKIP[b]) return;
     const d = f.data || {}; rows.push(sbRow(b, withGrades(P, d.picks || [], d.history || []), d.history || [], s, on.indexOf(b) >= 0));
   });
   // PER SPORT (Scott 10/17 "yes per sport daily"): Pro Track's picks split by sport - every sport with a pick today or a

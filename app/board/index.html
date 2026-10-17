@@ -4,7 +4,10 @@
      "auto live totals 3 basketball and football"): /app/board/?b=lives|horses|f1|nascar|golf|dk|prizepicks.
      Data = relay task "board" (v1.7). Each board stays empty ("coming to the site soon") until its own switch is turned
      on in MasterHub's data/cmmg_feed_config.json - no demo data. Locked picks never carry the bet/odds (relay masks them).
-     Graded history shows only once Verified Results are public (RESULTS_PUBLIC), same as the Results page. -->
+     Graded history shows only once Verified Results are public (RESULTS_PUBLIC), same as the Results page.
+     10/17 (Scott): + the CMMG pick pages - mm, prime4, parlay, freepick, edge, ice, top5, kbo, npb (MasterHub
+     cmmg_feed_pages.py). Any page MasterHub's page_bench has benched (ICE + Midnight Madness since 10/7) shows the same PAGE UNDER
+     REVIEW banner it posts to Discord - from the board's "review" field, so it clears itself when the page is back. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CMMG Boards · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -49,6 +52,16 @@ const BOARDS = [
   ["golf", "Golf", "GOLF", "TOURNAMENT PICKS.", "GOLF", "Tournament picks — outrights, top finishes and matchups."],
   ["dk", "DK Plays", "DK PLAYS", "DAILY FANTASY PLAYS.", "DK", "Our DraftKings fantasy plays."],
   ["prizepicks", "PrizePicks", "PRIZEPICKS", "PLAYER PROJECTIONS. MORE OR LESS.", "PRIZEPICKS", "PrizePicks player plays."],
+  // CMMG pick pages (Scott 10/17) - MasterHub cmmg_feed_pages.py
+  ["mm", "Midnight Madness", "MIDNIGHT MADNESS", "LATE-NIGHT TENNIS. OUR PICKS.", "TENNIS", "Our late-night tennis board."],
+  ["prime4", "Prime 4+", "PRIME 4+", "FOUR PICKS. EVERY DAY.", "PRIME4", "Our Prime 4 card - four picks a day."],
+  ["parlay", "Parlay", "PARLAY", "THE CMMG PARLAY.", "PARLAY", "The daily CMMG parlay."],
+  ["freepick", "Free", "FREE PICK", "ON THE HOUSE. EVERY DAY.", "FREE", "The free CMMG pick of the day."],
+  ["edge", "EDGE", "EDGE", "OUR EDGE PLAYS.", "EDGE", "The EDGE board - our strongest value plays."],
+  ["ice", "ICE", "ICE", "THE ICE BOARD.", "ICE", "The ICE board."],
+  ["top5", "Top 5", "TOP 5", "FIVE PICKS. LOCKED IN.", "TOP5", "The daily CMMG Top 5."],
+  ["kbo", "KBO", "KBO", "KOREAN BASEBALL. OUR PICKS.", "KBO", "Our KBO picks."],
+  ["npb", "NPB", "NPB", "JAPANESE BASEBALL. OUR PICKS.", "NPB", "Our NPB picks."],
 ];
 const KEY = (new URLSearchParams(location.search).get("b") || "lives").toLowerCase(), B = BOARDS.find(b => b[0] === KEY) || BOARDS[0];
 document.title = `${B[1]} · CMMG Sports Edge`; $("ttl").textContent = B[2]; $("tag").textContent = B[3];
@@ -71,6 +84,15 @@ function groups(rows) {
 }
 async function load() {
   let j; try { j = await CMMG.relay({ task: "board", name: B[0], session: CMMG.session()?.token }); } catch (e) { j = { ok: false }; }
+  if (j && j.ok && j.review) {         // MasterHub page_bench: the same PAGE UNDER REVIEW it posts once to Discord (10/17)
+    const since = j.review.since ? new Date(j.review.since + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
+    // the Discord banner's words (MasterHub assets/zone_banners/PAGE_UNDER_REVIEW.png), drawn here without its league logo
+    $("soon").innerHTML = `<div class="pur"><div class="pur-k">CMMG <span>SPORTS EDGE</span></div><h2>PAGE <b>UNDER REVIEW</b></h2><div class="pur-s">MAKING WINNER IMPROVEMENTS</div>
+      <div class="pur-g">⚙</div><p>We're currently reviewing and upgrading ${E(B[1])} to bring you an even better experience, more winners, and improved tools.</p>
+      <div class="pur-t">THANK YOU FOR YOUR PATIENCE!</div>${since ? `<div class="pur-d">Under review since ${E(since)} · picks return here and in Discord when it's back online</div>` : ""}</div>`;
+    $("list").innerHTML = ""; $("hist").innerHTML = "";
+    return;
+  }
   if (!j || !j.ok || !j.live) {
     $("soon").innerHTML = `<div class="soonbar"><b>${E(B[1])} is coming to the site.</b> ${E(B[5])} Until this board is switched on here, these picks post in the CMMG Discord.${SHELL.STORE ? "" : ` <a href="${SHELL.DISCORD}" style="color:var(--ice)">Open Discord</a>`}</div>`;
     return;

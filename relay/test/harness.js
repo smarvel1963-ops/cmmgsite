@@ -239,6 +239,18 @@ post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160
 SB = post({ task: "scoreboard", session: vipS });
 check("lifetime: a today pick dated the SAME day as through is never added twice (total = lifetime alone)", (t => t && t.w === 160 && t.l === 110 && t.net === 11.5)(sb("pro").total), sb("pro").total);
 delete PROPS.RESULTS_PUBLIC; delete PROPS.SCOREBOARD_TOTALS;
+// v1.11 CMMG pick pages: a Top 5 pick (need top5) is locked for a free visitor, open for VIP; Elite-only Midnight Madness
+post({ task: "put", key: "wkey", part: "board_top5", data: { date: "2026-10-17", picks: [{ id: "t5a", need: "top5", sport: "MLS", bet: "Inter Miami CF ML", odds: -114, units: 1, result: "WIN", profit: 0.88, date: "2026-10-17" }], history: [] } });
+post({ task: "put", key: "wkey", part: "board_mm", data: { date: "2026-10-17", picks: [{ id: "mm1", need: "elite", sport: "TENNIS", bet: "Player ML", odds: -140 }], history: [] } });
+post({ task: "put", key: "wkey", part: "board_freepick", data: { date: "2026-10-17", picks: [{ id: "fp9", need: "free", sport: "WNBA", bet: "OVER 154.5", result: "LOSS", profit: -1.5, date: "2026-10-17" }], history: [] } });
+check("pages: Top 5 locked for a signed-out visitor (no bet)", (p => p.locked && !p.bet)(post({ task: "board", name: "top5" }).picks[0]));
+check("pages: Top 5 open for VIP (pro sees top5)", post({ task: "board", name: "top5", session: vipS }).picks[0].bet === "Inter Miami CF ML");
+check("pages: Midnight Madness stays locked for VIP (elite only)", post({ task: "board", name: "mm", session: vipS }).picks[0].locked === true);
+SB = post({ task: "scoreboard", session: vipS });
+post({ task: "put", key: "wkey", part: "board_ice", data: { date: "2026-10-17", picks: [], history: [], review: { since: "2026-10-07" } } });
+check("pages: a benched page carries MasterHub's under-review flag to the site", (j => j.review && j.review.since === "2026-10-07" && !j.picks.length)(post({ task: "board", name: "ice" })));
+check("pages: a page that isn't benched has no review flag", post({ task: "board", name: "top5" }).review === null);
+check("pages: scoreboard lists Top 5 with units (1-0 +0.88u) and never a second Free row", (r => r && r.units && r.today.w === 1 && r.today.net === 0.88)(sb("top5")) && !sb("freepick") && SB.rows.filter(r => r.key === "free").length === 1, SB.rows.map(r => r.key));
 // v1.9 tracker snapshot (Scott 10/17 "pretty sure my tracker is off on its data"): a tracked pick keeps its result after
 // the feed's ~45-day history no longer carries it
 DISCORD.user = { id: "777777777777777777", username: "snap" }; DISCORD.roles = ["1471082166149578936"];

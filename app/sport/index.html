@@ -10,7 +10,8 @@
      shared css: tier tag, pick, matchup, odds/book, I Took This Pick, FINAL + W/L badge, locked cards stay locked with
      Unlock), under a Pro-Track-style sport banner with the day's W-L-P tally - then a SCHEDULE bar - then the games.
      Same stale-board rule as Pro Track (yesterday's board only until 10 AM CT). The old "top picks" side box is gone ON THOSE SPORTS. Rolled out per sport
-     (PT_TOP): NFL first; the others keep the old layout until Scott OKs NFL and names them. -->
+     (PT_TOP): NFL first, then 10/17 every sport hub here (Scott "get rest pages simular to nfl but not ufc dk F1 prize
+     picks or golf or lives" - those are separate pages and stay as they are). -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sport Hub · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -156,7 +157,7 @@ const oddsT = o => o == null || o === "" ? "" : (Number(o) > 0 ? "+" + o : Strin
 const SPN = L === "MLS" ? "SOCCER" : L;
 let STALE = false;
 // Scott 10/17: "i can list which pages to do that on once nfl is done and oked" - add a league here once he OKs it.
-const PT_TOP = ["NFL"], PT = PT_TOP.includes(L);
+const PT_TOP = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"], PT = PT_TOP.includes(L);   // Scott 10/17 "get rest pages simular to nfl"
 if (PT) { const o = $("oldTop"); o.querySelector(".box").remove(); o.style.gridTemplateColumns = "minmax(0,1fr)"; $("tbl").closest(".box").after(o); }   // quick links go under the games
 else { $("cmmgPicks").remove(); $("schbar").remove(); }
 function topPicks() {

@@ -197,6 +197,8 @@ async function load() {
   let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { j = { ok: false, error: "Couldn't reach CMMG. Try again in a minute." }; }
   if (!j.ok) { if (/sign in/.test(j.error || "")) { CMMG.signOut(); location.reload(); return; } $("body").innerHTML = `<div class="empty">${E(j.error)}</div>`; return; }
   ROWS = j.rows || []; AUTO_SINCE = j.auto ? j.auto_since || "" : "";
+  { const td = todayKey(), net = ROWS.filter(r => rowDay(r) === td).reduce((x, r) => x + (r.units_pl || 0), 0);       // 💡 tip situations
+    if (net < 0) SHELL.tip("losing_day"); else if (net > 0) SHELL.tip("winning_day"); }
   $("autoBox").hidden = false; $("autoAll").checked = !!j.auto;
   try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
   draw();

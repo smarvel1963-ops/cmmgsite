@@ -233,7 +233,8 @@ async function loadTracker() {
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button, a"); if (!t) return;
-  if (t.dataset.slip) { const id = t.dataset.slip; SLIP = SLIP.includes(id) ? SLIP.filter(x => x !== id) : SLIP.concat(id).slice(-12); draw(); return; }
+  if (t.dataset.slip) { const id = t.dataset.slip, add = !SLIP.includes(id); SLIP = add ? SLIP.concat(id).slice(-12) : SLIP.filter(x => x !== id); draw();
+    if (add && SLIP.length >= 2) SHELL.tip("parlay", (PICKS.find(p => p.id === id) || {}).sport); return; }   // 💡 tip: a parlay is being built
   if (t.dataset.unslip) { SLIP = SLIP.filter(x => x !== t.dataset.unslip); draw(); return; }
   if (t.id === "slipClear") { SLIP = []; draw(); return; }
   if (t.dataset.sport) {

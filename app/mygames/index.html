@@ -128,6 +128,8 @@ async function load() {
   $("k3").innerHTML = [["MY GAMES", rows.length], ["LIVE NOW", live], ["GRADED", `${w}-${l}`], ["MY UNITS", (u > 0 ? "+" : "") + u.toFixed(2)]].map(([t, v]) => `<div class="kpi"><div class="l">${t}</div><div class="n ${t === "MY UNITS" ? (u > 0 ? "pos" : u < 0 ? "neg" : "") : ""}">${v}</div></div>`).join("");
   const step = (r, g) => r.result && r.result !== "PENDING" ? 4 : g ? { pre: 1, in: 2, post: 3 }[g.state] : 1;
   rows.forEach((r, i) => remember(r.pick, games[i]));
+  rows.forEach((r, i) => { const s = r.result === "LOSS" ? "lose" : r.result === "WIN" ? "win" : standing(r.bet, games[i]);     // 💡 tip situations
+    if (s === "lose") SHELL.tip("pick_losing", r.sport); else if (s === "win") SHELL.tip("pick_winning", r.sport); });
   $("took").innerHTML = rows.length ? rows.map((r, i) => { const g = games[i], n = step(r, g), res = r.result !== "PENDING" ? r.result : "";
     const now = res ? (res === "WIN" ? "win" : res === "LOSS" ? "lose" : "") : standing(r.bet, g), ls = LAST[r.pick];
     const lastLine = !g && !PATHS[r.sport] ? `<div class="st3">${ICON.sport(r.sport)} ${E(r.sport || "This sport")} · no live score on this page${r.sport === "TENNIS" ? " — see Tennis for the match" : ""}</div>`

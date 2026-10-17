@@ -229,6 +229,10 @@ const SHELL = (() => {
       let j; try { j = await CMMG.relay({ task: "track", session: s.token, pick: TOOKP.id, odds: f.odds.value === "" ? null : Number(f.odds.value), line: f.line.value,
         units: Number(f.units.value), book: f.book.value, note: f.note.value }); } catch (e) { j = { ok: false }; }
       t.textContent = j.ok ? "Added to My Tracker ✓" : (j.error || "Couldn't save — try again"); t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 2600);
+      if (j.ok) {
+        const dec = o => { o = Number(o); return o > 0 ? 1 + o / 100 : o < 0 ? 1 + 100 / -o : 0; }, mine = dec(f.odds.value), posted = dec(TOOKP.odds);
+        tip(mine && posted && mine < posted - 1e-9 ? "worse_price" : "took", TOOKP.sport);
+      }
     });
     return d;
   }
@@ -255,8 +259,34 @@ const SHELL = (() => {
     const on = row.querySelector("a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
     upd();
   }
+  // 💡 TIP side tab (Scott 10/17) - js/tips.js. OFF until Scott's go; the owner previews it on his own browser with
+  // ?tips=1 on any page (?tips=0 stops). Pages raise situations with SHELL.tip(moment, sport) - a no-op while off.
+  const TIPS_ON = false;
+  let TIPQ = [], TIPSTATE = 0;          // 0 off / not loaded, 1 loading, 2 ready
+  function tipsWanted() {
+    try { const q = new URLSearchParams(location.search).get("tips"); if (q === "1" || q === "0") localStorage.setItem("cmmg.tips.preview", q); } catch (e) {}
+    try { return TIPS_ON || localStorage.getItem("cmmg.tips.preview") === "1"; } catch (e) { return TIPS_ON; }
+  }
+  function tipsInit(active) {
+    if (!tipsWanted() || TIPSTATE) return;
+    TIPSTATE = 1;
+    const sc = document.createElement("script"); sc.src = "/js/tips.js";
+    sc.onload = () => { TIPSTATE = 2; try { CMMGTIPS.page(active); TIPQ.forEach(a => CMMGTIPS.raise(a[0], a[1])); } catch (e) {} TIPQ = []; };
+    document.head.appendChild(sc);
+  }
+  function tip(moment, sport) {
+    if (TIPSTATE === 2) { try { CMMGTIPS.raise(moment, sport); } catch (e) {} } else if (TIPSTATE === 1) TIPQ.push([moment, sport]);
+  }
+  // a live game's situation: "close_late" | "blowout" | "" - league-aware: [last period, close margin, blowout margin]
+  function tipGame(league, period, margin) {
+    const R = { NBA: [4, 5, 18], WNBA: [4, 5, 18], NCAAB: [2, 5, 18], NFL: [4, 7, 21], NCAAF: [4, 7, 21], NHL: [3, 1, 3], MLB: [8, 1, 5], MLS: [2, 1, 3] }[String(league || "").toUpperCase()];
+    const m = Math.abs(Number(margin) || 0), p = Number(period) || 0;
+    return !R ? "" : m >= R[2] ? "blowout" : p >= R[0] && m <= R[1] ? "close_late" : "";
+  }
+
   function mount(active) {
     if (welcomeGate()) return;
+    tipsInit(active);
     applyTheme();
     sportScene(active);
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
@@ -335,5 +365,5 @@ const SHELL = (() => {
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, took, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
+  return { mount, plan, membershipBox, who, took, tip, tipGame, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
 })();

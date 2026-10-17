@@ -1,0 +1,1318 @@
+{
+"v": "2026-10-17",
+"tips": [
+{
+"n": 1,
+"title": "Protect Your Bankroll",
+"text": "Your bankroll is your operating capital, not an unlimited supply of money. Set aside only what you can afford to lose, establish a fixed betting unit, and avoid increasing wagers simply because you feel confident. The goal isn't to win every game; it's to manage your money so that a losing streak doesn't end your ability to participate responsibly.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily",
+"took"
+]
+},
+{
+"n": 2,
+"title": "Never Chase a Loss",
+"text": "One of the most expensive mistakes sports bettors make is immediately increasing their next wager to recover a previous loss. The next game doesn't know you lost the last one. Every wager deserves its own independent evaluation, and losses should never determine the size of your next bet.",
+"sports": [
+"ALL"
+],
+"moments": [
+"losing_day",
+"pick_losing"
+]
+},
+{
+"n": 3,
+"title": "One Unit Means One Unit",
+"text": "Establish a consistent unit size before placing any wagers. Many disciplined bettors use a small percentage of their dedicated bankroll, such as 0.5%–1%, as a standard unit. This creates consistency, makes results easier to analyze, and reduces the damage caused by inevitable losing streaks.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"daily"
+]
+},
+{
+"n": 4,
+"title": "Winning Days Are Not Permission to Gamble Bigger",
+"text": "A profitable afternoon can create the illusion that your predictions have suddenly become more accurate. Avoid increasing your wager size simply because you're ahead. Maintain your established staking plan and remember that a successful day doesn't change the mathematical risk of the next event.",
+"sports": [
+"ALL"
+],
+"moments": [
+"winning_day",
+"pick_winning"
+]
+},
+{
+"n": 5,
+"title": "Set a Loss Limit Before the Games Begin",
+"text": "Decide how much you're willing to lose before placing the first wager. Once that limit is reached, stop for the day. Making this decision while you're calm is much more effective than attempting to establish boundaries after frustration and emotion have taken over.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily",
+"losing_day"
+]
+},
+{
+"n": 6,
+"title": "Never Bet Money Needed for Living Expenses",
+"text": "Rent, groceries, insurance, retirement savings, and family obligations must always come before sports wagering. Betting should use discretionary entertainment money only. Even a well-researched selection can lose, and no statistical advantage can guarantee that money will be available when you need it.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily"
+]
+},
+{
+"n": 7,
+"title": "Small Consistent Bets Beat Reckless Confidence",
+"text": "The difference between disciplined and reckless betting often comes down to wager size. A person making modest, consistent wagers can withstand normal fluctuations, while someone risking large portions of their bankroll may experience serious losses from just a few unfavorable outcomes.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took"
+]
+},
+{
+"n": 8,
+"title": "Track Your Actual Profit, Not Just Your Wins",
+"text": "A 60% win rate sounds impressive, but it doesn't automatically mean profitability. Odds, wager sizes, and losses determine your actual financial results. Record net units won or lost, return on investment, and total money risked rather than celebrating win percentages alone.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 9,
+"title": "Parlays Multiply Risk",
+"text": "Combining several selections into a parlay creates a larger potential payout but reduces the probability that every selection wins. Even individually reasonable picks can produce an unlikely combined outcome. Treat parlays as higher-risk entertainment rather than a dependable strategy for building a bankroll.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL"
+],
+"moments": [
+"parlay"
+]
+},
+{
+"n": 10,
+"title": "A Losing Week Does Not Require a Bigger Weekend",
+"text": "Trying to recover an entire week's losses through a few large weekend wagers is a dangerous habit. Your betting plan should remain consistent regardless of recent results. If losses are causing financial pressure or emotional distress, stepping away is more valuable than finding another game.",
+"sports": [
+"ALL"
+],
+"moments": [
+"losing_day"
+]
+},
+{
+"n": 11,
+"title": "Separate Betting Funds From Personal Accounts",
+"text": "Using a dedicated, limited entertainment budget makes it easier to track spending and maintain boundaries. Avoid repeatedly transferring additional funds after losses. Clear separation between betting money and everyday finances helps prevent sports entertainment from interfering with personal financial security.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily"
+]
+},
+{
+"n": 12,
+"title": "Don't Let the Size of a Payout Distract You",
+"text": "An attractive payout means very little without considering the probability of winning. A $1,000 potential return on a small wager may look exciting, but the likelihood of collecting it might be extremely low. Evaluate the underlying probability before becoming interested in the advertised prize.",
+"sports": [
+"ALL"
+],
+"moments": [
+"parlay",
+"took"
+]
+},
+{
+"n": 13,
+"title": "Know When to Stop After a Win",
+"text": "Winning can be just as emotionally dangerous as losing because it creates excitement and overconfidence. A successful bet doesn't obligate you to place another. If you've reached your predetermined wagering limit, ending the session is a reasonable decision regardless of whether you're ahead or behind.",
+"sports": [
+"ALL"
+],
+"moments": [
+"winning_day"
+]
+},
+{
+"n": 14,
+"title": "Never Borrow to Gamble",
+"text": "Credit cards, personal loans, retirement funds, and borrowed money should never finance sports betting. Debt adds financial pressure and can distort judgment, making ordinary losing streaks considerably more damaging. If wagering requires borrowing, the appropriate decision is to stop rather than seek another source of money.",
+"sports": [
+"ALL"
+],
+"moments": [
+"losing_day"
+]
+},
+{
+"n": 15,
+"title": "Your Bankroll Should Survive a Bad Month",
+"text": "Before choosing a wager size, consider what happens during an extended losing period. Losing streaks are normal even for strategies with a genuine statistical advantage. A responsible staking plan should keep individual losses small enough that your finances and essential obligations remain protected.",
+"sports": [
+"ALL"
+],
+"moments": [
+"losing_day",
+"results"
+]
+},
+{
+"n": 16,
+"title": "Picking Winners Is Not the Same as Making Money",
+"text": "A team can be highly likely to win and still be a poor wager if the sportsbook's price is too expensive. Successful probability analysis requires comparing your estimated chance of winning against the probability implied by the available odds. The price matters just as much as the selection.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"sport"
+]
+},
+{
+"n": 17,
+"title": "Understand the Break-Even Percentage",
+"text": "At standard -110 odds, a bettor must win approximately 52.38% of wagers just to break even before considering other costs. Winning exactly half of your bets at that price produces a loss over time. Understanding this basic calculation is essential when evaluating any handicapping strategy.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL"
+],
+"moments": [
+"results",
+"took"
+]
+},
+{
+"n": 18,
+"title": "Favorites Are Not Automatically Good Bets",
+"text": "A heavily favored team may have the stronger roster, better coaching, and superior recent results, but sportsbooks already incorporate much of that information into the price. The real question is whether the favorite's probability of winning is greater than the probability implied by the odds.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"sport"
+]
+},
+{
+"n": 19,
+"title": "Underdogs Don't Need to Win Most of the Time",
+"text": "Underdog wagering illustrates the importance of price. A selection offered at +200 only needs to win more than approximately one-third of the time to have positive expected value under a simplified model. However, reliably estimating that probability is difficult, and an appealing payout doesn't prove an edge exists.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"sport"
+]
+},
+{
+"n": 20,
+"title": "Learn to Remove the Sportsbook's Margin",
+"text": "Sportsbooks generally build a margin into their odds, causing the combined implied probabilities of opposing outcomes to exceed 100%. Removing that margin provides a better starting point for estimating market expectations. Comparing raw sportsbook odds without accounting for this difference can distort value calculations.",
+"sports": [
+"ALL"
+],
+"moments": [
+"worse_price",
+"took"
+]
+},
+{
+"n": 21,
+"title": "The Best Team Doesn't Always Cover",
+"text": "Winning a game and covering a point spread are two different outcomes. A football team favored by ten points can win comfortably and still fail to cover. Handicapping spreads requires evaluating expected scoring margins rather than simply deciding which team is more likely to win.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 22,
+"title": "Shop for the Best Line",
+"text": "Different sportsbooks may offer slightly different spreads, totals, and prices on the same event. Over a large number of wagers, consistently obtaining better prices can materially improve results. Compare available legal sportsbooks, but never use line shopping as an excuse to increase wagering frequency.",
+"sports": [
+"ALL"
+],
+"moments": [
+"worse_price",
+"took"
+]
+},
+{
+"n": 23,
+"title": "Half a Point Can Matter",
+"text": "In sports with key scoring margins, even a half-point difference can change whether a wager wins, loses, or pushes. Football spreads around common margins such as three and seven deserve particular attention. Evaluating line differences is often more useful than debating which sportsbook has the most attractive interface.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL"
+],
+"moments": [
+"worse_price",
+"sport"
+]
+},
+{
+"n": 24,
+"title": "A Good Bet Can Still Lose",
+"text": "Positive expected value describes a favorable mathematical expectation over repeated opportunities, not a guarantee on an individual event. Even a genuine 60% probability leaves a 40% chance of losing. Judge decisions by the quality of their reasoning, not solely by the immediate result.",
+"sports": [
+"ALL"
+],
+"moments": [
+"pick_losing",
+"results"
+]
+},
+{
+"n": 25,
+"title": "Implied Probability Should Be Your Second Language",
+"text": "American odds can be translated into probabilities. At +150, the implied break-even probability is 40%; at -150, it's 60%. Learning these conversions helps bettors evaluate prices more objectively and avoid confusing a large payout with a favorable mathematical opportunity.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"daily"
+]
+},
+{
+"n": 26,
+"title": "Don't Confuse Probability With Certainty",
+"text": "A model predicting a 75% win probability is not declaring a guaranteed winner. It is estimating that similar situations would produce the selected outcome about three times in four if the model were properly calibrated. Every probability estimate should be treated as uncertain and subject to error.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took"
+]
+},
+{
+"n": 27,
+"title": "Compare Price Before Comparing Teams",
+"text": "Two analysts can agree that the same team is likely to win but disagree about whether its current price offers value. One might estimate a 65% probability while the sportsbook implies 72%. That difference demonstrates why probability estimation must come before deciding whether a wager is justified.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took"
+]
+},
+{
+"n": 28,
+"title": "Market Movement Isn't Always Smart Money",
+"text": "A changing betting line may reflect injuries, lineup information, weather, liability management, or ordinary market activity. Assuming that every significant movement comes from sophisticated bettors is unreliable. Investigate what changed and whether the movement is supported by relevant information before drawing conclusions.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 29,
+"title": "There Is No Such Thing as a Guaranteed Lock",
+"text": "Every sporting event contains uncertainty, including injuries, officiating decisions, unexpected performances, and random variation. Anyone advertising guaranteed winners or risk-free profits deserves skepticism. Responsible analysis communicates probabilities, limitations, and uncertainty instead of making promises that cannot be supported.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily",
+"results"
+]
+},
+{
+"n": 30,
+"title": "Passing Is a Legitimate Decision",
+"text": "A sportsbook can offer hundreds of games without providing a single opportunity that meets your criteria. You are not required to place a wager simply because an event is available. Choosing not to bet when the evidence is weak is an important part of disciplined decision-making.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport",
+"daily"
+]
+},
+{
+"n": 31,
+"title": "Research Matchups, Not Just Records",
+"text": "A 10–2 team isn't automatically superior in every situation to an 8–4 opponent. Strength of schedule, opponent styles, injuries, travel, and matchup-specific advantages can explain why records differ. A useful handicap investigates how two teams interact rather than relying only on their season standings.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 32,
+"title": "Recent Performance Needs Context",
+"text": "A team winning five consecutive games may appear dominant, but the quality of its opponents matters. Examine whether those victories came against strong competition, injured rosters, or unusually favorable circumstances. Winning streaks provide information, but they should never replace deeper statistical evaluation.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 33,
+"title": "Injuries Affect More Than One Position",
+"text": "An injured offensive lineman can influence pass protection, quarterback efficiency, running opportunities, and scoring drives. Likewise, missing defenders can change rotations and tactical decisions. Evaluating the broader impact of an absence is often more informative than simply identifying which star players are unavailable.",
+"sports": [
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 34,
+"title": "Understand Schedule Fatigue",
+"text": "Back-to-back games, extended road trips, overtime contests, and limited recovery periods may influence team performance. However, fatigue effects vary by sport and circumstances. Rather than assuming tired teams automatically perform poorly, study whether particular scheduling situations have measurable predictive value.",
+"sports": [
+"MLB",
+"MLS",
+"NBA",
+"NCAAB",
+"NHL",
+"TENNIS",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 35,
+"title": "Home-Field Advantage Is Not Constant",
+"text": "The advantage of playing at home differs across leagues, teams, venues, and seasons. Travel distance, crowd influence, familiarity, and environmental conditions may contribute. Avoid applying the same fixed home advantage to every matchup without checking how it fits the specific sport and current data.",
+"sports": [
+"MLB",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 36,
+"title": "Coaching Strategy Changes Outcomes",
+"text": "Coaches influence tempo, substitutions, fourth-down decisions, defensive adjustments, and late-game risk. These decisions can affect spreads and totals even when player talent is similar. Studying coaching tendencies can add useful context, but those tendencies should be tested rather than assumed to remain unchanged.",
+"sports": [
+"MLB",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 37,
+"title": "Motivation Is Difficult to Measure",
+"text": "A team fighting for playoff qualification may seem more motivated than an eliminated opponent, but motivation doesn't translate cleanly into performance. Professional athletes have individual incentives, and eliminated teams can still compete intensely. Use motivational narratives as supporting context, not as a replacement for evidence.",
+"sports": [
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 38,
+"title": "Strength of Schedule Matters",
+"text": "Two teams with identical records may have faced dramatically different levels of competition. Adjusting performance statistics for opponent strength helps create fairer comparisons. This is especially important early in a season, when a handful of favorable or unfavorable matchups can substantially distort raw team rankings.",
+"sports": [
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 39,
+"title": "Weather Can Change the Game",
+"text": "Wind, rain, snow, heat, and field conditions can influence certain sports, particularly football and baseball. Strong wind may affect passing and kicking, while extreme heat can create additional physical demands. Quantify weather effects where possible instead of automatically betting an under whenever rain appears in the forecast.",
+"sports": [
+"CFL",
+"GOLF",
+"MLB",
+"MLS",
+"NCAAF",
+"NFL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 40,
+"title": "Understand the Importance of Pace",
+"text": "Teams that play faster generally create more possessions or scoring opportunities, depending on the sport. A matchup involving two fast-paced teams may differ substantially from one involving deliberate, defensive opponents. Pace is especially relevant to basketball totals, but efficiency and market pricing remain essential considerations.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"sport",
+"live"
+]
+},
+{
+"n": 41,
+"title": "Defensive Rankings Can Mislead",
+"text": "A defense allowing fewer points might simply face weaker opponents or slower-paced teams. Evaluate efficiency measures, opponent strength, and situational performance before labeling a defense elite. Statistics become more useful when the environment producing them is understood.",
+"sports": [
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 42,
+"title": "Look Beyond the Final Score",
+"text": "A 20-point victory doesn't always indicate a dominant performance. Turnovers, shooting variance, penalties, special teams, and late-game circumstances can inflate margins. Reviewing underlying performance can reveal whether a team played as well as the scoreboard suggests.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"sport",
+"blowout"
+]
+},
+{
+"n": 43,
+"title": "Player Matchups Matter",
+"text": "A basketball team's defensive ranking may look strong overall while revealing weaknesses against a particular position or offensive style. Similar mismatches appear throughout sports. Individual matchup analysis can refine broader team projections, especially when personnel changes alter established patterns.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"TENNIS",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 44,
+"title": "Don't Overreact to One Game",
+"text": "A single unexpected performance rarely provides enough evidence to conclude that a team's underlying ability has fundamentally changed. Sports contain substantial random variation. Revisit assumptions when new information appears, but avoid rebuilding an entire prediction system around one surprising result.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport",
+"pick_losing"
+]
+},
+{
+"n": 45,
+"title": "Use Multiple Independent Sources",
+"text": "Reliable handicapping benefits from checking statistics, injury reports, schedules, and confirmed lineup information against trustworthy sources. Different websites may report different numbers because of update delays or calculation methods. Verifying important information reduces avoidable mistakes before a decision is made.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 46,
+"title": "Live Betting Requires Faster Decisions, Not Faster Emotions",
+"text": "In-game markets change rapidly, sometimes reacting to a single possession or scoring event. That speed can encourage impulsive decisions. Establish the conditions you are looking for before the game begins, and avoid wagering simply because an attractive-looking number suddenly appears.",
+"sports": [
+"CFL",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"TENNIS",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 47,
+"title": "Momentum Is Not a Guarantee",
+"text": "A team scoring ten consecutive points may appear unstoppable, but recent scoring runs don't ensure continued success. Basketball and other sports regularly experience temporary fluctuations. Evaluate whether a run reflects a meaningful tactical or personnel change rather than assuming recent events will continue indefinitely.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 48,
+"title": "Understand Live Total Projections",
+"text": "A live total represents the market's current estimate of combined scoring, not merely the existing score multiplied by remaining time. Game pace, offensive efficiency, possession expectations, and late-game strategies influence the projection. Simple extrapolation can miss important contextual factors.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 49,
+"title": "Time Remaining Changes Everything",
+"text": "Ten points needed with twelve minutes remaining is very different from ten points needed with ninety seconds left. Any live totals analysis must account for both scoring requirements and available time. The relationship between possessions, scoring efficiency, and clock management is fundamental.",
+"sports": [
+"CFL",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"close_late",
+"live"
+]
+},
+{
+"n": 50,
+"title": "Beware of Early Scoring Explosions",
+"text": "An unusually high-scoring first quarter can push live totals upward, but that doesn't mean the rest of the contest will continue at the same pace. Early shooting percentages and temporary defensive breakdowns may regress. Examine whether the underlying scoring environment supports the updated projection.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 51,
+"title": "Low Scoring Doesn't Automatically Mean an Over",
+"text": "An unusually quiet opening period can create the temptation to expect a scoring rebound. However, slow tempo, strong defensive play, injuries, or poor offensive execution may persist. A lower live total is not automatically mispriced simply because the initial scoring rate seems unsustainable.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 52,
+"title": "Watch Possessions, Not Just Points",
+"text": "Possession count provides essential context for live basketball analysis. Teams can score efficiently on relatively few possessions or struggle despite numerous opportunities. Separating pace from scoring efficiency helps identify why totals are changing and whether those changes are likely to continue.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 53,
+"title": "Fouls Change Late-Game Totals",
+"text": "Late-game fouling can extend basketball games through free throws and additional possessions, potentially increasing scoring. However, this depends on the margin, remaining time, coaching decisions, and team behavior. Treat intentional fouling as a conditional factor rather than an automatic reason to expect an over.",
+"sports": [
+"NBA",
+"NCAAB",
+"WNBA"
+],
+"moments": [
+"close_late"
+]
+},
+{
+"n": 54,
+"title": "Garbage Time Has Uncertain Effects",
+"text": "A lopsided contest may lead to reduced playing time for starters, different lineup combinations, and changes in intensity. Sometimes reserves score freely; other times offenses become less efficient. Evaluate the specific circumstances instead of assuming blowouts always favor one side of a total.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"blowout"
+]
+},
+{
+"n": 55,
+"title": "Live Odds May Include a Substantial Margin",
+"text": "The convenience and speed of live wagering can come with wider sportsbook margins or less favorable prices. Even when an in-game prediction appears reasonable, an expensive price can eliminate potential value. Check the odds carefully before making a decision.",
+"sports": [
+"ALL"
+],
+"moments": [
+"live",
+"worse_price"
+]
+},
+{
+"n": 56,
+"title": "Have a Plan Before Tipoff or Kickoff",
+"text": "A written pregame plan can identify the game situations worth examining, including pace changes, substitutions, injuries, or significant market adjustments. Preparation allows live information to be evaluated against established criteria instead of inventing new explanations every time the score changes.",
+"sports": [
+"ALL"
+],
+"moments": [
+"live",
+"daily"
+]
+},
+{
+"n": 57,
+"title": "Live Betting Can Encourage Overtrading",
+"text": "Constantly refreshing odds makes it easy to place more wagers than originally intended. More action does not necessarily create more opportunity. Set limits on the number of wagers and total risk before entering a live session, and take breaks when the pace begins affecting your judgment.",
+"sports": [
+"ALL"
+],
+"moments": [
+"live"
+]
+},
+{
+"n": 58,
+"title": "Scoreboard Pressure Isn't Predictive Evidence",
+"text": "A team trailing by two touchdowns might increase offensive aggression, but that doesn't guarantee a comeback or enough scoring to cover a total. Separate what the team needs to accomplish from what it is realistically capable of accomplishing against its opponent.",
+"sports": [
+"CFL",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"blowout",
+"pick_losing"
+]
+},
+{
+"n": 59,
+"title": "Watch for Meaningful Personnel Changes",
+"text": "A quarterback injury, basketball foul trouble, baseball pitching change, or soccer red card can significantly alter a live projection. The important question is how the change affects expected performance, not simply whether the event appears dramatic.",
+"sports": [
+"MLB",
+"MLS",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"live",
+"sport"
+]
+},
+{
+"n": 60,
+"title": "Don't Confuse a Close Call With a Reliable System",
+"text": "Repeatedly missing or winning live totals by a single point can feel like evidence that a model is nearly perfect. Close outcomes alone do not establish predictive accuracy. Evaluate many properly recorded decisions, market prices, and statistical uncertainty before drawing conclusions.",
+"sports": [
+"CFL",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"WNBA"
+],
+"moments": [
+"close_late",
+"results"
+]
+},
+{
+"n": 61,
+"title": "AI Doesn't Automatically Create an Edge",
+"text": "Artificial intelligence can process data, identify patterns, and organize research, but it cannot guarantee accurate predictions. A system is only as useful as its data, assumptions, validation, and maintenance. Treat AI as an analytical tool rather than an authority that should be followed without verification.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results",
+"daily"
+]
+},
+{
+"n": 62,
+"title": "Backtesting Must Use Information Available at the Time",
+"text": "A model can appear exceptionally accurate if historical testing accidentally includes information that wasn't available before each event. This is called data leakage. Legitimate backtesting must preserve the timeline so predictions use only information that would actually have been known when the wager was considered.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 63,
+"title": "Out-of-Sample Testing Is Essential",
+"text": "A strategy performing well on the same data used to build it provides limited evidence of future reliability. Testing against unseen games helps determine whether the model learned useful relationships or simply memorized historical patterns. Strong backtests should be followed by genuinely independent evaluation.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 64,
+"title": "A High Win Rate Can Hide Poor Economics",
+"text": "A model predicting heavy favorites might report an impressive success rate while producing negative returns because the prices are expensive. Evaluate profitability using the actual available odds, including market margins and realistic execution assumptions. Accuracy alone is not enough.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 65,
+"title": "Record Every Prediction Before the Result",
+"text": "A credible handicapping system should preserve predictions, timestamps, available odds, and outcomes before the event concludes. This prevents selective reporting and hindsight adjustments. Publishing only winning selections creates a distorted picture of performance and makes genuine improvement much harder.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 66,
+"title": "Track Closing-Line Value",
+"text": "Closing-line value measures how your selected price compares with the market's final price before an event begins. Consistently obtaining favorable prices can be a useful indicator of decision quality, although it does not guarantee profitability. Evaluate it alongside actual returns and predictive calibration.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results",
+"took"
+]
+},
+{
+"n": 67,
+"title": "Model Confidence Needs Calibration",
+"text": "A model assigning 70% confidence should produce the selected outcome approximately 70% of the time over a sufficiently large group of comparable predictions if it is well calibrated. Confidence labels without this validation may create false reassurance. Test whether model probabilities match observed outcomes.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 68,
+"title": "More Data Isn't Always Better Data",
+"text": "Thousands of statistics can make a model appear sophisticated without improving its predictive performance. Irrelevant variables, duplicate information, and noisy measurements can increase overfitting. Prioritize meaningful, reliable features rather than adding every available statistic.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 69,
+"title": "Build Sport-Specific Models",
+"text": "Football, basketball, baseball, tennis, and hockey have different scoring systems, tactical structures, and sources of uncertainty. A single generic model may overlook important differences. Sport-specific approaches allow predictions to reflect the mechanisms that actually produce results in each league.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results",
+"sport"
+]
+},
+{
+"n": 70,
+"title": "Don't Let AI Invent Missing Data",
+"text": "If an injury report, betting line, starting lineup, or historical statistic cannot be verified, an AI system should clearly identify the missing information rather than manufacture an answer. Fabricated inputs can create confident-looking predictions that have no legitimate statistical foundation.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 71,
+"title": "Monitor Model Drift",
+"text": "Relationships that once predicted outcomes may weaken as teams change, leagues adjust rules, or markets become more efficient. Monitor performance across time and investigate meaningful deterioration. A model that worked last season should not automatically be trusted under new conditions.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 72,
+"title": "Separate Training From Evaluation",
+"text": "Repeatedly adjusting a model based on its supposed test results eventually makes those results part of the development process. Maintain truly untouched evaluation data to obtain a more credible estimate of future performance. Otherwise, continual optimization can create impressive historical numbers that fail in practice.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 73,
+"title": "Understand Sample Size",
+"text": "Winning eight of ten selections produces an 80% record, but such a small sample provides limited evidence of lasting skill. As the number of evaluated predictions increases, performance estimates generally become more informative. Report sample sizes alongside percentages so readers understand the uncertainty.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 74,
+"title": "Learn From Losing Predictions",
+"text": "When a selection loses, examine whether the cause was normal variance, incorrect assumptions, bad data, poor pricing, or a structural model weakness. A loss isn't automatically proof the model failed, just as a win doesn't prove it succeeded. Meaningful improvements come from systematic analysis.",
+"sports": [
+"ALL"
+],
+"moments": [
+"pick_losing",
+"results"
+]
+},
+{
+"n": 75,
+"title": "Never Give AI Unrestricted Control of Wagers",
+"text": "Automated systems can misread data, misunderstand instructions, encounter software errors, or respond incorrectly to changing markets. Keep meaningful human approval, spending limits, logging, and emergency shutdown controls in place. Prediction automation and financial decision automation should be treated as different levels of risk.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results",
+"daily"
+]
+},
+{
+"n": 76,
+"title": "Your Favorite Team Deserves Extra Scrutiny",
+"text": "Fans often possess useful information about their teams but may also overlook weaknesses or exaggerate strengths. Emotional attachment can influence probability estimates. When evaluating your favorite team, apply the same objective criteria you would use for an unfamiliar opponent.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport",
+"took"
+]
+},
+{
+"n": 77,
+"title": "Don't Bet Because Everyone Else Is Betting",
+"text": "Popular public selections often generate excitement, but popularity doesn't establish value. Likewise, automatically choosing the opposite side simply because a team is popular is not a reliable strategy. Base decisions on independent evidence and market prices.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"daily"
+]
+},
+{
+"n": 78,
+"title": "Recognize Recency Bias",
+"text": "Recent results tend to feel more important than older information, even when the larger sample provides a more accurate picture. A team dominating its last game may still have significant weaknesses. Balance recent performance with broader evidence rather than allowing one memorable event to control expectations.",
+"sports": [
+"ALL"
+],
+"moments": [
+"sport",
+"pick_winning"
+]
+},
+{
+"n": 79,
+"title": "Don't Mistake Luck for Skill",
+"text": "A winning streak can occur through ordinary chance, especially over small samples. Before increasing confidence in a strategy, examine its long-term results, pricing, and statistical reliability. Temporary success should encourage careful evaluation, not assumptions that future outcomes have become predictable.",
+"sports": [
+"ALL"
+],
+"moments": [
+"winning_day",
+"pick_winning"
+]
+},
+{
+"n": 80,
+"title": "Be Careful With Confirmation Bias",
+"text": "Once you favor a selection, it's easy to seek statistics that support it while dismissing contradictory evidence. A stronger research process actively looks for reasons the original prediction might be wrong. Challenging your assumptions improves the quality of your analysis.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took"
+]
+},
+{
+"n": 81,
+"title": "Avoid Revenge Betting",
+"text": "Losing on a controversial penalty, missed shot, or unexpected turnover can trigger a desire to recover money immediately. That frustration can distort judgment and wager sizing. A predetermined cooling-off period can help prevent emotions from making the next decision.",
+"sports": [
+"ALL"
+],
+"moments": [
+"pick_losing",
+"losing_day"
+]
+},
+{
+"n": 82,
+"title": "A Winning Streak Doesn't Make You Invincible",
+"text": "Several successful wagers in a row may create an exaggerated sense of control over unpredictable events. Past outcomes do not make the next selection more likely to win. Continue evaluating probabilities and maintaining the same financial boundaries regardless of recent success.",
+"sports": [
+"ALL"
+],
+"moments": [
+"winning_day",
+"pick_winning"
+]
+},
+{
+"n": 83,
+"title": "Don't Force Action During Boring Games",
+"text": "Watching sports without a wager can feel less exciting to someone accustomed to betting frequently. That feeling is not evidence that a wager is worthwhile. Enjoying a game without financial risk is perfectly reasonable and can help maintain a healthier relationship with sports.",
+"sports": [
+"ALL"
+],
+"moments": [
+"blowout"
+]
+},
+{
+"n": 84,
+"title": "Take Breaks From Constant Odds Checking",
+"text": "Rapidly changing odds, notifications, and game updates can create a cycle of constant attention. Establish limits on how long you spend monitoring markets. If betting begins interfering with sleep, work, relationships, or daily responsibilities, reduce involvement and seek support when needed.",
+"sports": [
+"ALL"
+],
+"moments": [
+"live",
+"daily"
+]
+},
+{
+"n": 85,
+"title": "Winning Shouldn't Define Your Self-Worth",
+"text": "A wager's outcome does not measure intelligence, discipline, or personal value. Sports involve uncertainty, and even sound predictions can fail. Keeping gambling separate from personal identity reduces the temptation to prove yourself through increasingly risky wagers.",
+"sports": [
+"ALL"
+],
+"moments": [
+"losing_day"
+]
+},
+{
+"n": 86,
+"title": "NFL: Study Pressure, Not Just Passing Yards",
+"text": "Passing statistics alone don't reveal how well a quarterback performs under pressure. Offensive line health, defensive pass-rush effectiveness, protection schemes, and pressure rates can influence offensive efficiency. These matchup details provide context beyond a quarterback's total passing yards.",
+"sports": [
+"CFL",
+"NCAAF",
+"NFL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 87,
+"title": "NFL: Key Numbers Matter",
+"text": "NFL scoring commonly produces margins of three and seven because of the sport's scoring structure. Spread differences around these margins can be more meaningful than equally sized movements elsewhere. Understanding historical scoring distributions helps explain why not all half-points have identical value.",
+"sports": [
+"NFL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 88,
+"title": "College Football: Beware of Uneven Competition",
+"text": "College football teams can accumulate impressive statistical records against substantially weaker opponents. Differences in roster quality and conference strength make opponent adjustments especially important. Raw averages often provide misleading comparisons when teams have faced very different levels of competition.",
+"sports": [
+"NCAAF"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 89,
+"title": "NBA: Watch Rotation Changes",
+"text": "The absence of a starter may affect more than individual scoring production. Minutes distribution, defensive matchups, usage rates, and bench responsibilities can change. Evaluating expected rotations can provide a more complete picture than simply subtracting one player's average points from a projection.",
+"sports": [
+"NBA",
+"NCAAB",
+"WNBA"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 90,
+"title": "NBA: Pace and Efficiency Work Together",
+"text": "A fast game doesn't necessarily produce a high total if both teams struggle to score efficiently. Similarly, excellent offensive efficiency can support significant scoring even at a moderate pace. Totals analysis should evaluate expected possessions and points per possession together.",
+"sports": [
+"NBA",
+"NCAAB",
+"WNBA"
+],
+"moments": [
+"sport",
+"live"
+]
+},
+{
+"n": 91,
+"title": "MLB: Starting Pitchers Are Only Part of the Equation",
+"text": "A strong starting pitcher can influence a baseball game significantly, but relief pitching, defense, batting matchups, weather, and ballpark conditions also matter. Evaluate how the full game is likely to unfold rather than relying exclusively on the starting pitching comparison.",
+"sports": [
+"KBO",
+"MLB",
+"NPB"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 92,
+"title": "MLB: Ballparks Influence Run Scoring",
+"text": "Different stadium dimensions, environmental conditions, and playing surfaces can affect offensive production. However, park factors should be interpreted alongside weather, opposing pitchers, and team characteristics. A hitter-friendly stadium doesn't automatically make every game an attractive over.",
+"sports": [
+"KBO",
+"MLB",
+"NPB"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 93,
+"title": "NHL: Goaltending Can Change Projections",
+"text": "Confirmed starting goaltenders, recent workload, team defensive structure, and expected shot quality can influence hockey outcomes. A backup goalie doesn't automatically mean higher scoring, but the personnel change deserves evaluation using meaningful performance indicators.",
+"sports": [
+"NHL"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 94,
+"title": "Soccer: A Draw Is a Real Outcome",
+"text": "In traditional three-way soccer markets, the home team, away team, and draw are separate outcomes. Ignoring the draw can lead to misunderstanding probabilities and betting prices. Different markets, including draw-no-bet and double chance, change the risk and payout structure.",
+"sports": [
+"MLS"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 95,
+"title": "Tennis: Surface and Match Format Matter",
+"text": "A player's overall ranking doesn't capture every matchup condition. Court surface, serve and return performance, fitness, travel, and match format may influence performance. Analyze the conditions of the specific tournament rather than assuming the higher-ranked player always offers value.",
+"sports": [
+"TENNIS"
+],
+"moments": [
+"sport"
+]
+},
+{
+"n": 96,
+"title": "Expected Value Is an Estimate, Not a Promise",
+"text": "Expected value combines estimated win probability with the payout offered by the market. Its usefulness depends on the accuracy of the underlying probability estimate. A calculation showing positive expected value doesn't establish a genuine advantage unless that estimate is supported by reliable evidence.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"daily"
+]
+},
+{
+"n": 97,
+"title": "Understand Correlated Parlays",
+"text": "Selections in the same game may be related, meaning their outcomes are not independent. For example, certain player statistics may rise together with team scoring. Simply multiplying individual probabilities can give misleading parlay estimates when correlation is ignored.",
+"sports": [
+"MLB",
+"NBA",
+"NCAAB",
+"NCAAF",
+"NFL",
+"NHL",
+"WNBA"
+],
+"moments": [
+"parlay"
+]
+},
+{
+"n": 98,
+"title": "Use a Decision Journal",
+"text": "Before each wager, record your estimated probability, available odds, reasoning, and important uncertainties. Review those notes after the event without rewriting the original analysis. A decision journal reveals recurring mistakes and helps distinguish strong reasoning from favorable luck.",
+"sports": [
+"ALL"
+],
+"moments": [
+"took",
+"results"
+]
+},
+{
+"n": 99,
+"title": "Transparency Builds Credibility",
+"text": "Handicappers should report losses alongside wins, maintain consistent grading rules, and disclose the prices available when selections were published. Selectively displaying winning screenshots can create misleading performance claims. Long-term trust is built through complete and verifiable records.",
+"sports": [
+"ALL"
+],
+"moments": [
+"results"
+]
+},
+{
+"n": 100,
+"title": "The Best Sports Bettor Knows When Not to Bet",
+"text": "No model, statistic, handicapper, or AI system eliminates uncertainty. Responsible decisions require adequate evidence, acceptable pricing, manageable financial exposure, and emotional control. When those conditions aren't present, passing is often the smartest choice available.",
+"sports": [
+"ALL"
+],
+"moments": [
+"daily",
+"losing_day"
+]
+}
+]
+}

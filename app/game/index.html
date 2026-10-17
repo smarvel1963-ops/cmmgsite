@@ -117,6 +117,7 @@ async function game(l, id) {
   if (!PICKS.length && !MINE.length) await relayBits();
   const comp = j.header.competitions[0], st = comp.status.type, cs = comp.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
   const [a, h] = cs, live = st.state === "in", sc = st.state !== "pre";
+  if (live) { const gm = SHELL.tipGame(l, comp.status.period, Number(a.score) - Number(h.score)); SHELL.tip(gm || "live", l); }   // 💡 tip situations
   const picks = PICKS.filter(p => p.sport === l && (p.locked ? false : onGame(p.game, cs)));
   const mine = MINE.filter(m => m.sport === l && onGame(m.game, cs));
   const tv = [...new Set((comp.broadcasts || []).map(b => b.media?.shortName).filter(Boolean))].join(", ");

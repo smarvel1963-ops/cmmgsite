@@ -179,6 +179,10 @@ delete PROPS.OWNER_IDS;
 L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
 check("v1.9: no OWNER_IDS -> the owner signs in as FREE, exactly as before", L.ok && L.me.access.join() === "free", L.me);
 check("v1.9: ... and Live Totals stays locked", post({ task: "board", name: "lives", session: L.session }).picks[0].locked === true);
+const oldOwnerS = L.session;                                    // signed in BEFORE OWNER_IDS existed
+PROPS.OWNER_IDS = OWNER;
+check("v1.9.1: an owner's OLD session (signed before OWNER_IDS) unlocks Live Totals at once - no re-sign-in", post({ task: "board", name: "lives", session: oldOwnerS }).picks[0].locked !== true);
+check("v1.9.1: ... and 'me' reports elite for it", post({ task: "me", session: oldOwnerS }).me.access.indexOf("elite") >= 0);
 PROPS.OWNER_IDS = " 999999999999999999 ,abc, 12 , " + OWNER + " ";
 L = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
 check("v1.9: listed owner (not even in the server) -> elite + pro + top5", L.ok && L.me.access.slice().sort().join() === "elite,pro,top5", L.me);

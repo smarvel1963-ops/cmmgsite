@@ -2,7 +2,7 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.9 (v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
+ * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
  *   Also v1.9: task "scoreboard" - today's total + running total for every pick page; totals only with RESULTS_PUBLIC.)
@@ -155,7 +155,11 @@ function session(P, tok) {
   const want = Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(body, sessionSecret(P)));
   if (mac !== want) return null;
   const s = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(body)).getDataAsString());
-  return s && s.exp > Date.now() ? s : null;
+  if (!s || !(s.exp > Date.now())) return null;
+  // v1.9.1 (Scott 10/17 "live totals still have me locked out"): an owner's access is checked on EVERY request, not
+  // only at sign-in - a session signed before OWNER_IDS was set (or before he was added) works at once, no re-sign-in.
+  if (isOwner(P, s.uid)) s.ent = OWNER_ENT.slice();
+  return s;
 }
 
 // ---------------------------------------------------------------- picks by entitlement

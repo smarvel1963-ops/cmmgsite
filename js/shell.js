@@ -257,6 +257,11 @@ const SHELL = (() => {
     row.addEventListener("wheel", e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && row.scrollWidth > row.clientWidth) { e.preventDefault(); row.scrollBy({ left: e.deltaY }); } }, { passive: false });
     row.addEventListener("scroll", upd, { passive: true }); window.addEventListener("resize", upd);
     const on = row.querySelector("a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+    // ★ PICKS chip (site evaluation item 8, Scott 10/17 "next"): the CMMG pick pages sit at the far end of the strip - one
+    // tap slides the row so they start at the left edge (no page change)
+    const jump = row.querySelector(".pickjump"), first = document.getElementById("sr-picks");
+    if (jump && first) jump.addEventListener("click", e => { e.preventDefault();
+      row.scrollBy({ left: first.getBoundingClientRect().left - row.getBoundingClientRect().left - 12, behavior: "smooth" }); });
     upd();
   }
   // 💡 TIP side tab (Scott 10/17) - js/tips.js. OFF until Scott's go; the owner previews it on his own browser with
@@ -349,8 +354,8 @@ const SHELL = (() => {
       <form class="tsearch" action="/app/schedule/"><input name="q" placeholder="Search teams, games…" aria-label="Search"><button aria-label="Search">${ic("target")}</button></form>
       <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${typeof ICON.color === "function" ? ICON.color("crown") : ic("star")}</a>`}
       <a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON.color === "function" ? ICON.color("bell") : ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
-      <nav class="sportrow" aria-label="Sports">${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
-        ${BOARDCHIPS.map(([k, ik, l]) => `<a class="${curBoard === k || active === k ? "on" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? (ik === "ICE" || ik === "EDGE" ? ICON.tier(ik) : ICON.sport(ik)) : ""}${l}</a>`).join("")}
+      <nav class="sportrow" aria-label="Sports"><a class="pickjump" href="#sr-picks" aria-label="Jump to the CMMG pick pages">★ PICKS</a>${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
+        ${BOARDCHIPS.map(([k, ik, l]) => `<a ${k === "mm" ? 'id="sr-picks" ' : ""}class="${curBoard === k || active === k ? "on" : ""}${k === "mm" ? " pk-first" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? (ik === "ICE" || ik === "EDGE" ? ICON.tier(ik) : ICON.sport(ik)) : ""}${l}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
       `<a class="${k === active ? "on" : ""} ${SOON[k] ? "soonlink" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}${SOON[k] ? ' <span class="soon">soon</span>' : ""}</a>`).join("")).join("")

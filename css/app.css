@@ -587,3 +587,7 @@ tbody tr:nth-child(even) td { background:rgba(127,216,255,.035); } tbody tr:hove
 @media (prefers-reduced-motion: reduce) { .aims *, .aims *:before { animation:none !important; } }
 /* Momentum gets the template's light sweep too */
 .mo-card:after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(110deg,transparent 35%,#ffffff18 48%,transparent 61%); transform:translateX(-130%); animation:aisweep 3s ease-out .35s infinite; }
+
+/* ★ PICKS jump chip + a gold divider where the CMMG pick pages start (site evaluation item 8, 10/17) */
+.sportrow a.pickjump { color:#241a00; background:linear-gradient(180deg,#ffe45c,#e6b800); border-color:#ffd700; box-shadow:0 0 12px rgba(255,215,0,.3); }
+.sportrow a.pk-first { margin-left:10px; position:relative; } .sportrow a.pk-first:before { content:""; position:absolute; left:-11px; top:6px; bottom:6px; width:2px; border-radius:2px; background:#ffd700; opacity:.7; }

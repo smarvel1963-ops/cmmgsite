@@ -206,6 +206,36 @@ const CMMGBIG = (() => {
     if (!preview) { const k = "cmmg.momo." + d.id; try { if (localStorage.getItem(k)) return; localStorage.setItem(k, "1"); } catch (e) {} }
     momentumCard(d, p, preview);
   }
+  // AI MODEL MILESTONE (Scott 10/17: CMMG_AI_Model_Milestone HTML): a model improvement PROVED out of sample. There is no
+  // automatic signal for that, so the source is /data/milestones.json - an entry is added ONLY after the edge-auditor
+  // confirms it (title, what improved, sample, test window, date). Shown once per milestone per viewer, newest first,
+  // within 14 days of its date. No proof, no pop-up.
+  function aiCard(m, preview) {
+    if (document.getElementById("bigday")) return;
+    const sparks = Array.from({ length: 30 }, (_, i) => `<i class="ai-spark" style="left:${(i * 73) % 95 + 2}%;animation-delay:${i * 0.13}s;animation-duration:${2.8 + (i % 7) * 0.27}s"></i>`).join("");
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="aims" role="dialog" aria-modal="true" aria-label="AI model milestone">
+      <article class="ai-card"><button class="ai-x" aria-label="Close">×</button><div class="ai-shine"></div>${sparks}
+        <div class="ai-brand">♛ CMMG SPORTS EDGE</div><div class="ai-rule"></div><div class="ai-eye">MODEL VALIDATION</div>
+        <div class="ai-halo">✦</div><h2 class="ai-title">${E(m.title || "AI MODEL MILESTONE")}</h2>
+        <div class="ai-tag">${E(m.metric || "VALIDATION COMPLETE")}</div>
+        <div class="ai-detail">${E(m.detail || "")}</div>
+        <p class="ai-note">${E([m.sample ? m.sample + " picks tested" : "", m.window ? "out of sample " + m.window : "", m.date ? "verified " + m.date : ""].filter(Boolean).join(" · "))}${preview ? " · PREVIEW" : ""}<br>Model results are research, not a promise of future results · 21+</p>
+        <div class="ai-btns"><a class="ai-go" href="/app/results/">View details</a><button class="ai-no">Dismiss</button></div></article></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 400); };
+    el.querySelector(".ai-x").addEventListener("click", close); el.querySelector(".ai-no").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
+  }
+  async function aiCheck() {
+    let list = []; try { list = await (await fetch("/data/milestones.json", { cache: "no-cache" })).json(); } catch (e) { return false; }
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }), cut = new Date(Date.now() - 14 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+    const m = (Array.isArray(list) ? list : []).filter(x => x && x.id && x.verified === true && (x.date || "") >= cut && (x.date || "") <= today)
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .find(x => { try { return !localStorage.getItem("cmmg.aims." + x.id); } catch (e) { return true; } });
+    if (!m) return false;
+    try { localStorage.setItem("cmmg.aims." + m.id, "1"); } catch (e) {}
+    aiCard(m, false); return true;
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
   // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
   const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
@@ -213,6 +243,7 @@ const CMMGBIG = (() => {
     await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "model") { aiCard({ title: "AI MODEL MILESTONE", metric: "VALIDATION COMPLETE", detail: "NBA live-totals model: higher win rate on games it had never seen", sample: 412, window: "Sep 1–Oct 15", date: "2026-10-17" }, true); return; }
     if (preview === "momentum") { momentum({ id: "demo", league: "NBA", line: 228.5, game: "Lakers @ Suns", status: "Q3 6:12" }, true); return; }
     if (preview === "winrate") { wrCard("Pro Track", { w: 163, l: 75, p: 0, n: 238, net: 31.4, be: 0.556 }, true); return; }
     if (preview === "platinum") { platCard("Pro Track", { w: 64, l: 34, p: 2, n: 100, net: 14.2, roi: 0.138, since: "2026-09-03" }, true); return; }
@@ -232,6 +263,7 @@ const CMMGBIG = (() => {
       if (!seen) { streakCard(hot.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? hot.r.name + " · Pro Track" : hot.r.name, hot.st, false); return; }
     }
     if (edgeFirst && await edgeCheck()) return;
+    if (await aiCheck()) return;                  // an auditor-confirmed model milestone (rare, once per viewer)
     // PLATINUM: a lifetime milestone not shown yet on this phone (rarer than a streak, so it comes right after it)
     const plat = scope.map(r => ({ r, lv: platLevel(r.total) })).filter(x => x.lv).sort((a, b) => b.lv - a.lv)[0];
     if (plat) {

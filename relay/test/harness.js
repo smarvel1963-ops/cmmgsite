@@ -363,4 +363,30 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   check("members: marks0 sanity (totals were shown at 5+ earlier)", marks0 > 0);
   delete PROPS.MEMBERS_ON; delete PROPS.OWNER_IDS;
 }
+// v1.17 (Scott 10/18 "void 1"): a Free Pick that is also a Pro Track pick counts once under "I play every CMMG pick"
+{
+  post({ task: "put", key: "wkey", part: "today", data: { date: "2026-10-12", picks: [] } });
+  post({ task: "put", key: "wkey", part: "history", data: { picks: [
+    { id: "pt_bills", need: "pro", sport: "NFL", game: "Buffalo Bills @ Los Angeles Rams", bet: "OVER 54.5", date: "2026-10-12", result: "WIN", odds: -115, units: 1, profit: 0.87 },
+    { id: "fr_bills", need: "free", sport: "NFL", game: "Los Angeles Rams vs. Buffalo Bills", bet: "Over 54.5", date: "2026-10-11", result: "WIN", odds: -115, units: 1, profit: 0.87 },
+    { id: "fr_other", need: "free", sport: "NBA", game: "LAL @ BOS", bet: "UNDER 221.5", date: "2026-10-13", result: "LOSS", odds: -110, units: 1, profit: -1 },
+    { id: "pt_nyy1", need: "pro", sport: "MLB", game: "New York Yankees @ Boston Red Sox", bet: "Yankees ML", date: "2026-10-01", result: "WIN", odds: -120, units: 1, profit: 0.83 },
+    { id: "fr_nyy3", need: "free", sport: "MLB", game: "Boston Red Sox vs New York Yankees", bet: "Yankees ML", date: "2026-10-03", result: "LOSS", odds: -125, units: 1, profit: -1 } ] } });
+  DISCORD.user = { id: "900000000000000009", username: "auto9", global_name: "Auto9" }; DISCORD.roles = ["1471082166149578936"];
+  const z = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  post({ task: "trackall", session: z, on: true });
+  const rows = post({ task: "mytracker", session: z }).rows, has = id => rows.some(r => r.pick === id);
+  check("v1.17: the Pro Track copy is counted", has("pt_bills"));
+  check("v1.17: the Free Pick copy of the SAME wager (other team order, other case) is not added again", !has("fr_bills"), rows.map(r => r.pick));
+  check("v1.17: a Free Pick that is its own wager still counts", has("fr_other"));
+  check("v1.17: same matchup + bet 2 days apart = two different bets, both counted", has("pt_nyy1") && has("fr_nyy3"));
+  check("v1.17: the member can still track the Free copy by hand", post({ task: "track", session: z, pick: "fr_bills" }).ok && post({ task: "mytracker", session: z }).rows.some(r => r.pick === "fr_bills" && !r.auto));
+  check("v1.17: ... and then the auto Pro copy of that same wager is not added on top (one wager, one row)",
+        (r => r.some(x => x.pick === "fr_bills" && !x.auto) && !r.some(x => x.pick === "pt_bills"))(post({ task: "mytracker", session: z }).rows));
+  DISCORD.user = { id: "900000000000000010", username: "free10", global_name: "Free10" }; DISCORD.roles = null;   // FREE member
+  const fz = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  post({ task: "trackall", session: fz, on: true });
+  const frows = post({ task: "mytracker", session: fz }).rows, fhas = id => frows.some(r => r.pick === id);
+  check("v1.17: a FREE member (no Pro copy) keeps the Free Pick - nothing is lost", fhas("fr_bills") && !fhas("pt_bills"), frows.map(r => r.pick));
+}
 console.log(`\n${ok} passed, ${bad} failed`);

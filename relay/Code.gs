@@ -5,6 +5,10 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
+ *   Track pick is the same game (either team order) + same bet dated within 1 day (10/11 Bills @ Rams OVER 54.5 was
+ *   both and counted twice); nothing is auto-added for a wager the member already tracks by hand.
+ *   The records themselves are untouched: Pro Track and the Free Pick stay two records.
  *   v1.16 (Scott 10/18 "how would me track each individules bets they mark" -> "both"): owner task "members" =
  *   ANONYMOUS totals of what members mark (picks taken + how many members, combined record at their own odds, by sport)
  *   + the named tracker of members who OPT IN (task "share", S_<uid>). Everyone else stays private - privacy page says so.
@@ -442,9 +446,19 @@ function myTracker(P, s) {
   const autoSince = Object.keys(core).reduce(function (a, id) { const d = core[id].date || ""; return /^\d{4}-\d\d-\d\d$/.test(d) && (!a || d < a) ? d : a; }, "");
   if (auto) {                                   // every visible Pro Track / Free pick the member hasn't tracked by hand
     const have = {}; mine.forEach(function (m) { have[m.pick] = true; });
+    // v1.17: one wager, one row - a Free Pick that is also a Pro Track pick (same game + bet, dated within 1 day: the
+    // 10-11 Bills Free copy vs its 10-12 Pro copy) is not added twice. A repeat matchup 2+ days apart is a new bet.
+    const proDays = {}, handDays = {};
+    Object.keys(core).forEach(function (id) { const p = core[id];   // only a Pro copy THIS member gets - a free member keeps the Free one
+      const k = p && p.bet && (p.need || "pro") !== "free" && canSee(s, p.need || "pro") && wagerKey(p); if (k) (proDays[k] = proDays[k] || []).push(p.date || ""); });
+    mine.forEach(function (m) { const p = byId[m.pick] || m.snap;  // a wager the member already tracks BY HAND is not auto-added again
+      const k = p && p.bet && wagerKey(p); if (k) (handDays[k] = handDays[k] || []).push(p.date || ""); });
     Object.keys(core).forEach(function (id) {
       const p = core[id];
       if (have[id] || !p || !p.bet || !canSee(s, p.need || "pro")) return;
+      const wk = wagerKey(p);
+      if (wk && p.need === "free" && nearDay(proDays[wk], p.date)) return;
+      if (wk && nearDay(handDays[wk], p.date)) return;
       mine.push({ pick: id, at: p.time || p.date || "", odds: p.odds != null ? p.odds : null, units: p.units != null ? Number(p.units) : 1,
                   book: p.book || "", note: "", auto: true, cmmgProfit: p.profit != null ? Number(p.profit) : null });
     });
@@ -549,6 +563,17 @@ function members(P, s) {
     picks: Object.keys(perPick).map(function (k) { return perPick[k]; })
       .sort(function (a, b) { return b.n - a.n || String(b.date).localeCompare(String(a.date)) || String(a.pick).localeCompare(String(b.pick)); }).slice(0, 100),
     sharers: sharers.sort(function (a, b) { return a.name.localeCompare(b.name); }) } };
+}
+
+// v1.17: does any of `days` (YYYY-MM-DD) fall within 1 day of `d`? A missing date never matches (no blind merge).
+function nearDay(days, d) {
+  const t = Date.parse(String(d || "") + "T12:00:00Z"); if (!days || !isFinite(t)) return false;
+  return days.some(function (x) { const u = Date.parse(String(x || "") + "T12:00:00Z"); return isFinite(u) && Math.abs(u - t) <= 864e5; });
+}
+// v1.17 one wager across products: the game with its two sides sorted (either team order, any of @ / vs / at) + the bet
+function wagerKey(p) {
+  const g = String(p.game || "").toLowerCase().replace(/\./g, "").split(/\s+(?:@|vs\.?|v|at)\s+/).map(function (x) { return x.trim(); }).filter(Boolean).sort().join("|");
+  return g ? g + "#" + String(p.bet || "").toLowerCase().replace(/\s+/g, " ").trim() : null;   // no game -> never merged
 }
 
 // Today's board + graded history, by id (graded history last, so a result wins over today's copy).

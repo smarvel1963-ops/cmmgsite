@@ -287,4 +287,30 @@ check("snapshot: a busy lock never fails the tracker read", post({ task: "mytrac
 globalThis.LOCK_BUSY = false;
 post({ task: "trackall", session: snS, on: true });
 check("auto_since = the feed's oldest graded day", post({ task: "mytracker", session: snS }).auto_since === "2026-10-10");
+// v1.15 MasterHub records (Scott 10/18): part "hub" + task "hubrecords" - owner only unless widened
+{
+  const hubData = { through: "2026-10-18", pages: [{ key: "PRO_TRACK", label: "Pro Track", periods: { all: { wins: 739, losses: 532, pushes: 16, profit: 19.49, record: "739-532-16P" } } }], sports: [] };
+  check("hub: wrong write key refused", post({ task: "put", key: "nope", part: "hub", data: hubData }).error === "not allowed");
+  check("hub: PUT stored", post({ task: "put", key: "wkey", part: "hub", data: hubData }).ok && !!PROPS["F_hub#n"]);
+  check("hub: too big refused", /too big/.test(post({ task: "put", key: "wkey", part: "hub", data: { x: "y".repeat(50000) } }).error));
+  check("hub: signed out refused", post({ task: "hubrecords" }).ok === false);
+  check("hub: VIP member gets no records (owner only)", (r => r.ok && r.hub === null)(post({ task: "hubrecords", session: proS })));
+  check("hub: Elite member gets no records either", post({ task: "hubrecords", session: eliteS }).hub === null);
+  check("hub: the owner's account gets nothing while not in OWNER_IDS", post({ task: "hubrecords", session: oldOwnerS }).hub === null);
+  PROPS.OWNER_IDS = OWNER;
+  const r = post({ task: "hubrecords", session: oldOwnerS });
+  check("hub: owner gets MasterHub's records exactly as sent", r.ok && JSON.stringify(r.hub) === JSON.stringify(hubData) && !!r.at, r);
+  check("hub: the oversized PUT did not replace the good copy", r.hub && r.hub.pages[0].periods.all.record === "739-532-16P");
+  delete PROPS.OWNER_IDS;
+  check("hub: owner removed -> nothing", post({ task: "hubrecords", session: oldOwnerS }).hub === null);
+  PROPS.HUB_RECORDS_FOR = "all";
+  check("hub: HUB_RECORDS_FOR=all -> every signed-in member", post({ task: "hubrecords", session: freeS }).hub.through === "2026-10-18");
+  delete PROPS.HUB_RECORDS_FOR;
+  PROPS.ROLE_MAP = JSON.stringify({ "1471082166149578936": ["pro", "hub"] });
+  DISCORD.roles = ["1471082166149578936"]; DISCORD.user = { id: "556", username: "coowner" };
+  const coS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  check("hub: a role mapped to 'hub' in ROLE_MAP sees it", post({ task: "hubrecords", session: coS }).hub !== null);
+  delete PROPS.ROLE_MAP;
+  check("hub: unknown part still refused", post({ task: "put", key: "wkey", part: "hubx", data: {} }).error === "unknown part");
+}
 console.log(`\n${ok} passed, ${bad} failed`);

@@ -7,7 +7,12 @@
      prop). History keeps Edit / Remove. Member's own data only, graded at THEIR odds.
      Records fix (Scott 10/12 "yes"): the CMMG side is PRO TRACK only, at each pick's STORED profit (real graded payout,
      never odds x units); the Free Pick shows as its own line, never added in. When the range reaches back before the
-     feed's earliest graded date the CMMG card says the date its numbers start. YOUR side is unchanged (your odds). -->
+     feed's earliest graded date the CMMG card says the date its numbers start. YOUR side is unchanged (your odds).
+     CMMG RECORD tab (Scott 10/18 "my tracker should be over all record like from sessions ... just like masterhub each
+     individual sport can track own records ... keep consistent"; "we should not be rebuilding units"): MasterHub's OWN
+     per-sport and per-page records (relay task "hubrecords", feed part "hub" from page_stats_tracker) - Today / Week /
+     Month / All exactly as each MasterHub page shows them. Copied, never recomputed here. The tab appears only when the
+     relay serves it (owner by default). -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Tracker · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -37,6 +42,8 @@
 .lock2 { text-align:center; color:var(--dim); font-size:13px; padding:18px 6px; } .lock2 b { color:#ffd700; display:block; margin-bottom:4px; }
 .autoall { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; margin-bottom:12px; border-radius:12px; border:1px solid rgba(74,222,128,.4); background:rgba(22,163,74,.08); font-size:13px; color:var(--dim); cursor:pointer; }
 .autoall b { color:var(--text); } .autoall input { margin-top:2px; width:18px; height:18px; flex:none; }
+.hubt td, .hubt th { white-space:nowrap; }
+@media (max-width:640px) { .hubt td, .hubt th { padding:8px 5px; font-size:12px; } .hubt td:first-child { max-width:120px; overflow:hidden; text-overflow:ellipsis; } }
 </style></head>
 <body>
 <div class="layout wide">
@@ -61,6 +68,7 @@
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"];
 const TCOL = { ICE: "#3b82f6", EDGE: "#22c55e", FIRE: "#ef4444" };
+let HUB = null, HUB_AT = "", HPER = "all", HVIEW = "sports", TAB_PICKED = false;
 let ROWS = [], AUTO_SINCE = "", CM = null, TAB = "over", RNG = "30", EDIT = null, HF = { sport: "", tier: "", type: "" };
 try { RNG = localStorage.getItem("cmmg.trkrng") || "30"; } catch (e) {}
 const ctDay = d => d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
@@ -148,11 +156,32 @@ function table(rows, keyFn, keys, label) {
       <td class="${s.net > 0 ? "pos" : s.net < 0 ? "neg" : ""}">${sgn(s.net)}</td><td class="${s.roi > 0 ? "pos" : s.roi < 0 ? "neg" : ""}">${s.n ? pct(s.roi) : "—"}</td></tr>`; }).join("") + `</table></div>`;
 }
 
+// CMMG RECORD - MasterHub's numbers as sent (StatsBlock: wins/losses/pushes/profit/win_rate/roi/record), never re-priced
+const HPERS = [["today", "Today"], ["week", "Week"], ["month", "Month"], ["all", "All Time"]];
+function hubTab() {
+  const list = (HUB && HUB[HVIEW]) || [], rows = list.map(e => [e, e.periods && e.periods[HPER]]).filter(([, b]) => b);
+  const at = HUB_AT ? new Date(HUB_AT).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " CT" : "";
+  const chips = (arr, cur, attr) => arr.map(([k, l]) => `<button data-${attr}="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join("");
+  return `<div class="rng">${chips([["sports", "By Sport"], ["pages", "By Page"]], HVIEW, "hview")}</div>
+    <div class="rng">${chips(HPERS, HPER, "hper")}</div>
+    <div class="box"><h3>${ICON.ui("shield")}CMMG RECORD · ${HVIEW === "sports" ? "BY SPORT" : "BY PAGE"}</h3>
+    <p class="game" style="margin:0 0 8px">Straight from MasterHub - the same numbers each page shows${HUB.through ? ` · session ${E(nice(HUB.through))}` : ""}${at ? ` · updated ${E(at)}` : ""}.${HPER === "week" ? " Week = last 7 days." : HPER === "month" ? " Month = last 30 days." : ""}</p>
+    ${rows.length ? `<div style="overflow-x:auto"><table class="rt hubt"><tr><th>${HVIEW === "sports" ? "SPORT" : "PAGE"}</th><th>W-L-P</th><th>WIN %</th><th>UNITS</th><th>ROI</th></tr>` + rows.map(([e, b]) => `<tr>
+      <td style="white-space:nowrap">${HVIEW === "sports" ? ICON.sport(e.key) + " " : ""}${E(e.label || e.key)}</td><td>${E(b.record || `${b.wins}-${b.losses}`)}</td>
+      <td>${b.wins + b.losses ? Number(b.win_rate).toFixed(1) + "%" : "—"}</td>
+      <td class="${b.profit > 0 ? "pos" : b.profit < 0 ? "neg" : ""}">${sgn(b.profit)}</td>
+      <td class="${b.roi > 0 ? "pos" : b.roi < 0 ? "neg" : ""}">${b.wins + b.losses ? (b.roi > 0 ? "+" : "") + Number(b.roi).toFixed(1) + "%" : "—"}</td></tr>`).join("") + `</table></div>`
+      : `<p class="game">No graded picks ${HPER === "today" ? "yet today" : "in this window"}.</p>`}</div>`;
+}
+
 function draw() {
-  $("tabs").innerHTML = [["over", "Overview"], ["sport", "By Sport"], ["tier", "By Tier"], ["type", "By Bet Type"], ["hist", "History"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
+  $("rng").style.display = TAB === "hub" ? "none" : "";          // .rng is display:flex - [hidden] alone would not hide it
+  $("tabs").innerHTML = [...(HUB ? [["hub", "CMMG Record"]] : []), ["over", "Overview"], ["sport", "By Sport"], ["tier", "By Tier"], ["type", "By Bet Type"], ["hist", "History"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
   $("rng").innerHTML = [["7", "7D"], ["30", "30D"], ["90", "90D"], ["ytd", "YTD"], ["all", "All Time"]].map(([k, l]) => `<button data-rng="${k}" class="${k === RNG ? "on" : ""}">${l}</button>`).join("");
   const el = $("body");
   if (!CMMG.session()) { el.innerHTML = `<div class="empty">Sign in with Discord to see your Performance Lab.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; return; }
+  if (TAB === "hub" && HUB) { el.innerHTML = hubTab(); return; }
+  if (TAB === "hub") TAB = "over";
   const rows = ROWS.filter(r => inRange(rowDay(r)));
   if (TAB === "over") {
     const me = mineS(rows), all = CM && CM.published ? (CM.picks || []).filter(p => inRange(p.date)) : null;
@@ -202,6 +231,8 @@ async function load() {
   $("autoBox").hidden = false; $("autoAll").checked = !!j.auto;
   try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
   draw();
+  try { const h = await CMMG.relay({ task: "hubrecords", session: s.token });
+        if (h && h.ok && h.hub) { HUB = h.hub; HUB_AT = h.at || ""; if (!TAB_PICKED) TAB = "hub"; draw(); } } catch (e) {}
   try { CM = await CMMG.relay({ task: "results" }); } catch (e) { CM = null; }
   if (CM && CM.published) draw();
 }
@@ -214,7 +245,9 @@ $("autoAll").addEventListener("change", async e => {
 });
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
-  if (t.dataset.tab) { TAB = t.dataset.tab; draw(); }
+  if (t.dataset.tab) { TAB = t.dataset.tab; TAB_PICKED = true; draw(); }
+  if (t.dataset.hper) { HPER = t.dataset.hper; draw(); }
+  if (t.dataset.hview) { HVIEW = t.dataset.hview; draw(); }
   if (t.dataset.rng) { RNG = t.dataset.rng; try { localStorage.setItem("cmmg.trkrng", RNG); } catch (e) {} draw(); }
   if (t.dataset.edit) {
     EDIT = ROWS.find(r => r.pick === t.dataset.edit); if (!EDIT) return;

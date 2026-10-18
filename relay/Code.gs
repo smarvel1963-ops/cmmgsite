@@ -5,6 +5,10 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.15 (Scott 10/18 "my tracker should be over all record like from sessions ... just like masterhub each individual
+ *   sport can track own records ... keep consistent"): feed part "hub" = MasterHub's OWN page + sport records
+ *   (page_stats_tracker, cmmg_feed_hub_records.py - copied, never rebuilt); task "hubrecords" serves it to OWNER_IDS
+ *   only, plus a role whose ROLE_MAP grants "hub", or every signed-in member when HUB_RECORDS_FOR = "all".
  *   v1.14 (Scott 10/17): 68%+ WIN RATE - lifetime totals carry the average breakeven (feed "be").
  *   v1.13 (Scott 10/17): PLATINUM PERFORMANCE - lifetime totals carry graded n + ROI (feed sends units risked).
  *   v1.12 (Scott 10/17): FIRE STREAK - each lifetime total carries the current straight-win streak (+ today's picks).
@@ -41,6 +45,7 @@
  *   SESSION_SECRET  = made by setup() the first time - never leaves the relay
  *   ROLE_MAP        = optional JSON override of ROLE_MAP below (role id -> list of entitlements)
  *   OWNER_IDS       = optional, v1.9: Discord user ids (comma-separated) that get full access - Scott's own account
+ *   HUB_RECORDS_FOR = optional, v1.15: "all" = every signed-in member sees the MasterHub records tab (default: owner only)
  */
 const DISCORD_CLIENT_ID = "1558985290188857356";        // public (it's in the login link)
 const GUILD_ID = "1469251277752893573";                  // the CMMG Discord server (eve_bot.EVE_GUILD_ID)
@@ -60,7 +65,7 @@ const CHUNK = 8000;                   // Script Property values max ~9 KB - big 
 const TRACK_MAX = 300;                // a member's tracked picks kept (v1.8: 500 -> 300, Script Properties are ~500 KB in all)
 // v1.8 byte caps per feed part (escaped JSON as stored). The PC exporter (cmmg_feed_export.py) caps a little lower, by
 // UTF-8 bytes: history 120 KB, today 60 KB, each board 40 KB, all together ~320 KB - the margin here covers \u escapes.
-const PART_CAP = { today: 64000, history: 128000, records: 44000, board: 44000 };
+const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000 };
 
 function doGet() { return out({ ok: true, app: "cmmg relay", v: 1 }); }
 
@@ -81,6 +86,7 @@ function doPost(e) {
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
       case "trackall": return out(trackAll(P, session(P, req.session), req));
+      case "hubrecords": return out(hubRecords(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
       default: return out({ ok: false, error: "unknown task" });
     }
@@ -94,7 +100,7 @@ function doPost(e) {
 function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
-  if (["today", "history", "records"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
+  if (["today", "history", "records", "hub"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
   const str = ascii(JSON.stringify({ at: new Date().toISOString(), data: req.data }));
   const cap = PART_CAP[/^board_/.test(req.part) ? "board" : req.part];
   if (str.length > cap) return { ok: false, error: "part too big: " + str.length + " > " + cap + " bytes - not stored (the last copy stays)" };
@@ -454,6 +460,17 @@ function myTracker(P, s) {
   return { ok: true, auto: auto, auto_since: auto ? autoSince : "", rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
+}
+
+// v1.15 MasterHub records (Scott 10/18): the feed's "hub" part as the PC sent it - MasterHub's own per-page and
+// per-sport records (today / week / month / all), never recomputed here. Owner by default; a role mapped to "hub" in
+// ROLE_MAP, or HUB_RECORDS_FOR = "all", widens it. Not allowed -> ok with hub null, so the page simply hides the tab.
+function hubRecords(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  const allowed = isOwner(P, s.uid) || s.ent.indexOf("hub") >= 0 || P.getProperty("HUB_RECORDS_FOR") === "all";
+  if (!allowed) return { ok: true, at: null, hub: null };
+  const r = getBig(P, "F_hub");
+  return { ok: true, at: r ? r.at : null, hub: r && r.data || null };
 }
 
 // Today's board + graded history, by id (graded history last, so a result wins over today's copy).

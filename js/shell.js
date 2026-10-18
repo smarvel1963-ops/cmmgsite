@@ -284,9 +284,27 @@ const SHELL = (() => {
     return !R ? "" : m >= R[2] ? "blowout" : p >= R[0] && m <= R[1] ? "close_late" : "";
   }
 
+  // BIG DAY pop-up (Scott 10/17) - js/bigday.js. OFF until Scott's go; owner preview ?bigday=1 (?bigday=0 stops,
+  // ?bigday=demo shows a sample card). Fires on picks pages only: Pro Track, the board pages, the sport hubs.
+  const BIGDAY_ON = false;
+  function bigdayInit(active) {
+    let mode = "";
+    try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo") mode = "demo"; } catch (e) {}
+    let on = BIGDAY_ON; try { on = on || localStorage.getItem("cmmg.bigday.preview") === "1"; } catch (e) {}
+    if (!on && !mode) return;
+    const qs = new URLSearchParams(location.search);
+    const key = active === "picks" ? "pro" : active === "board" ? (qs.get("b") || "") : active === "sport" ? "sport:" + (qs.get("l") || "NFL").toUpperCase()
+      : ["tennis", "ufc", "horses", "lives", "golf", "f1", "nascar"].includes(active) ? active : "";
+    if (!key && !mode) return;
+    const sc = document.createElement("script"); sc.src = "/js/bigday.js";
+    sc.onload = () => { try { setTimeout(() => CMMGBIG.check(key, mode), 1200); } catch (e) {} };
+    document.head.appendChild(sc);
+  }
+
   function mount(active) {
     if (welcomeGate()) return;
     tipsInit(active);
+    bigdayInit(active);
     applyTheme();
     sportScene(active);
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});

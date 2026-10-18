@@ -170,6 +170,42 @@ const CMMGBIG = (() => {
     addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
     setTimeout(close, 12000);
   }
+  // MOMENTUM EXPLOSION (Scott 10/17 video): a RESEARCH ALERT, never a success or a pick. Game Center on a live basketball /
+  // football game: simple pace math (points so far / share of regulation played) projects the final total; when it runs
+  // far from the posted total (basketball 15+, football 10+, after a quarter of the game) the card shows both numbers.
+  // Once per game. "Research alert - not a prediction".
+  const REG = { NBA: [4, 12], WNBA: [4, 10], NCAAB: [2, 20], NFL: [4, 15], NCAAF: [4, 15] };    // periods, minutes each
+  const GAP = { NBA: 15, WNBA: 15, NCAAB: 15, NFL: 10, NCAAF: 10 };
+  function paceOf(d) {
+    const R = REG[d.league]; if (!R || !(d.line > 0)) return null;
+    const m = /^(\d+):(\d+)/.exec(String(d.clock || "")), left = m ? +m[1] + +m[2] / 60 : 0;
+    const played = Math.min(R[0], Math.max(0, d.period - 1)) * R[1] + (d.period <= R[0] ? R[1] - left : 0), frac = played / (R[0] * R[1]);
+    if (frac < 0.25 || frac >= 0.97) return null;
+    const proj = Math.round(d.points / frac * 10) / 10, diff = Math.round((proj - d.line) * 10) / 10;
+    return Math.abs(diff) >= GAP[d.league] ? { proj, diff, frac } : null;
+  }
+  function momentumCard(d, p, preview) {
+    if (document.getElementById("bigday")) return;
+    const bars = Array.from({ length: 24 }, (_, i) => `<i style="--h:${30 + ((i * 53) % 70)}%;--d:${(i % 7) * 0.09}s"></i>`).join("");
+    const dots = Array.from({ length: 34 }, (_, i) => `<i style="--x:${(i * 29.7) % 100}%;--y:${(i * 61.3) % 100}%;--c:${i % 3 ? "#38bdf8" : "#f5c84c"};--d:${(i % 6) * 0.4}s"></i>`).join("");
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="momo" role="dialog" aria-label="Momentum explosion research alert">
+      <section class="mo-card"><div class="mo-dots" aria-hidden="true">${dots}</div><div class="mo-slash" aria-hidden="true"></div><button class="mo-x" aria-label="Close">×</button>
+        <div class="mo-brand">CMMG  •  SPORTS EDGE</div><div class="mo-ring" aria-hidden="true"></div>
+        <div class="mo-ev">LIVE INTELLIGENCE EVENT</div><h1>MOMENTUM<span>EXPLOSION</span></h1>
+        <div class="mo-bars" aria-hidden="true">${bars}</div>
+        <div class="mo-box"><b>PACE SHIFT DETECTED</b><div class="mo-nums"><span>On pace for <em>${p.proj}</em></span><span>Posted total <em>${d.line}</em></span><span class="${p.diff > 0 ? "up" : "dn"}">${p.diff > 0 ? "▲ +" : "▼ "}${p.diff}</span></div>
+          <small>${E(d.game)} · ${E(d.status)} · simple pace math, live${preview ? " · PREVIEW" : ""}</small></div>
+        <div class="mo-note">RESEARCH ALERT — NOT A PREDICTION · 21+</div></section></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 400); };
+    el.querySelector(".mo-x").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    setTimeout(close, 9000);
+  }
+  function momentum(d, preview) {
+    const p = preview ? { proj: 241.6, diff: 13.1 } : paceOf(d); if (!p) return;
+    if (!preview) { const k = "cmmg.momo." + d.id; try { if (localStorage.getItem(k)) return; localStorage.setItem(k, "1"); } catch (e) {} }
+    momentumCard(d, p, preview);
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
   // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
   const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
@@ -177,6 +213,7 @@ const CMMGBIG = (() => {
     await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "momentum") { momentum({ id: "demo", league: "NBA", line: 228.5, game: "Lakers @ Suns", status: "Q3 6:12" }, true); return; }
     if (preview === "winrate") { wrCard("Pro Track", { w: 163, l: 75, p: 0, n: 238, net: 31.4, be: 0.556 }, true); return; }
     if (preview === "platinum") { platCard("Pro Track", { w: 64, l: 34, p: 2, n: 100, net: 14.2, roi: 0.138, since: "2026-09-03" }, true); return; }
     if (preview === "edge") { edgeCard({ bet: "Ohio State Buckeyes -2.5", game: "Ohio State Buckeyes @ Illinois Fighting Illini", edge_class: "ELITE_SPREAD_VALUE", gates: 9 }, true); return; }
@@ -216,5 +253,5 @@ const CMMGBIG = (() => {
     const perf = perfect(row.today), sportRow = row.key.indexOf("sport:") === 0;
     show(sportRow && pageKey === "pro" ? row.name + " · Pro Track" : row.name, Object.assign({}, row.today, { net: row.units ? row.today.net : null }), j.date, false, perf);
   }
-  return { check, big, perfect };
+  return { check, big, perfect, momentum, paceOf };
 })();

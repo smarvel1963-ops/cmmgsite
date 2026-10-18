@@ -289,17 +289,26 @@ const SHELL = (() => {
   const BIGDAY_ON = false;
   function bigdayInit(active) {
     let mode = "";
-    try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo" || q === "perfect" || q === "streak" || q === "edge" || q === "platinum" || q === "winrate") mode = q; } catch (e) {}
+    try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo" || q === "perfect" || q === "streak" || q === "edge" || q === "platinum" || q === "winrate" || q === "momentum") mode = q; } catch (e) {}
     let on = BIGDAY_ON; try { on = on || localStorage.getItem("cmmg.bigday.preview") === "1"; } catch (e) {}
     if (!on && !mode) return;
     const qs = new URLSearchParams(location.search);
     const key = active === "picks" ? "pro" : active === "board" ? (qs.get("b") || "") : active === "sport" ? "sport:" + (qs.get("l") || "NFL").toUpperCase()
       : ["tennis", "ufc", "horses", "lives", "golf", "f1", "nascar"].includes(active) ? active : "";
-    if (!key && !mode) return;
-    const sc = document.createElement("script"); sc.src = "/js/bigday.js";
-    sc.onload = () => { try { setTimeout(() => CMMGBIG.check(key, mode), 1200); } catch (e) {} };
+    BIGON = true;
+    if (!key && !mode && active !== "game") return;
+    loadBig(() => { try { setTimeout(() => CMMGBIG.check(key, mode), 1200); } catch (e) {} });
+  }
+  let BIGON = false, BIGQ = null;
+  function loadBig(cb) {
+    if (typeof CMMGBIG !== "undefined") { cb(); return; }
+    if (BIGQ) { BIGQ.push(cb); return; }
+    BIGQ = [cb]; const sc = document.createElement("script"); sc.src = "/js/bigday.js";
+    sc.onload = () => { const q = BIGQ; BIGQ = []; q.forEach(f => { try { f(); } catch (e) {} }); };
     document.head.appendChild(sc);
   }
+  // MOMENTUM EXPLOSION research alert (Game Center, live game) - only while the pop-ups are on / previewed
+  function momentum(d) { if (BIGON) loadBig(() => CMMGBIG.momentum(d)); }
 
   function mount(active) {
     if (welcomeGate()) return;
@@ -386,5 +395,5 @@ const SHELL = (() => {
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
   }
-  return { mount, plan, membershipBox, who, took, tip, tipGame, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
+  return { mount, plan, membershipBox, who, took, tip, tipGame, momentum, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
 })();

@@ -467,3 +467,28 @@ tbody tr:nth-child(even) td { background:rgba(127,216,255,.035); } tbody tr:hove
 .fs-btn { display:inline-block; margin-top:12px; padding:10px 38px; border-radius:999px; font-weight:900; letter-spacing:.05em; color:#241500; text-decoration:none;
   background:linear-gradient(180deg,#ffe28a,#e3a52b); box-shadow:0 4px 18px rgba(255,170,40,.55); }
 .fs-ach { margin-top:10px; font-size:11px; letter-spacing:.16em; color:#f3d488; font-weight:800; } .fs-f { margin-top:6px; font-size:10px; color:#a89a7a; }
+
+/* EDGE UNLOCKED (Scott 10/17 design) */
+.edgeun { position:fixed; inset:0; z-index:85; display:grid; place-items:center; background:rgba(2,8,16,.55); transition:background .5s; } .edgeun.on { background:rgba(2,8,16,.82); }
+.edgeun.out { opacity:0; transition:opacity .4s; }
+.eu-modal { position:relative; width:min(92vw,480px); min-height:500px; border:2px solid #17b5ba; border-radius:28px; overflow:hidden; color:#eafffb;
+  background:linear-gradient(150deg,#091a30,#04101f); box-shadow:0 0 80px #05d0bd33, inset 0 0 80px #0f6f8022; opacity:0; transform:scale(.9); transition:opacity .5s, transform .5s; }
+.edgeun.on .eu-modal { opacity:1; transform:none; }
+.eu-brand { text-align:center; margin-top:28px; letter-spacing:4px; font-weight:900; font-size:17px; } .eu-brand span { display:block; font-size:11px; font-weight:500; letter-spacing:2px; color:#81cfdb; margin-top:8px; }
+.eu-radar { position:absolute; left:50%; top:47%; width:min(300px, 70vw); aspect-ratio:1; transform:translate(-50%,-50%); border:1px solid #2db7be70; border-radius:50%;
+  background:repeating-radial-gradient(circle,transparent 0 44px,#1badb833 45px 46px,transparent 47px 50px),linear-gradient(#0d5b6d18,#0d5b6d18); }
+.eu-radar:before { content:""; position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg,transparent 0 280deg,#05f5c655 330deg,#46ffe6 359deg); animation:euspin 3s linear infinite; }
+.eu-radar:after { content:""; position:absolute; inset:45%; border-radius:50%; background:#74fff1; box-shadow:0 0 18px #2cffee; }
+.eu-dot { position:absolute; border-radius:50%; height:9px; width:9px; background:#56ffc7; box-shadow:0 0 10px #56ffc7; z-index:1; } .eu-dot.a { left:65%; top:25%; } .eu-dot.b { left:23%; top:62%; } .eu-dot.c { left:55%; top:75%; }
+.eu-scan { position:absolute; bottom:96px; width:100%; text-align:center; color:#69e6df; font-size:12px; letter-spacing:1.5px; animation:euscan 2s steps(1) forwards; }
+@keyframes euscan { 0% { opacity:1; } 99% { opacity:1; } 100% { opacity:0; } }
+.eu-signal { position:absolute; inset:140px 20px auto; background:#041421ef; border:2px solid #3ff9d8; box-shadow:0 0 26px #12e7c570; border-radius:21px; text-align:center; padding:22px 10px 20px;
+  opacity:0; transform:scale(.7); animation:eureveal .7s 2s cubic-bezier(.15,.9,.25,1.2) forwards; }
+.eu-signal h1 { font-size:clamp(25px,6vw,38px); letter-spacing:1px; margin:0; color:#fff; } .eu-signal p { letter-spacing:2px; font-size:12px; color:#70ecce; margin:8px 0 0; }
+.eu-edge { border:1px solid #4bfbd3; background:#0a5359; border-radius:14px; width:fit-content; padding:10px 20px; margin:12px auto 0; font-size:20px; font-weight:900; color:#a9ffe6; letter-spacing:.04em; }
+.eu-pick { margin-top:12px; font-weight:800; font-size:16px; color:#eafffb; } .eu-pick small { display:block; font-weight:500; font-size:12px; color:#8fc7cf; margin-top:2px; }
+.eu-status { position:absolute; bottom:76px; width:100%; text-align:center; color:#69e6df; font-size:12px; letter-spacing:1.5px; opacity:0; animation:eureveal .4s 2.4s forwards; }
+.eu-fine { position:absolute; bottom:22px; width:100%; text-align:center; font-size:10px; color:#9bb1bf; line-height:1.7; padding:0 14px; }
+.eu-x { position:absolute; right:13px; top:13px; z-index:3; background:transparent; border:0; color:#b9f6ef; font-size:24px; cursor:pointer; }
+@keyframes euspin { to { transform:rotate(360deg); } } @keyframes eureveal { to { opacity:1; transform:scale(1); } }
+@media (prefers-reduced-motion: reduce) { .eu-radar:before, .eu-scan, .eu-signal, .eu-status { animation:none !important; } .eu-signal, .eu-status { opacity:1; transform:none; } .eu-scan { display:none; } }

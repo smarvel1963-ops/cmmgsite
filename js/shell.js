@@ -289,7 +289,7 @@ const SHELL = (() => {
   const BIGDAY_ON = false;
   function bigdayInit(active) {
     let mode = "";
-    try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo" || q === "perfect" || q === "streak") mode = q; } catch (e) {}
+    try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo" || q === "perfect" || q === "streak" || q === "edge") mode = q; } catch (e) {}
     let on = BIGDAY_ON; try { on = on || localStorage.getItem("cmmg.bigday.preview") === "1"; } catch (e) {}
     if (!on && !mode) return;
     const qs = new URLSearchParams(location.search);

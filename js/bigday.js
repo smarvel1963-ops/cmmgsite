@@ -89,6 +89,37 @@ const CMMGBIG = (() => {
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
     setTimeout(close, 11000);
   }
+  // EDGE UNLOCKED (Scott 10/17: CMMG_Edge_Unlocked video + HTML): a POSTED EDGE pick the model rates ELITE - radar
+  // sweep, lock-on, the signal panel. A SIGNAL, not an achievement (it shows before the result): the model's own class +
+  // the real count of validation gates the pick passed, never an invented % edge. Only for a pick this viewer can see,
+  // once per pick, before it's graded.
+  const pretty = c => String(c || "").replace(/_/g, " ").replace(/\bML\b/, "MONEYLINE");
+  function edgeCard(p, preview) {
+    if (document.getElementById("bigday")) return;
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="edgeun" role="dialog" aria-label="CMMG Edge Unlocked">
+      <section class="eu-modal"><button class="eu-x" aria-label="Close">×</button>
+        <div class="eu-brand">CMMG SPORTS EDGE<span>LIVE INTELLIGENCE EVENT</span></div>
+        <div class="eu-radar" aria-hidden="true"><i class="eu-dot a"></i><i class="eu-dot b"></i><i class="eu-dot c"></i></div>
+        <div class="eu-scan">SCANNING MARKET DATA...</div>
+        <div class="eu-signal"><h1>EDGE UNLOCKED</h1><p>MODEL SIGNAL QUALIFIED</p><div class="eu-edge">${E(pretty(p.edge_class))}</div>
+          <div class="eu-pick">${E(p.bet)}<small>${E(p.game || "")}</small></div></div>
+        <div class="eu-status">${p.gates ? E(p.gates) + " VALIDATION GATES PASSED" : "VALIDATION GATES PASSED"}</div>
+        <div class="eu-fine">${preview ? "PREVIEW · SAMPLE PICK<br>" : ""}Model signal · not a guarantee or a live betting recommendation · 21+</div></section></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 450); };
+    el.querySelector(".eu-x").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
+    setTimeout(close, 12000);
+  }
+  async function edgeCheck() {
+    let j; try { j = await CMMG.relay({ task: "board", name: "edge", session: CMMG.session()?.token }); } catch (e) { return false; }
+    const p = (j && j.ok && j.picks || []).find(x => !x.locked && !x.result && /^ELITE/.test(x.edge_class || "") &&
+      (() => { try { return !localStorage.getItem("cmmg.edgeun." + x.id); } catch (e) { return true; } })());
+    if (!p) return false;
+    try { localStorage.setItem("cmmg.edgeun." + p.id, "1"); } catch (e) {}
+    edgeCard(p, false); return true;
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
   // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
   const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
@@ -96,11 +127,13 @@ const CMMGBIG = (() => {
     await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "edge") { edgeCard({ bet: "Ohio State Buckeyes -2.5", game: "Ohio State Buckeyes @ Illinois Fighting Illini", edge_class: "ELITE_SPREAD_VALUE", gates: 9 }, true); return; }
     if (preview === "streak") { streakCard("NFL · Pro Track", { n: 5, from: "2026-10-12", to: "2026-10-16", net: 4.61, roi: 0.184 }, true); return; }
     if (!pageKey) return;
     let j; try { j = await CMMG.relay({ task: "scoreboard", session: CMMG.session()?.token }); } catch (e) { return; }
     if (!j || !j.ok) return;
     const rows = (j.rows || []).concat(j.sports || []);
+    const edgeFirst = pageKey === "edge";     // on the EDGE page a fresh ELITE signal comes before any day celebration
     // FIRE STREAK first: this page's (and on Pro Track its sports') current run, at a level not yet shown for this streak
     const scope = pageKey === "pro" ? rows.filter(r => r.key === "pro" || r.key.indexOf("sport:") === 0) : rows.filter(r => r.key === pageKey);
     const hot = scope.map(r => ({ r, st: r.total && r.total.streak })).filter(x => x.st && level(x.st.n)).sort((a, b) => b.st.n - a.st.n)[0];
@@ -109,6 +142,7 @@ const CMMGBIG = (() => {
       let seen = false; try { seen = !!localStorage.getItem(k); if (!seen) localStorage.setItem(k, "1"); } catch (e) {}
       if (!seen) { streakCard(hot.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? hot.r.name + " · Pro Track" : hot.r.name, hot.st, false); return; }
     }
+    if (edgeFirst && await edgeCheck()) return;
     // Pro Track: a PERFECT sport that day first ("PERFECT NHL DAY"), else Pro Track's own big day; other pages: their own row
     const pool = pageKey === "pro" ? (j.sports || []).filter(r => perfect(r.today)).concat(rows.filter(r => r.key === "pro")) : rows.filter(r => r.key === pageKey);
     const row = pool.find(r => big(r.today)); if (!row) return;

@@ -5,6 +5,11 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.16 (Scott 10/18 "how would me track each individules bets they mark" -> "both"): owner task "members" =
+ *   ANONYMOUS totals of what members mark (picks taken + how many members, combined record at their own odds, by sport)
+ *   + the named tracker of members who OPT IN (task "share", S_<uid>). Everyone else stays private - privacy page says so.
+ *   OFF until Script Property MEMBERS_ON = "1" (members -> null, share refused, tracker hides the checkbox). forget()
+ *   now also deletes the share record.
  *   v1.15 (Scott 10/18 "my tracker should be over all record like from sessions ... just like masterhub each individual
  *   sport can track own records ... keep consistent"): feed part "hub" = MasterHub's OWN page + sport records
  *   (page_stats_tracker, cmmg_feed_hub_records.py - copied, never rebuilt); task "hubrecords" serves it to OWNER_IDS
@@ -45,6 +50,7 @@
  *   SESSION_SECRET  = made by setup() the first time - never leaves the relay
  *   ROLE_MAP        = optional JSON override of ROLE_MAP below (role id -> list of entitlements)
  *   OWNER_IDS       = optional, v1.9: Discord user ids (comma-separated) that get full access - Scott's own account
+ *   MEMBERS_ON      = optional, v1.16: "1" = owner Members view + the members' "Share my tracker with CMMG" opt-in
  *   HUB_RECORDS_FOR = optional, v1.15: "all" = every signed-in member sees the MasterHub records tab (default: owner only)
  */
 const DISCORD_CLIENT_ID = "1558985290188857356";        // public (it's in the login link)
@@ -87,6 +93,8 @@ function doPost(e) {
       case "mytracker": return out(myTracker(P, session(P, req.session)));
       case "trackall": return out(trackAll(P, session(P, req.session), req));
       case "hubrecords": return out(hubRecords(P, session(P, req.session)));
+      case "share": return out(shareTracker(P, session(P, req.session), req));
+      case "members": return out(members(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
       default: return out({ ok: false, error: "unknown task" });
     }
@@ -393,7 +401,7 @@ function forget(P, s) {
   try {
     const key = "T_" + s.uid, n = Number(P.getProperty(key + "#n") || 0);
     for (let i = 0; i < n; i++) P.deleteProperty(key + "#" + i);
-    P.deleteProperty(key + "#n"); P.deleteProperty("A_" + s.uid);
+    P.deleteProperty(key + "#n"); P.deleteProperty("A_" + s.uid); P.deleteProperty("S_" + s.uid);   // v1.16 share record too
     return { ok: true, deleted: n > 0 };
   } finally { lock.releaseLock(); }
 }
@@ -457,7 +465,7 @@ function myTracker(P, s) {
   const done = rows.filter(function (r) { return r.result === "WIN" || r.result === "LOSS"; });
   const w = done.filter(function (r) { return r.result === "WIN"; }).length;
   const net = rows.reduce(function (a, r) { return a + (r.units_pl || 0); }, 0);
-  return { ok: true, auto: auto, auto_since: auto ? autoSince : "", rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
+  return { ok: true, auto: auto, auto_since: auto ? autoSince : "", shareable: members_on(P), shared: !!P.getProperty("S_" + s.uid), rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
 }
@@ -471,6 +479,76 @@ function hubRecords(P, s) {
   if (!allowed) return { ok: true, at: null, hub: null };
   const r = getBig(P, "F_hub");
   return { ok: true, at: r ? r.at : null, hub: r && r.data || null };
+}
+
+// v1.16 MEMBERS (Scott 10/18 "both"): what members mark, for the owner. Two parts, never mixed:
+//   anonymous - every member's HAND-MARKED picks ("I Took This Pick" / edited), counted without names: picks taken and by
+//               how many members, the combined record at each member's own odds, by sport. "I play every CMMG pick" is
+//               only counted (how many members have it on) - auto rows would just repeat the CMMG record.
+//   sharers   - members who ticked "Share my tracker with CMMG" (S_<uid> = {name, at}): name + their own record + rows.
+// A member's units: same rule as myTracker - WIN at their odds x units, LOSS -units, PUSH/VOID 0, PENDING none.
+function members_on(P) { return P.getProperty("MEMBERS_ON") === "1"; }
+// Review 10/18: with only a few members tracking, the anonymous totals minus the named sharers could point at one
+// person - so they wait until MEMBERS_MIN members track. Sharers (who opted in) show either way.
+const MEMBERS_MIN = 5;
+function shareTracker(P, s, req) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  if (!members_on(P)) return { ok: false, error: "sharing isn't open yet" };
+  if (req.on === true) P.setProperty("S_" + s.uid, JSON.stringify({ name: s.name, at: new Date().toISOString() }));
+  else if (req.on === false) P.deleteProperty("S_" + s.uid);
+  return { ok: true, shared: !!P.getProperty("S_" + s.uid) };
+}
+function markRow(m, p) {
+  const res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
+  let pl = null;
+  if (res === "WIN" && odds) pl = odds > 0 ? u * odds / 100 : u * 100 / Math.abs(odds);
+  else if (res === "LOSS") pl = -u; else if (res === "PUSH" || res === "VOID") pl = 0;
+  return { pick: m.pick, date: p.date || String(m.at || "").slice(0, 10), game: p.game || "", bet: p.bet || "", sport: p.sport || "",
+           tier: p.tier || "", odds: odds != null ? odds : null, units: u, result: res || "PENDING", units_pl: pl == null ? null : Math.round(pl * 100) / 100 };
+}
+function tally(rows) {
+  const t = { w: 0, l: 0, p: 0, pending: 0, net: 0, risk: 0 };
+  rows.forEach(function (r) {
+    if (r.result === "WIN") t.w++; else if (r.result === "LOSS") t.l++; else if (r.result === "PUSH") t.p++; else if (r.result === "PENDING") t.pending++;
+    if (r.units_pl != null) t.net += r.units_pl;
+    if (r.result === "WIN" || r.result === "LOSS" || r.result === "PUSH") t.risk += Number(r.units) || 1;
+  });
+  t.net = Math.round(t.net * 100) / 100; t.risk = Math.round(t.risk * 100) / 100;
+  return t;
+}
+function members(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  if (!members_on(P) || !(isOwner(P, s.uid) || s.ent.indexOf("members") >= 0)) return { ok: true, members: null };
+  // ONE storage read for the whole call (review 10/18: a getProperty per chunk per member would hit the daily quota)
+  const ALL = P.getProperties(), R = { getProperty: function (k) { return k in ALL ? ALL[k] : null; } };
+  const byId = feedPicksById(R, true), keys = Object.keys(ALL);
+  const uids = keys.map(function (k) { const m = /^T_(\d{1,22})#n$/.exec(k); return m && m[1]; }).filter(Boolean);
+  const all = [], perPick = {}, sharers = [];
+  uids.forEach(function (uid) {
+    const list = getBig(R, "T_" + uid) || [];
+    const rows = list.map(function (m) { return markRow(m, byId[m.pick] || m.snap || {}); });
+    rows.forEach(function (r) {
+      all.push(r);
+      const k = perPick[r.pick] || (perPick[r.pick] = { pick: r.pick, date: r.date, game: r.game, bet: r.bet, sport: r.sport, result: r.result, n: 0 });
+      k.n++;
+    });
+    let sh = null; try { sh = JSON.parse(R.getProperty("S_" + uid) || "null"); } catch (e) { sh = null; }
+    if (sh) sharers.push({ name: String(sh.name || "member").slice(0, 40), since: sh.at || "", record: tally(rows),
+                           rows: rows.slice().sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); }).slice(0, 60) });
+  });
+  const sports = {};
+  all.forEach(function (r) { (sports[r.sport || "OTHER"] = sports[r.sport || "OTHER"] || []).push(r); });
+  const autoN = keys.filter(function (k) { return /^A_\d{1,22}$/.test(k) && ALL[k] === "1"; }).length;
+  const enough = uids.length >= MEMBERS_MIN;
+  if (!enough) { all.length = 0; Object.keys(perPick).forEach(function (k) { delete perPick[k]; }); Object.keys(sports).forEach(function (k) { delete sports[k]; }); }
+  return { ok: true, members: { min: MEMBERS_MIN, enough: enough,
+    tracking: uids.length, auto: autoN, shared: sharers.length, marks: all.length, combined: tally(all),
+    sports: Object.keys(sports).sort().map(function (k) { return Object.assign({ sport: k }, tally(sports[k])); }),
+    // the 100 most-taken (newest first on a tie); distinct = every pick any member marked, so the page can say "of N"
+    distinct: Object.keys(perPick).length,
+    picks: Object.keys(perPick).map(function (k) { return perPick[k]; })
+      .sort(function (a, b) { return b.n - a.n || String(b.date).localeCompare(String(a.date)) || String(a.pick).localeCompare(String(b.pick)); }).slice(0, 100),
+    sharers: sharers.sort(function (a, b) { return a.name.localeCompare(b.name); }) } };
 }
 
 // Today's board + graded history, by id (graded history last, so a result wins over today's copy).

@@ -12,7 +12,10 @@
      individual sport can track own records ... keep consistent"; "we should not be rebuilding units"): MasterHub's OWN
      per-sport and per-page records (relay task "hubrecords", feed part "hub" from page_stats_tracker) - Today / Week /
      Month / All exactly as each MasterHub page shows them. Copied, never recomputed here. The tab appears only when the
-     relay serves it (owner by default). -->
+     relay serves it (owner by default).
+     MEMBERS tab + SHARE box (Scott 10/18 "how would me track each individules bets they mark" -> "both"; relay v1.16):
+     the owner sees ANONYMOUS totals of what members mark + the named tracker of members who tick "Share my tracker
+     with CMMG". Both appear only when the relay has MEMBERS_ON. Privacy page updated the same day. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Tracker · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -50,6 +53,7 @@
   <main class="main">
     <div class="vhero"><h1>MY TRACKER</h1><h2>PERFORMANCE LAB</h2><p>YOUR PICKS. OUR PICKS. REAL RESULTS.</p></div>
     <label class="autoall" id="autoBox" hidden><input type="checkbox" id="autoAll"> <span><b>I play every CMMG pick</b> — count every Pro Track + Free pick in my record automatically, at CMMG's odds and stake. Picks I edit keep my own numbers.</span></label>
+    <label class="autoall" id="shareBox" hidden style="border-color:rgba(255,215,0,.35);background:rgba(255,215,0,.06)"><input type="checkbox" id="shareMine"> <span><b>Share my tracker with CMMG</b> - the CMMG team sees my Discord name and the picks I mark. Off = only I see my tracker by name (<a href="/privacy/" style="color:var(--ice)">privacy</a>).</span></label>
     <div class="tabs2" id="tabs"></div>
     <div class="rng" id="rng"></div>
     <div id="body"><div class="empty">Loading…</div></div>
@@ -68,6 +72,7 @@
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id), TIERS = ["ICE", "EDGE", "FIRE"];
 const TCOL = { ICE: "#3b82f6", EDGE: "#22c55e", FIRE: "#ef4444" };
+let MEM = null, MVIEW = "over", MOPEN = "";
 let HUB = null, HUB_AT = "", HPER = "all", HVIEW = "sports", TAB_PICKED = false;
 let ROWS = [], AUTO_SINCE = "", CM = null, TAB = "over", RNG = "30", EDIT = null, HF = { sport: "", tier: "", type: "" };
 try { RNG = localStorage.getItem("cmmg.trkrng") || "30"; } catch (e) {}
@@ -174,14 +179,52 @@ function hubTab() {
       : `<p class="game">No graded picks ${HPER === "today" ? "yet today" : "in this window"}.</p>`}</div>`;
 }
 
+// MEMBERS (owner) - the relay's tally: w/l/p/pending, net = units at each member's own odds, risk = units risked
+const tl = t => `${t.w}-${t.l}-${t.p}`, wrS = t => t.w + t.l ? (100 * t.w / (t.w + t.l)).toFixed(1) + "%" : "—";
+const roiS = t => t.risk ? pct(t.net / t.risk) : "—", cls = n => n > 0 ? "pos" : n < 0 ? "neg" : "";
+function membersTab() {
+  const m = MEM, chips = [["over", "Overview"], ["picks", "Most Taken"], ["share", `Sharing (${m.shared})`]]
+    .map(([k, l]) => `<button data-mview="${k}" class="${k === MVIEW ? "on" : ""}">${l}</button>`).join("");
+  let body = "";
+  const few = !m.enough ? `<div class="box"><p class="game" style="margin:0">Anonymous totals show once ${Number(m.min) || 5} members are tracking (${m.tracking} now) - with fewer, they could point at one person. Members who share are under Sharing.</p></div>` : "";
+  if (few && MVIEW !== "share") body = few;
+  else if (MVIEW === "over") {
+    body = `<div class="box"><h3>${ICON.ui("star")}MEMBERS · ANONYMOUS TOTALS</h3>
+      <p class="game" style="margin:0 0 8px">What members mark with "I Took This Pick", at their own odds - no names.</p>
+      <div class="row"><span>Members tracking</span><b>${m.tracking}</b></div>
+      <div class="row"><span>"I play every CMMG pick" on</span><b>${m.auto}</b></div>
+      <div class="row"><span>Picks marked</span><b>${m.marks}</b></div>
+      <div class="row"><span>Combined W-L-P</span><b>${tl(m.combined)}${m.combined.pending ? ` · ${m.combined.pending} pending` : ""}</b></div>
+      <div class="row"><span>Win rate</span><b>${wrS(m.combined)}</b></div>
+      <div class="row"><span>Units (their odds)</span><b class="${cls(m.combined.net)}">${sgn(m.combined.net)}</b></div>
+      <div class="row"><span>ROI</span><b class="${cls(m.combined.net)}">${roiS(m.combined)}</b></div></div>
+      <div class="box"><h3>BY SPORT</h3>${m.sports.length ? `<div style="overflow-x:auto"><table class="rt hubt"><tr><th>SPORT</th><th>W-L-P</th><th>WIN %</th><th>UNITS</th><th>ROI</th></tr>` +
+        m.sports.map(x => `<tr><td>${ICON.sport(x.sport)} ${E(x.sport)}</td><td>${tl(x)}</td><td>${wrS(x)}</td><td class="${cls(x.net)}">${sgn(x.net)}</td><td class="${cls(x.net)}">${roiS(x)}</td></tr>`).join("") + `</table></div>` : `<p class="game">No marked picks yet.</p>`}</div>`;
+  } else if (MVIEW === "picks") {
+    body = `<div class="box"><h3>MOST TAKEN</h3><p class="game" style="margin:0 0 8px">How many members marked each pick${m.distinct > m.picks.length ? ` - top ${m.picks.length} of ${m.distinct}` : ""}.</p>
+      ${m.picks.length ? `<div style="overflow-x:auto"><table class="rt hubt"><tr><th>DATE</th><th>PICK</th><th>RESULT</th><th>MEMBERS</th></tr>` + m.picks.map(x => `<tr>
+        <td>${E(nice(x.date))}</td><td>${ICON.sport(x.sport)} <b>${E(x.bet || "pick")}</b><div class="game">${E(x.game)}</div></td>
+        <td><span class="res ${E(x.result)}">${E(x.result)}</span></td><td><b>${Number(x.n) || 0}</b></td></tr>`).join("") + `</table></div>` : `<p class="game">No marked picks yet.</p>`}</div>`;
+  } else {
+    body = `<div class="box"><h3>SHARING MEMBERS</h3><p class="game" style="margin:0 0 8px">Only members who ticked "Share my tracker with CMMG". Everyone else stays private. Records are the picks they marked by hand ("I play every CMMG pick" rows are the CMMG record and are not repeated here).</p>
+      ${m.sharers.length ? m.sharers.map((x, i) => `<div class="row" style="cursor:pointer" data-mopen="${i}"><span><b>${E(x.name)}</b> <small class="game">sharing since ${E(nice(String(x.since).slice(0, 10)))}</small></span>
+        <b class="${cls(x.record.net)}">${tl(x.record)} · ${sgn(x.record.net)}u</b></div>` + (MOPEN === String(i) ? `<div style="overflow-x:auto;margin:4px 0 10px"><table class="rt hubt"><tr><th>DATE</th><th>PICK</th><th>ODDS</th><th>UNITS</th><th>RESULT</th><th>+/-</th></tr>` +
+          x.rows.map(r => `<tr><td>${E(nice(r.date))}</td><td>${ICON.sport(r.sport)} ${E(r.bet || "pick")}<div class="game">${E(r.game)}</div></td><td>${E(odds(r.odds))}</td><td>${E(r.units)}</td>
+          <td><span class="res ${E(r.result)}">${E(r.result)}</span></td><td class="${cls(r.units_pl)}">${r.units_pl == null ? "" : sgn(r.units_pl)}</td></tr>`).join("") + `</table></div>` : "")).join("")
+        : `<p class="game">Nobody is sharing yet.</p>`}</div>`;
+  }
+  return `<div class="rng">${chips}</div>${body}`;
+}
+
 function draw() {
-  $("rng").style.display = TAB === "hub" ? "none" : "";          // .rng is display:flex - [hidden] alone would not hide it
-  $("tabs").innerHTML = [...(HUB ? [["hub", "CMMG Record"]] : []), ["over", "Overview"], ["sport", "By Sport"], ["tier", "By Tier"], ["type", "By Bet Type"], ["hist", "History"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
+  $("rng").style.display = TAB === "hub" || TAB === "mem" ? "none" : "";          // .rng is display:flex - [hidden] alone would not hide it
+  $("tabs").innerHTML = [...(HUB ? [["hub", "CMMG Record"]] : []), ...(MEM ? [["mem", "Members"]] : []), ["over", "Overview"], ["sport", "By Sport"], ["tier", "By Tier"], ["type", "By Bet Type"], ["hist", "History"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
   $("rng").innerHTML = [["7", "7D"], ["30", "30D"], ["90", "90D"], ["ytd", "YTD"], ["all", "All Time"]].map(([k, l]) => `<button data-rng="${k}" class="${k === RNG ? "on" : ""}">${l}</button>`).join("");
   const el = $("body");
   if (!CMMG.session()) { el.innerHTML = `<div class="empty">Sign in with Discord to see your Performance Lab.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; return; }
   if (TAB === "hub" && HUB) { el.innerHTML = hubTab(); return; }
-  if (TAB === "hub") TAB = "over";
+  if (TAB === "mem" && MEM) { el.innerHTML = membersTab(); return; }
+  if (TAB === "hub" || TAB === "mem") TAB = "over";
   const rows = ROWS.filter(r => inRange(rowDay(r)));
   if (TAB === "over") {
     const me = mineS(rows), all = CM && CM.published ? (CM.picks || []).filter(p => inRange(p.date)) : null;
@@ -229,10 +272,12 @@ async function load() {
   { const td = todayKey(), net = ROWS.filter(r => rowDay(r) === td).reduce((x, r) => x + (r.units_pl || 0), 0);       // 💡 tip situations
     if (net < 0) SHELL.tip("losing_day"); else if (net > 0) SHELL.tip("winning_day"); }
   $("autoBox").hidden = false; $("autoAll").checked = !!j.auto;
+  $("shareBox").hidden = !j.shareable; $("shareMine").checked = !!j.shared;
   try { const t = await CMMG.relay({ task: "picks", session: s.token }); if (t && t.ok && /^\d{4}-\d\d-\d\d$/.test(t.date || "")) SESSION_DAY = t.date; } catch (e) {}
   draw();
   try { const h = await CMMG.relay({ task: "hubrecords", session: s.token });
         if (h && h.ok && h.hub) { HUB = h.hub; HUB_AT = h.at || ""; if (!TAB_PICKED) TAB = "hub"; draw(); } } catch (e) {}
+  try { const mm = await CMMG.relay({ task: "members", session: s.token }); if (mm && mm.ok && mm.members) { MEM = mm.members; draw(); } } catch (e) {}
   try { CM = await CMMG.relay({ task: "results" }); } catch (e) { CM = null; }
   if (CM && CM.published) draw();
 }
@@ -243,11 +288,21 @@ $("autoAll").addEventListener("change", async e => {
   try { await CMMG.relay({ task: "trackall", session: s.token, on: e.target.checked }); } catch (x) {}
   e.target.disabled = false; load();
 });
+$("shareMine").addEventListener("change", async e => {
+  const s = CMMG.session(); if (!s) return;
+  e.target.disabled = true;
+  let j = null; try { j = await CMMG.relay({ task: "share", session: s.token, on: e.target.checked }); } catch (x) {}
+  e.target.disabled = false;
+  if (j && j.ok) { e.target.checked = !!j.shared; toast(j.shared ? "Sharing your tracker with CMMG" : "Your tracker is private again"); }
+  else { e.target.checked = !e.target.checked; toast((j && j.error) || "Couldn't save. Try again."); }
+});
 document.addEventListener("click", e => {
+  const o = e.target.closest("[data-mopen]"); if (o) { MOPEN = MOPEN === o.dataset.mopen ? "" : o.dataset.mopen; draw(); return; }
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.tab) { TAB = t.dataset.tab; TAB_PICKED = true; draw(); }
   if (t.dataset.hper) { HPER = t.dataset.hper; draw(); }
   if (t.dataset.hview) { HVIEW = t.dataset.hview; draw(); }
+  if (t.dataset.mview) { MVIEW = t.dataset.mview; MOPEN = ""; draw(); }
   if (t.dataset.rng) { RNG = t.dataset.rng; try { localStorage.setItem("cmmg.trkrng", RNG); } catch (e) {} draw(); }
   if (t.dataset.edit) {
     EDIT = ROWS.find(r => r.pick === t.dataset.edit); if (!EDIT) return;

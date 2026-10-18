@@ -6,7 +6,7 @@ let PROPS = {}, DISCORD = {};
 const b64w = b => Buffer.from(b).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 const env = {
   PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in PROPS ? PROPS[k] : null), setProperty: (k, v) => { PROPS[k] = String(v); },
-    setProperties: o => { for (const k in o) PROPS[k] = String(o[k]); }, deleteProperty: k => { delete PROPS[k]; } }) },
+    setProperties: o => { for (const k in o) PROPS[k] = String(o[k]); }, deleteProperty: k => { delete PROPS[k]; }, getKeys: () => Object.keys(PROPS), getProperties: () => Object.assign({}, PROPS) }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, tryLock() { return !globalThis.LOCK_BUSY; }, releaseLock() {} }) },
   Logger: { log() {} },
   Utilities: {
@@ -312,5 +312,55 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   check("hub: a role mapped to 'hub' in ROLE_MAP sees it", post({ task: "hubrecords", session: coS }).hub !== null);
   delete PROPS.ROLE_MAP;
   check("hub: unknown part still refused", post({ task: "put", key: "wkey", part: "hubx", data: {} }).error === "unknown part");
+}
+// v1.16 MEMBERS (Scott 10/18 "how would me track each individules bets they mark" -> "both")
+{
+  post({ task: "put", key: "wkey", part: "history", data: { picks: [
+    { id: "m1", need: "pro", sport: "NBA", game: "LAL @ BOS", bet: "OVER 221.5", date: "2026-10-18", result: "WIN", odds: -110, profit: 0.91 },
+    { id: "m2", need: "pro", sport: "NFL", game: "BUF @ LAR", bet: "BUF ML", date: "2026-10-18", result: "LOSS", odds: -120, profit: -1 },
+    { id: "m3", need: "pro", sport: "NBA", game: "NY @ MIA", bet: "NY -3.5", date: "2026-10-18", odds: -110 } ] } });
+  const login = (id, name) => { DISCORD.user = { id, username: name, global_name: name }; DISCORD.roles = ["1471082166149578936"];
+    return post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session; };
+  const a = login("900000000000000001", "Alpha"), b = login("900000000000000002", "Bravo");
+  post({ task: "track", session: a, pick: "m1", odds: -105, units: 2 }); post({ task: "track", session: a, pick: "m2", odds: -120, units: 1 });
+  post({ task: "track", session: b, pick: "m1", odds: 100, units: 1 }); post({ task: "track", session: b, pick: "m3" });
+  delete PROPS.MEMBERS_ON; PROPS.OWNER_IDS = OWNER;
+  check("members: OFF -> owner gets null", (r => r.ok && r.members === null)(post({ task: "members", session: oldOwnerS })));
+  check("members: OFF -> share refused", post({ task: "share", session: a, on: true }).ok === false);
+  check("members: OFF -> tracker says not shareable", post({ task: "mytracker", session: a }).shareable === false);
+  PROPS.MEMBERS_ON = "1";
+  check("members: signed out refused", post({ task: "members" }).ok === false);
+  check("members: a member (not owner) gets null", post({ task: "members", session: a }).members === null);
+  let M = post({ task: "members", session: oldOwnerS }).members;
+  const pk = id => M.picks.find(x => x.pick === id);
+  check("members: m1 taken by 2 members - the most-taken, listed first", pk("m1") && pk("m1").n === 2 && M.picks[0].pick === "m1", M.picks.slice(0, 3));
+  check("members: list capped at 100, distinct counts every marked pick", M.picks.length <= 100 && M.distinct >= M.picks.length && M.distinct >= 3, [M.picks.length, M.distinct]);
+  const marks0 = M.marks;
+  check("members: most-taken first", M.picks[0].n >= M.picks[M.picks.length - 1].n);
+  check("members: anonymous part carries no names or ids", !JSON.stringify({ p: M.picks, c: M.combined, s: M.sports }).match(/Alpha|Bravo|90000000000000000/));
+  check("members: nobody shared yet -> no sharers", M.shared === 0 && M.sharers.length === 0);
+  check("members: tracker shows the share box", post({ task: "mytracker", session: a }).shareable === true && post({ task: "mytracker", session: a }).shared === false);
+  check("members: Alpha shares", post({ task: "share", session: a, on: true }).shared === true);
+  M = post({ task: "members", session: oldOwnerS }).members;
+  const al = M.sharers.find(x => x.name === "Alpha");
+  check("members: only the sharer is named (Alpha yes, Bravo no)", !!al && !M.sharers.some(x => x.name === "Bravo") && M.shared === 1, M.sharers);
+  check("members: Alpha's record at Alpha's own odds: m1 WIN 2u @ -105 = +1.90, m2 LOSS -1 -> 1-1, +0.90", al.record.w === 1 && al.record.l === 1 && al.record.net === 0.9, al.record);
+  check("members: Alpha's rows carry bet + result", al.rows.length === 2 && al.rows.some(r => r.bet === "OVER 221.5" && r.result === "WIN"));
+  check("members: Bravo's ungraded m3 counts as pending in the combined tally", M.combined.pending >= 1);
+  check("members: by sport has NBA + NFL", ["NBA", "NFL"].every(s => M.sports.some(x => x.sport === s)));
+  check("members: Alpha un-shares", post({ task: "share", session: a, on: false }).shared === false && post({ task: "members", session: oldOwnerS }).members.shared === 0);
+  post({ task: "share", session: b, on: true });
+  check("members: forget deletes Bravo's share record too", post({ task: "forget", session: b }).ok && !PROPS["S_900000000000000002"]);
+  const before = M.tracking, mF = post({ task: "members", session: oldOwnerS }).members;
+  check("members: after forget Bravo no longer counts as tracking", mF.tracking === before - 1, [before, mF.tracking]);
+  check("members: under MEMBERS_MIN (5) tracking -> anonymous totals held back (no picks, no sports, 0 marks)",
+        mF.tracking < 5 && mF.enough === false && mF.picks.length === 0 && mF.sports.length === 0 && mF.marks === 0 && mF.combined.w === 0, mF);
+  post({ task: "share", session: a, on: true });
+  check("members: ... but a member who opted in still shows under Sharing", post({ task: "members", session: oldOwnerS }).members.sharers.some(x => x.name === "Alpha"));
+  const c = login("900000000000000003", "Charlie"); post({ task: "track", session: c, pick: "m1" });
+  const m5 = post({ task: "members", session: oldOwnerS }).members;
+  check("members: back at 5 tracking -> totals return (m1 taken by Alpha + Charlie)", m5.enough === true && m5.picks.find(x => x.pick === "m1").n === 2, m5.tracking);
+  check("members: marks0 sanity (totals were shown at 5+ earlier)", marks0 > 0);
+  delete PROPS.MEMBERS_ON; delete PROPS.OWNER_IDS;
 }
 console.log(`\n${ok} passed, ${bad} failed`);

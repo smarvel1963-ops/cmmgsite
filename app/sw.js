@@ -3,7 +3,7 @@
  * fast and shows its frame offline. Picks, sign-in and My Tracker always go live to the CMMG relay (another origin,
  * POST) and are never cached - a member never sees an old board from the cache. Only successful responses are stored.
  * Bump VERSION on every release of the frame. */
-const VERSION = "cmmg-app-v74";
+const VERSION = "cmmg-app-v75";
 const CORE = ["/app/", "/app/welcome/", "/app/dashboard/", "/app/results/", "/app/scores/", "/app/game/", "/app/schedule/", "/app/lives/", "/app/tennis/", "/app/ufc/", "/app/golf/", "/app/horses/", "/app/f1/", "/app/nascar/", "/app/team/", "/app/standings/", "/app/player/", "/app/alerts/", "/app/learn/", "/app/sport/", "/app/mygames/", "/app/tracker/", "/app/account/", "/app/tools/", "/app/community/", "/app/soon/",
   "/css/app.css", "/css/motor.css", "/css/sportbg.css", "/js/cmmg.js", "/js/motor.js", "/js/shell.js", "/js/icons.js", "/js/icons-color.js", "/img/splash.jpg", "/img/lion_64.png", "/img/icon_192.png", "/img/crest.jpg"];
 self.addEventListener("install", e => {

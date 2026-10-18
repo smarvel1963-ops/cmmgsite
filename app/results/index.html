@@ -46,6 +46,13 @@
 .prod button.on { border-color:#3b82f6; box-shadow:0 0 0 1px #3b82f6 inset; background:rgba(37,99,235,.18); }
 .prod .l { font-size:11px; letter-spacing:.12em; font-weight:800; color:var(--dim); } .prod b { display:block; font-family:Saira; font-size:20px; margin-top:2px; } .prod span { font-size:12px; color:var(--dim); }
 .soonbar b { color:#ffd700; } .muted { opacity:.45; filter:grayscale(.4); pointer-events:none; }
+/* pre-launch panel (Scott 10/17 site evaluation item 1): replaces the empty zero cards until Verified Results is switched on */
+.launch { text-align:center; padding:34px 22px 28px; border-radius:18px; border:1px solid rgba(255,215,0,.45); background:radial-gradient(circle at 50% 0%, rgba(255,215,0,.12), rgba(7,15,29,.9) 70%); margin-bottom:14px; }
+.launch .lic { font-size:44px; line-height:1; text-align:center; } .launch h2 { font-family:Saira, Inter, sans-serif; font-size:clamp(22px,3.4vw,32px); margin:10px 0 6px; color:#ffd700; letter-spacing:.02em; }
+.launch p { color:#bfd3e6; max-width:620px; margin:0 auto 18px; font-size:14px; line-height:1.55; }
+.launch ul { list-style:none; padding:0; margin:0 auto 20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:10px; max-width:760px; } @media (max-width:560px) { .launch ul { grid-template-columns:1fr 1fr; } .launch li { padding:9px; font-size:12px; } }
+.launch li { background:rgba(10,22,40,.7); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:13px; text-align:left; } .launch li b { display:block; color:#e8f4ff; margin-bottom:2px; }
+.launch .go { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; } .launch .go a { text-decoration:none; }
 </style></head>
 <body>
 <div class="layout wide">
@@ -239,8 +246,11 @@ function extras2() {
 async function load() {
   let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
   if (!j.ok || !j.published) {
-    $("soon").innerHTML = `<div class="soonbar"><b>Verified Results go live soon.</b> Every graded pick, wins and losses, with the date range and breakevens shown. Until then, results post in Discord every day and each graded pick shows WON / LOST on <a href="/app/" style="color:var(--ice)">Pro Track</a>.</div>`;
-    $("body").classList.add("muted"); ALL = []; apply(); return;
+    $("soon").innerHTML = `<div class="launch"><div class="lic">🏆</div><h2>Verified Results launch soon</h2>
+      <p>Every graded pick, wins and losses, goes here, with the date range and breakevens shown. We're finishing the audit first, so the numbers you see on day one are numbers we stand behind.</p>
+      <ul><li><b>Every pick</b>wins, losses, pushes. Nothing hidden.</li><li><b>Real payouts</b>units at the price we posted.</li><li><b>Breakeven beside win %</b>so you can judge the edge.</li><li><b>Filters</b>by sport, tier, date and result.</li></ul>
+      <div class="go"><a class="btn pro" href="/app/">See today's picks</a><a class="btn ghost" href="/app/tracker/">Open My Tracker</a></div></div>`;
+    $("body").style.display = "none"; ALL = []; return;
   }
   ALL = (j.picks || []).slice().sort((a, b) => String(b.date + b.time).localeCompare(String(a.date + a.time)));
   EARLY = CMMG.earliest(CMMG.byNeed(ALL, PROD)); drawRanges();     // the shown record's own first date

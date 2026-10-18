@@ -149,10 +149,12 @@ async function tracker() {
   let j; try { j = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { return; }
   if (!j.ok) return;
   const m = j.summary, wl = m.won + m.lost;
+  const first = (j.rows || []).reduce((a, r) => /^\d{4}-\d\d-\d\d$/.test(r.date || "") && (!a || r.date < a) ? r.date : a, "");
+  const since = first ? new Date(first + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
   el.innerHTML = `<div class="stats"><div><b>${m.won}-${m.lost}${m.pushes ? "-" + m.pushes : ""}</b><span>Record</span></div>
     <div><b class="${m.net_units > 0 ? "pos" : m.net_units < 0 ? "neg" : ""}">${sgn(m.net_units)}</b><span>Net units</span></div>
     <div><b>${m.pending}</b><span>Pending</span></div></div>
-    <p style="margin:8px 0 0">${wl ? `${(100 * m.won / wl).toFixed(1)}% win rate on ${wl} graded picks, at your odds.` : "Tap “✓ I Took This Pick” on a pick to start."}</p>`;
+    <p style="margin:8px 0 0">${wl ? `All time${since ? " since " + since : ""} · ${(100 * m.won / wl).toFixed(1)}% win rate on ${wl} graded picks, at your odds. Open for 7D / 30D / 90D.` : "Tap “✓ I Took This Pick” on a pick to start."}</p>`;
 }
 
 SHELL.mount("dashboard"); document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic)); hello(); load(); tracker(); scoreboard();

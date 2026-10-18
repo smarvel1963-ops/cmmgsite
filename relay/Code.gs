@@ -5,6 +5,7 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.14 (Scott 10/17): 68%+ WIN RATE - lifetime totals carry the average breakeven (feed "be").
  *   v1.13 (Scott 10/17): PLATINUM PERFORMANCE - lifetime totals carry graded n + ROI (feed sends units risked).
  *   v1.12 (Scott 10/17): FIRE STREAK - each lifetime total carries the current straight-win streak (+ today's picks).
  *   v1.11 (Scott 10/17): nine CMMG pick-page boards (mm, prime4, parlay, freepick, edge, ice, top5, kbo, npb).
@@ -272,6 +273,7 @@ function sbRow(key, today, hist, s, totalsOn, lt, name) {
     const late = today.filter(function (p) { return p.result && p.result !== "VOID" && String(p.date || "") > String(lt.through || ""); });
     const risk = lt.risk == null ? null : lt.risk + late.reduce(function (a, p) { return a + (Number(p.units) || 1); }, 0);
     tot.n = tot.w + tot.l + tot.p;
+    tot.be = lt.be == null ? null : lt.be;          // v1.14 68%+ WIN RATE card: breakeven printed beside the win %
     tot.roi = tot.net == null || !risk ? null : Math.round(tot.net / risk * 10000) / 10000;
   } else if (totalsOn) {
     const seen = {}; hist.forEach(function (p) { if (p.id) seen[p.id] = 1; });

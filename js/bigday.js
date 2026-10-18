@@ -147,6 +147,29 @@ const CMMGBIG = (() => {
     addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
     setTimeout(close, 12000);
   }
+  // 68%+ WIN RATE (Scott 10/17: CMMG_68_Win_Rate video + still): a page / sport's VERIFIED lifetime record with 100+ graded
+  // picks, a 68%+ win rate AND in profit (a win rate alone can lose money - favourites pay little), with the breakeven printed
+  // beside the win % (record audit 10/11). His shield art on top (side screens with player figures trimmed - CMMG site =
+  // sport themes only), live numbers below. Once per page. OFF until lifetime totals are published page by page.
+  const wrOk = t => t && (t.n || 0) >= 100 && t.w + t.l > 0 && t.w / (t.w + t.l) >= 0.68 && t.net != null && t.net > 0;
+  function wrCard(label, t, preview) {
+    if (document.getElementById("bigday")) return;
+    const wr = (100 * t.w / (t.w + t.l)).toFixed(1), be = t.be != null ? (100 * t.be).toFixed(1) + "%" : "";
+    const conf = Array.from({ length: 40 }, (_, i) => `<i class="pp-part" style="--x:${(i * 41.3) % 100}%;--r:${i * 37}deg;--dur:${2.4 + (i % 5) * 0.5}s;--delay:${(i % 8) * 0.33}s;background:${["#f5c84c", "#2ee07a", "#fff2c2"][i % 3]}"></i>`).join("");
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="wr68" role="dialog" aria-modal="true" aria-label="68% plus win rate">
+      <section class="wr-modal"><button class="wr-x" aria-label="Close">×</button><div class="pp-parts">${conf}</div>
+        <img class="wr-art" src="/img/winrate68_art.jpg" alt="CMMG 68%+ win rate">
+        <div class="wr-in"><div class="wr-ver">VERIFIED PAGE PERFORMANCE</div><div class="wr-who">${E(label)}</div>
+          <div class="wr-stats"><div><span>🏆</span><b>${wr}%</b><small>WINS${be ? " · BE " + be : ""}</small></div><div><span>📶</span><b>${t.w} - ${t.l}</b><small>RECORD</small></div><div><span>🧾</span><b>${t.n}</b><small>PICKS</small></div></div>
+          <div class="wr-bar"><b>✓</b><div>THIS PAGE HAS ACHIEVED A <em>68%+ WIN RATE</em><small>${t.net != null ? (t.net > 0 ? "+" : "") + t.net.toFixed(2) + "u" : ""} · CONSISTENT PICKS · VERIFIED RESULTS</small></div></div>
+          <a class="wr-view" href="/app/results/">👑 VIEW PAGE ›</a>
+          <p class="wr-f">${preview ? "PREVIEW · sample numbers · " : ""}Past results don't promise future results · 21+</p></div></section></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 450); };
+    el.querySelector(".wr-x").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
+    setTimeout(close, 12000);
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
   // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
   const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
@@ -154,6 +177,7 @@ const CMMGBIG = (() => {
     await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "winrate") { wrCard("Pro Track", { w: 163, l: 75, p: 0, n: 238, net: 31.4, be: 0.556 }, true); return; }
     if (preview === "platinum") { platCard("Pro Track", { w: 64, l: 34, p: 2, n: 100, net: 14.2, roi: 0.138, since: "2026-09-03" }, true); return; }
     if (preview === "edge") { edgeCard({ bet: "Ohio State Buckeyes -2.5", game: "Ohio State Buckeyes @ Illinois Fighting Illini", edge_class: "ELITE_SPREAD_VALUE", gates: 9 }, true); return; }
     if (preview === "streak") { streakCard("NFL · Pro Track", { n: 5, from: "2026-10-12", to: "2026-10-16", net: 4.61, roi: 0.184 }, true); return; }
@@ -177,6 +201,12 @@ const CMMGBIG = (() => {
       const k = "cmmg.platinum." + plat.r.key + "." + plat.lv;
       let seen = false; try { seen = !!localStorage.getItem(k); if (!seen) localStorage.setItem(k, "1"); } catch (e) {}
       if (!seen) { platCard(plat.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? plat.r.name + " · Pro Track" : plat.r.name, plat.r.total, false); return; }
+    }
+    // 68%+ WIN RATE: once per page (and on Pro Track, per sport)
+    const wrHit = scope.find(r => wrOk(r.total) && (() => { try { return !localStorage.getItem("cmmg.wr68." + r.key); } catch (e) { return true; } })());
+    if (wrHit) {
+      try { localStorage.setItem("cmmg.wr68." + wrHit.key, "1"); } catch (e) {}
+      wrCard(wrHit.key.indexOf("sport:") === 0 && pageKey === "pro" ? wrHit.name + " · Pro Track" : wrHit.name, wrHit.total, false); return;
     }
     // Pro Track: a PERFECT sport that day first ("PERFECT NHL DAY"), else Pro Track's own big day; other pages: their own row
     const pool = pageKey === "pro" ? (j.sports || []).filter(r => perfect(r.today)).concat(rows.filter(r => r.key === "pro")) : rows.filter(r => r.key === pageKey);

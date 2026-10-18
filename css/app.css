@@ -437,3 +437,33 @@ tbody tr:nth-child(even) td { background:rgba(127,216,255,.035); } tbody tr:hove
 .bd-d { position:relative; font-size:12px; color:#bfe6ff; margin-top:8px; } .bd-f { position:relative; font-size:10.5px; color:var(--dim); margin-top:10px; }
 .bigday.perfect .bd-card { border-color:#fff3a8; box-shadow:0 0 90px rgba(255,215,0,.75), 0 0 0 4px rgba(255,215,0,.25); background:radial-gradient(440px 280px at 50% 0%, rgba(255,215,0,.55), transparent 70%), linear-gradient(180deg,#1d2a4a,#070d1a); }
 .bigday.perfect .bd-k { font-size:18px; color:#fff3a8; text-shadow:0 0 14px rgba(255,215,0,.9); } .bigday.perfect .bd-rec { font-size:76px; }
+
+/* Big Day = small corner card (routine) - Perfect Day / Fire Streak stay full screen */
+.bigday.corner { inset:auto 16px 92px auto; display:block; background:none !important; pointer-events:none; }
+.bigday.corner .bd-card { pointer-events:auto; width:min(270px, 80vw); padding:16px 14px 12px; } .bigday.corner .bd-rec { font-size:44px; } .bigday.corner .bd-n { font-size:20px; }
+/* FIRE STREAK (Scott 10/17 video) */
+.firestreak { position:fixed; inset:0; z-index:85; display:grid; place-items:center; background:rgba(0,0,0,.6); transition:background .9s ease; }
+.firestreak.on { background:rgba(0,0,0,.84); } .firestreak.out { opacity:0; transition:opacity .55s; }
+.fs-embers { position:fixed; inset:0; pointer-events:none; }
+.fs-card { position:relative; width:min(400px, 90vw); border-radius:20px; border:2px solid #e8b13a; overflow:hidden; text-align:center; padding-bottom:14px;
+  background:linear-gradient(180deg,#120a03,#050302); box-shadow:0 0 0 1px rgba(255,200,80,.25), 0 0 70px rgba(255,140,30,.55); opacity:0; transform:translateY(18px) scale(.94);
+  filter:brightness(.2); transition:opacity 1s ease, transform 1s cubic-bezier(.2,1.2,.4,1), filter 1.4s ease; }
+.firestreak.on .fs-card { opacity:1; transform:none; filter:none; }
+.fs-art { display:block; width:100%; height:auto; }
+.fs-flames { position:absolute; inset:auto -10% -6% -10%; height:62%; pointer-events:none; z-index:0;
+  background:radial-gradient(60% 70% at 10% 100%, rgba(255,110,20,.75), transparent 70%), radial-gradient(60% 70% at 90% 100%, rgba(255,110,20,.75), transparent 70%), radial-gradient(40% 45% at 50% 105%, rgba(255,190,60,.6), transparent 70%);
+  filter:blur(6px); animation:fsflick 1.1s ease-in-out infinite alternate; }
+@keyframes fsflick { 0% { opacity:.65; transform:scaleY(.94); } 50% { opacity:1; transform:scaleY(1.04); } 100% { opacity:.8; transform:scaleY(.98) skewX(1.5deg); } }
+.fs-x { color:#fbe2a0; top:6px; right:8px; } .fs-prev { position:absolute; top:8px; left:0; right:0; z-index:2; }
+.fs-plate, .fs-who, .fs-stats, .fs-btn, .fs-ach, .fs-f { position:relative; z-index:1; }
+.fs-plate { margin:-6px 18px 0; display:flex; align-items:center; justify-content:center; gap:14px; padding:8px 12px; border-radius:12px; border:1px solid rgba(255,210,110,.55);
+  background:linear-gradient(180deg,rgba(30,22,10,.92),rgba(10,7,3,.92)); box-shadow:inset 0 0 18px rgba(0,0,0,.6); }
+.fs-plate b { font-family:Saira, Inter, sans-serif; font-weight:900; font-size:64px; line-height:1; background:linear-gradient(180deg,#fff3c4,#f1b532 55%,#9c6510); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.fs-plate span { text-align:left; font-family:Saira, Inter, sans-serif; font-weight:900; font-size:26px; line-height:1; letter-spacing:.04em; background:linear-gradient(180deg,#fff,#cfd6e2); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.fs-who { margin-top:8px; font-weight:800; color:#ffe7a8; font-size:14px; } .fs-who em { font-style:normal; color:#ffb547; }
+.fs-stats { display:grid; grid-template-columns:repeat(3,1fr); margin:10px 16px 0; border:1px solid rgba(255,210,110,.35); border-radius:10px; background:rgba(8,6,3,.75); }
+.fs-stats div { padding:8px 4px 8px 10px; text-align:left; } .fs-stats div + div { border-left:1px solid rgba(255,210,110,.25); }
+.fs-stats small { display:block; font-size:10.5px; color:#d7c9a6; } .fs-stats b { color:#fff; font-size:15px; } .fs-stats b.pos { color:#4ade80; }
+.fs-btn { display:inline-block; margin-top:12px; padding:10px 38px; border-radius:999px; font-weight:900; letter-spacing:.05em; color:#241500; text-decoration:none;
+  background:linear-gradient(180deg,#ffe28a,#e3a52b); box-shadow:0 4px 18px rgba(255,170,40,.55); }
+.fs-ach { margin-top:10px; font-size:11px; letter-spacing:.16em; color:#f3d488; font-weight:800; } .fs-f { margin-top:6px; font-size:10px; color:#a89a7a; }

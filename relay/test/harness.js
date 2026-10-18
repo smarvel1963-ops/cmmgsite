@@ -235,6 +235,15 @@ check("lifetime: sport totals need 'sports' listed", SB.sports.every(r => r.tota
 check("records task: only the listed pages (pro), no sports", (r => r.pages.pro && !r.pages.free && !Object.keys(r.sports).length)(post({ task: "record" }).records));
 PROPS.SCOREBOARD_TOTALS = "pro,sports"; SB = post({ task: "scoreboard", session: vipS });
 check("lifetime: NFL sport total = 11-7 +2.26 lifetime + today's NFL WIN = 12-7, +3.17u", (t => t && t.w === 12 && t.l === 7 && t.net === 3.17)((SB.sports.find(r => r.key === "sport:NFL") || {}).total), SB.sports);
+PROPS.RESULTS_PUBLIC = "1"; PROPS.SCOREBOARD_TOTALS = "pro";
+post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, since: "2026-09-01", through: "2026-10-12",
+  streak: { n: 4, from: "2026-10-10", to: "2026-10-12", net: 3.4, roi: 0.85 } } }, sports: {} } });
+SB = post({ task: "scoreboard", session: vipS });
+check("streak: lifetime run of 4 + today's graded WIN (a1) = a FIRE STREAK of 5, from 10-10 to 10-13", (s => s && s.n === 5 && s.from === "2026-10-10" && s.to === "2026-10-13" && s.net === 4.31)((sb("pro").total || {}).streak), (sb("pro").total || {}).streak);
+delete PROPS.RESULTS_PUBLIC; delete PROPS.SCOREBOARD_TOTALS;
+SB = post({ task: "scoreboard", session: vipS });
+check("streak: never sent while totals are off", sb("pro").total === null);
+PROPS.RESULTS_PUBLIC = "1"; PROPS.SCOREBOARD_TOTALS = "pro";
 post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, since: "2026-09-03", through: "2026-10-13" } }, sports: {} } });
 SB = post({ task: "scoreboard", session: vipS });
 check("lifetime: a today pick dated the SAME day as through is never added twice (total = lifetime alone)", (t => t && t.w === 160 && t.l === 110 && t.net === 11.5)(sb("pro").total), sb("pro").total);

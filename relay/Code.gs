@@ -5,6 +5,7 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.12 (Scott 10/17): FIRE STREAK - each lifetime total carries the current straight-win streak (+ today's picks).
  *   v1.11 (Scott 10/17): nine CMMG pick-page boards (mm, prime4, parlay, freepick, edge, ice, top5, kbo, npb).
  *   v1.10 (Scott 10/17 "per sport daily and lifetime totals page by page"): scoreboard adds per-SPORT rows (Pro Track
  *   split by sport) and uses the feed's LIFETIME part ("records", cmmg_feed_lifetime.py) for pro/free/sport totals;
@@ -244,6 +245,17 @@ function sbTally(rows) {
 // lt = LIFETIME tally from the feed's "records" part (cmmg_feed_lifetime.py: full archive from where it is complete,
 // same dedupe/pregame/stored-profit rules) - when present the total is LIFETIME: lt + today's graded picks dated after
 // lt.through. Without lt the total is the rolling ~45-day window, as before.
+// v1.12 FIRE STREAK: the feed's current straight-win run (cmmg_feed_lifetime _streak) carried on by today's graded picks
+// in game order - a WIN adds one, a LOSS resets it, PUSH / VOID / pending leave it. Only ever inside a published total.
+function sbStreak(st, today) {
+  let n = st && st.n || 0, from = st && st.from || "", to = st && st.to || "", net = st && st.net != null ? st.net : (n ? null : 0), risk = n && st.roi ? (st.net / st.roi) : n;
+  today.slice().sort(function (a, b) { return String(a.time || "").localeCompare(String(b.time || "")); }).forEach(function (p) {
+    if (p.result === "WIN") { if (!n) { from = p.date || ""; net = 0; risk = 0; } n++; to = p.date || to;
+      const v = Number(p.profit); net = net == null || p.profit == null || !isFinite(v) ? null : net + v; risk += Number(p.units) || 1; }
+    else if (p.result === "LOSS") { n = 0; from = ""; to = ""; net = 0; risk = 0; }
+  });
+  return n ? { n: n, from: from, to: to, net: net == null ? null : Math.round(net * 100) / 100, roi: net == null || !risk ? null : Math.round(net / risk * 10000) / 10000 } : { n: 0 };
+}
 function sbRow(key, today, hist, s, totalsOn, lt, name) {
   const vis = today.filter(function (p) { return canSee(s, p.need || "pro"); });
   const td = sbTally(vis); td.locked = today.length - vis.length;
@@ -253,7 +265,8 @@ function sbRow(key, today, hist, s, totalsOn, lt, name) {
     const extra = sbTally(today.filter(function (p) { return p.result && String(p.date || "") > String(lt.through || ""); }));
     tot = { w: lt.w + extra.w, l: lt.l + extra.l, p: lt.p + extra.p, v: lt.v + extra.v,
             net: lt.net == null || extra.net == null ? null : Math.round((lt.net + extra.net) * 100) / 100,
-            since: lt.since || "", lifetime: true };
+            since: lt.since || "", lifetime: true,
+            streak: sbStreak(lt.streak, today.filter(function (p) { return String(p.date || "") > String(lt.through || ""); })) };
   } else if (totalsOn) {
     const seen = {}; hist.forEach(function (p) { if (p.id) seen[p.id] = 1; });
     const all = hist.filter(function (p) { return p.result; }).concat(today.filter(function (p) { return p.result && !(p.id && seen[p.id]); }));

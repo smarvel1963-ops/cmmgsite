@@ -34,7 +34,7 @@ const CMMGBIG = (() => {
     if (document.getElementById("bigday")) return;
     const g = t.w + t.l, wr = Math.round(100 * t.w / g);
     const when = day ? new Date(day + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "long", month: "short", day: "numeric" }) : "";
-    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="bigday${perf ? " perfect" : ""}" role="status">
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="bigday${perf ? " perfect" : " corner"}" role="status">
       <div class="bd-card"><button class="bd-x" aria-label="Close">✕</button>${preview ? '<div class="bd-prev">PREVIEW · sample numbers</div>' : ""}
         <div class="bd-burst"></div><div class="bd-k">${perf ? "💯 PERFECT DAY" : "🏆 BIG DAY"}</div><div class="bd-n">${E(name)}</div>
         <div class="bd-rec">${t.w}-${t.l}${t.p ? "-" + t.p : ""}</div>
@@ -47,14 +47,68 @@ const CMMGBIG = (() => {
     requestAnimationFrame(() => { el.classList.add("on"); confetti(el.querySelector(".bd-card")); });
     setTimeout(close, 8000);
   }
+  // FIRE STREAK (Scott 10/17 + his CMMG_Fire_Streak video): a page / sport whose CURRENT straight-win run reaches 5, 10,
+  // 25 or 50 - full screen, out of the dark, embers + flames, his trophy art on top (img/fire_streak_art.jpg), the real
+  // numbers drawn live below. The streak only exists inside a published lifetime total (relay v1.12), so it is OFF until
+  // that page's record is switched on. Once per page per level per streak.
+  const LEVELS = [50, 25, 10, 5];
+  const level = n => LEVELS.find(l => n >= l) || 0;
+  function embers(host, n) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const c = document.createElement("canvas"); c.className = "fs-embers"; host.appendChild(c);
+    const W = c.width = innerWidth, H = c.height = innerHeight, x = c.getContext("2d");
+    const P = Array.from({ length: n }, () => ({ x: Math.random() * W, y: H + Math.random() * H * 0.6, v: 0.6 + Math.random() * 1.6, s: 1 + Math.random() * 2.6,
+      w: Math.random() * 6.28, c: Math.random() < 0.7 ? "255,190,60" : "255,120,40" }));
+    let t = 0;
+    (function f() {
+      x.clearRect(0, 0, W, H);
+      P.forEach(p => { p.y -= p.v; p.w += 0.03; p.x += Math.sin(p.w) * 0.6; if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+        x.beginPath(); x.arc(p.x, p.y, p.s, 0, 6.28); x.fillStyle = `rgba(${p.c},${0.35 + 0.55 * Math.abs(Math.sin(p.w * 2))})`; x.fill(); });
+      if (document.body.contains(c) && ++t < 900) requestAnimationFrame(f);
+    })();
+  }
+  function streakCard(label, st, preview) {
+    if (document.getElementById("bigday")) return;
+    const roi = st.roi != null ? (st.roi > 0 ? "+" : "") + (100 * st.roi).toFixed(1) + "%" : "—";
+    const span = d => d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
+    const dates = st.from ? (st.from === st.to ? span(st.from) : span(st.from) + "–" + span(st.to)) : "";
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="firestreak" role="status">
+      <div class="fs-card"><div class="fs-flames"></div><button class="bd-x fs-x" aria-label="Close">✕</button>
+        <img class="fs-art" src="/img/fire_streak_art.jpg" alt="CMMG Fire Streak">${preview ? '<div class="bd-prev fs-prev">PREVIEW · sample numbers</div>' : ""}
+        <div class="fs-plate"><b>${st.n}</b><span>WIN<br>STREAK</span></div>
+        <div class="fs-who">${E(label)}${level(st.n) > 5 ? ` · <em>LEVEL ${level(st.n)}</em>` : ""}</div>
+        <div class="fs-stats"><div><small>Verified Record:</small><b>${st.n} - 0 ✓</b></div><div><small>ROI:</small><b class="${st.roi > 0 ? "pos" : ""}">${roi}</b></div>
+          <div><small>Sample:</small><b>Last ${st.n} Picks</b></div></div>
+        <a class="fs-btn" href="/app/results/">VIEW DETAILS ›</a>
+        <div class="fs-ach">🏆 ACHIEVEMENT UNLOCKED${dates ? " · " + E(dates) : ""}</div>
+        <div class="fs-f">A streak is not a promise of the next result · 21+</div></div></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 600); };
+    el.querySelector(".fs-x").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    embers(el, 90);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
+    setTimeout(close, 11000);
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
+  // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
+  const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
   async function check(pageKey, preview) {
+    await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "streak") { streakCard("NFL · Pro Track", { n: 5, from: "2026-10-12", to: "2026-10-16", net: 4.61, roi: 0.184 }, true); return; }
     if (!pageKey) return;
     let j; try { j = await CMMG.relay({ task: "scoreboard", session: CMMG.session()?.token }); } catch (e) { return; }
     if (!j || !j.ok) return;
     const rows = (j.rows || []).concat(j.sports || []);
+    // FIRE STREAK first: this page's (and on Pro Track its sports') current run, at a level not yet shown for this streak
+    const scope = pageKey === "pro" ? rows.filter(r => r.key === "pro" || r.key.indexOf("sport:") === 0) : rows.filter(r => r.key === pageKey);
+    const hot = scope.map(r => ({ r, st: r.total && r.total.streak })).filter(x => x.st && level(x.st.n)).sort((a, b) => b.st.n - a.st.n)[0];
+    if (hot) {
+      const k = "cmmg.firestreak." + hot.r.key + "." + hot.st.from + "." + level(hot.st.n);
+      let seen = false; try { seen = !!localStorage.getItem(k); if (!seen) localStorage.setItem(k, "1"); } catch (e) {}
+      if (!seen) { streakCard(hot.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? hot.r.name + " · Pro Track" : hot.r.name, hot.st, false); return; }
+    }
     // Pro Track: a PERFECT sport that day first ("PERFECT NHL DAY"), else Pro Track's own big day; other pages: their own row
     const pool = pageKey === "pro" ? (j.sports || []).filter(r => perfect(r.today)).concat(rows.filter(r => r.key === "pro")) : rows.filter(r => r.key === pageKey);
     const row = pool.find(r => big(r.today)); if (!row) return;

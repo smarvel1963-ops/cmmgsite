@@ -242,6 +242,8 @@ SB = post({ task: "scoreboard", session: vipS });
 check("streak: lifetime run of 4 + today's graded WIN (a1) = a FIRE STREAK of 5, from 10-10 to 10-13", (s => s && s.n === 5 && s.from === "2026-10-10" && s.to === "2026-10-13" && s.net === 4.31)((sb("pro").total || {}).streak), (sb("pro").total || {}).streak);
 delete PROPS.RESULTS_PUBLIC; delete PROPS.SCOREBOARD_TOTALS;
 SB = post({ task: "scoreboard", session: vipS });
+check("platinum: lifetime 160-110-6 (risk 280u) + today's WIN 0.91 -> n 277, ROI = 12.41 / 281 = 4.42%", (t => t && t.n === 277 && t.roi === 0.0442)((post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, risk: 280, since: "2026-09-03", through: "2026-10-12" } }, sports: {} } }), PROPS.RESULTS_PUBLIC = "1", PROPS.SCOREBOARD_TOTALS = "pro", post({ task: "scoreboard", session: vipS }).rows.find(r => r.key === "pro").total)), "");
+delete PROPS.RESULTS_PUBLIC; delete PROPS.SCOREBOARD_TOTALS; SB = post({ task: "scoreboard", session: vipS });
 check("streak: never sent while totals are off", sb("pro").total === null);
 PROPS.RESULTS_PUBLIC = "1"; PROPS.SCOREBOARD_TOTALS = "pro";
 post({ task: "put", key: "wkey", part: "records", data: { pages: { pro: { w: 160, l: 110, p: 6, v: 6, net: 11.5, since: "2026-09-03", through: "2026-10-13" } }, sports: {} } });

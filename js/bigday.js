@@ -120,6 +120,33 @@ const CMMGBIG = (() => {
     try { localStorage.setItem("cmmg.edgeun." + p.id, "1"); } catch (e) {}
     edgeCard(p, false); return true;
   }
+  // PLATINUM PERFORMANCE (Scott 10/17: CMMG_Platinum_Performance video + HTML): a page / sport's VERIFIED lifetime record
+  // reaches 100 / 250 / 500 / 1000 graded picks AND is in profit (units > 0) - a losing record never gets a trophy. Shows
+  // the record, ROI and the date the record starts (his plan: "verified record, sample size, ROI, and evaluation period").
+  // Lifetime totals are published page by page (relay SCOREBOARD_TOTALS), so this is OFF until a page's record is.
+  const PLAT = [1000, 500, 250, 100];
+  const platLevel = t => t && t.net != null && t.net > 0 ? PLAT.find(l => (t.n || 0) >= l) || 0 : 0;
+  function platCard(label, t, preview) {
+    if (document.getElementById("bigday")) return;
+    const since = t.since ? new Date(t.since + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }) : "";
+    const roi = t.roi != null ? (t.roi > 0 ? "+" : "") + (100 * t.roi).toFixed(1) + "%" : "—";
+    const parts = Array.from({ length: 45 }, (_, i) => `<i class="pp-part" style="--x:${(i * 37.1) % 100}%;--r:${i * 43}deg;--dur:${2.5 + (i % 5) * 0.45}s;--delay:${(i % 9) * 0.31}s;background:${["#f9d676", "#eff0f4", "#f6ae52"][i % 3]}"></i>`).join("");
+    document.body.insertAdjacentHTML("beforeend", `<div id="bigday" class="platperf" role="dialog" aria-modal="true" aria-label="Platinum Performance">
+      <section class="pp-modal"><button class="pp-x" aria-label="Close">×</button><div class="pp-parts">${parts}</div><div class="pp-in">
+        <div class="pp-eye">CMMG SPORTS EDGE</div><div class="pp-med"><span aria-hidden="true">🏆</span></div>
+        <h1>PLATINUM PERFORMANCE</h1><h2>MILESTONE UNLOCKED</h2>
+        <div class="pp-who">${E(label)}</div>
+        <div class="pp-stats">${platLevel(t)} GRADED PICKS · VERIFIED RESULTS</div>
+        <div class="pp-grid"><div><small>Record</small><b>${t.w}-${t.l}${t.p ? "-" + t.p : ""}</b></div><div><small>ROI</small><b class="${t.roi > 0 ? "pos" : ""}">${roi}</b></div>
+          <div><small>Sample</small><b>${t.n} picks</b></div><div><small>Since</small><b>${E(since)}</b></div></div>
+        <a class="pp-view" href="/app/results/">VIEW PERFORMANCE</a>
+        <p class="pp-hint">${preview ? "PREVIEW · sample numbers · " : ""}Verified CMMG results · past results don't promise future results · 21+</p></div></section></div>`);
+    const el = document.getElementById("bigday"), close = () => { el.classList.add("out"); setTimeout(() => el.remove(), 450); };
+    el.querySelector(".pp-x").addEventListener("click", close);
+    el.addEventListener("click", e => { if (e.target === el) close(); });
+    addEventListener("keydown", function k(e) { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } });
+    setTimeout(close, 12000);
+  }
   const seenKey = (k, d) => "cmmg.bigday." + k + "." + d;
   // never over the loading splash: wait until it's gone (up to 8 s), then a short beat
   const afterSplash = () => new Promise(res => { const t0 = Date.now(); (function w() { if (!document.querySelector(".splash") || Date.now() - t0 > 8000) setTimeout(res, 400); else setTimeout(w, 150); })(); });
@@ -127,6 +154,7 @@ const CMMGBIG = (() => {
     await afterSplash();
     if (preview === "demo") { show("Top 5", { w: 4, l: 2, p: 0, net: 1.62 }, "", true); return; }
     if (preview === "perfect") { show("NHL", { w: 3, l: 0, p: 0, net: 2.71 }, "", true, true); return; }
+    if (preview === "platinum") { platCard("Pro Track", { w: 64, l: 34, p: 2, n: 100, net: 14.2, roi: 0.138, since: "2026-09-03" }, true); return; }
     if (preview === "edge") { edgeCard({ bet: "Ohio State Buckeyes -2.5", game: "Ohio State Buckeyes @ Illinois Fighting Illini", edge_class: "ELITE_SPREAD_VALUE", gates: 9 }, true); return; }
     if (preview === "streak") { streakCard("NFL · Pro Track", { n: 5, from: "2026-10-12", to: "2026-10-16", net: 4.61, roi: 0.184 }, true); return; }
     if (!pageKey) return;
@@ -143,6 +171,13 @@ const CMMGBIG = (() => {
       if (!seen) { streakCard(hot.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? hot.r.name + " · Pro Track" : hot.r.name, hot.st, false); return; }
     }
     if (edgeFirst && await edgeCheck()) return;
+    // PLATINUM: a lifetime milestone not shown yet on this phone (rarer than a streak, so it comes right after it)
+    const plat = scope.map(r => ({ r, lv: platLevel(r.total) })).filter(x => x.lv).sort((a, b) => b.lv - a.lv)[0];
+    if (plat) {
+      const k = "cmmg.platinum." + plat.r.key + "." + plat.lv;
+      let seen = false; try { seen = !!localStorage.getItem(k); if (!seen) localStorage.setItem(k, "1"); } catch (e) {}
+      if (!seen) { platCard(plat.r.key.indexOf("sport:") === 0 && pageKey === "pro" ? plat.r.name + " · Pro Track" : plat.r.name, plat.r.total, false); return; }
+    }
     // Pro Track: a PERFECT sport that day first ("PERFECT NHL DAY"), else Pro Track's own big day; other pages: their own row
     const pool = pageKey === "pro" ? (j.sports || []).filter(r => perfect(r.today)).concat(rows.filter(r => r.key === "pro")) : rows.filter(r => r.key === pageKey);
     const row = pool.find(r => big(r.today)); if (!row) return;

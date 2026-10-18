@@ -266,7 +266,7 @@ const SHELL = (() => {
   }
   // 💡 TIP side tab (Scott 10/17) - js/tips.js. OFF until Scott's go; the owner previews it on his own browser with
   // ?tips=1 on any page (?tips=0 stops). Pages raise situations with SHELL.tip(moment, sport) - a no-op while off.
-  const TIPS_ON = false;
+  const TIPS_ON = true;                // Scott 10/17 "tips on"
   let TIPQ = [], TIPSTATE = 0;          // 0 off / not loaded, 1 loading, 2 ready
   function tipsWanted() {
     try { const q = new URLSearchParams(location.search).get("tips"); if (q === "1" || q === "0") localStorage.setItem("cmmg.tips.preview", q); } catch (e) {}
@@ -291,7 +291,7 @@ const SHELL = (() => {
 
   // BIG DAY pop-up (Scott 10/17) - js/bigday.js. OFF until Scott's go; owner preview ?bigday=1 (?bigday=0 stops,
   // ?bigday=demo shows a sample card). Fires on picks pages only: Pro Track, the board pages, the sport hubs.
-  const BIGDAY_ON = false;
+  const BIGDAY_ON = true;              // Scott 10/17 "pop-ups on" (Perfect Day = 3+ graded, all won)
   function bigdayInit(active) {
     let mode = "";
     try { const q = new URLSearchParams(location.search).get("bigday"); if (q === "1" || q === "0") localStorage.setItem("cmmg.bigday.preview", q); if (q === "demo" || q === "perfect" || q === "streak" || q === "edge" || q === "platinum" || q === "winrate" || q === "momentum" || q === "model") mode = q; } catch (e) {}

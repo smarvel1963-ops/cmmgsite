@@ -277,5 +277,10 @@ document.getElementById("sportstrip").innerHTML = SPORTS.map(s => `<a href="/app
     `<a href="/app/"><b>${ICON.sport(s)}${CMMG.esc(s)}</b><div class="n">${n}</div><span>pick${n === 1 ? "" : "s"} today</span></a>`).join("");
 })();
 </script>
+<script>/* anonymous visitor count (UseMart counter; no cookies, no IP kept; does nothing while the counter switch is off) */
+(function () { try { var h = location.hostname.replace(/^www\./, ""), s = h === "smarvel1963-ops.github.io" ? "hubs" : h;
+  fetch("https://usemart.net/api/visit", { method: "POST", mode: "cors", credentials: "omit", keepalive: true,
+    headers: { "content-type": "text/plain" }, body: JSON.stringify({ site: s }) }).catch(function () {}); } catch (e) {} })();
+</script>
 </body>
 </html>

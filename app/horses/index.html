@@ -96,7 +96,8 @@ const finish = p => { const f = String(p.finish || "").toUpperCase(); if (!p.res
 // Scott 10/12: "horses any money place considered win" - a pick that finishes 1st, 2nd or 3rd is graded WIN,
 // paid at that finish's real payout. So the bet is shown as IN THE MONEY, never as a win-only bet.
 const betLabel = p => { const m = String(p.market || "WIN").toUpperCase(); return m === "WIN" ? "In the money (top 3)" : m === "PLACE" ? "Top 2" : m === "SHOW" ? "Top 3" : m; };
-let ROWS = [], HIST = [], PUB = false, TRACK = "";
+let ROWS = [], HIST = [], PUB = false, TRACK = "", LAST = null;
+const lastDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
 try { TRACK = localStorage.getItem("cmmg.horses.track") || ""; } catch (e) {}
 
 function postCell(p) {
@@ -133,6 +134,11 @@ function draw() {
     tracks.map(t => `<button data-trk="${E(t)}" class="${TRACK === t ? "on" : ""}">${E(t)}<small>${ROWS.filter(p => p.course === t).length}</small></button>`).join("") : "";
   drawNext();
   const vis = ROWS.filter(p => !TRACK || p.course === TRACK || p.locked);
+  if (!vis.length && LAST && (LAST.picks || []).length) {   // never empty (Scott 10/21: "horses same way")
+    const lastRows = LAST.picks.map(p => p.locked ? p : fill(p)).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+    $("list").innerHTML = `<div class="soonbar"><b>New picks on the way.</b> Last card: ${E(lastDay(LAST.date))}.</div>${lastRows.map(raceRow).join("")}`;
+    return;
+  }
   if (!vis.length) { $("list").innerHTML = `<div class="empty">No races posted yet today — tomorrow's card posts in the morning.</div>`; return; }
   const by = []; vis.forEach(p => { const k = p.locked ? "Members-only picks" : p.course; let x = by.find(y => y.k === k); if (!x) by.push(x = { k, rows: [] }); x.rows.push(p); });
   $("list").innerHTML = by.map(x => { const r = x.rows.sort((a, b) => String(a.time).localeCompare(String(b.time)));
@@ -154,7 +160,7 @@ async function load() {
     return;
   }
   $("soon").innerHTML = "";
-  ROWS = (j.picks || []).map(p => p.locked ? p : fill(p)); HIST = (j.history || []).map(fill); PUB = !!j.published;
+  ROWS = (j.picks || []).map(p => p.locked ? p : fill(p)); HIST = (j.history || []).map(fill); PUB = !!j.published; LAST = j.last || null;
   draw(); drawHist();
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-trk]"); if (!b) return; TRACK = b.dataset.trk;

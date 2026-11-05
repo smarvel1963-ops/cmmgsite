@@ -127,6 +127,8 @@ function row(p) {
       <div class="gm">${E(p.game)}${p.detail ? " · " + E(p.detail) : ""}</div></div>
     <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
 }
+let LAST = null;
+const lastDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
 function draw() {
   const lgs = ORDER.filter(k => PICKS.some(p => p.sport === k));
   if (LEAGUE && !lgs.includes(LEAGUE)) LEAGUE = "";
@@ -135,6 +137,12 @@ function draw() {
   const vis = PICKS.filter(p => !LEAGUE || p.sport === LEAGUE);
   const live = vis.filter(p => !p.locked && !p.result).map(p => [p, eventFor(p)]).filter(([, ev]) => ev && ev.status.type.state === "in");
   $("live").innerHTML = live.length ? `<div class="sech"><span class="dot"></span>ON THE CLOCK NOW<small>${live.length} live play${live.length === 1 ? "" : "s"}</small></div><div class="livegrid">${live.map(([p, ev]) => liveCard(p, ev)).join("")}</div>` : "";
+  if (!PICKS.length && LAST && (LAST.picks || []).length) {   // never empty (Scott 10/21: "lives should show previous nite total")
+    const r = LAST.record, tot = r && r.w + r.l + r.p ? ` ${r.w}-${r.l}${r.p ? "-" + r.p : ""}${r.units != null ? `, ${r.units > 0 ? "+" : ""}${r.units.toFixed(2)}u` : ""}` : "";
+    const lbl = Date.parse(DATE + "T12:00:00Z") - Date.parse(LAST.date + "T12:00:00Z") === 86400000 ? "Last night" : "Last plays";   // up to a week back
+    $("tonight").innerHTML = `<div class="soonbar"><b>New plays on the way.</b> ${tot ? `${lbl}, ${E(lastDay(LAST.date))}:${E(tot)}` : `${lbl}: ${E(lastDay(LAST.date))}.`}</div><div class="lsec">${LAST.picks.slice().sort((a, b) => String(a.time).localeCompare(String(b.time))).map(row).join("")}</div>`;
+    return;
+  }
   if (!vis.length) { $("tonight").innerHTML = `<div class="empty">No live plays yet${DATE ? " for " + E(dayOf(DATE + "T17:00:00Z")) : ""}. Our engines fire once games are under way — this page updates on its own.</div>`; return; }
   const by = ORDER.map(k => [k, vis.filter(p => p.sport === k).sort((a, b) => String(a.time).localeCompare(String(b.time)))]).filter(([, r]) => r.length);
   const other = vis.filter(p => !ORDER.includes(p.sport)); if (other.length) by.push(["Members-only", other]);
@@ -161,7 +169,7 @@ async function load() {
     $("soon").innerHTML = `<div class="soonbar"><b>Live totals are coming to the site.</b> Until this board is switched on here, our live plays post in the CMMG Discord.${SHELL.STORE ? "" : ` <a href="${SHELL.DISCORD}" style="color:var(--ice)">Open Discord</a>`}</div>`;
     $("tonight").innerHTML = ""; return;
   }
-  $("soon").innerHTML = ""; PICKS = j.picks || []; HIST = j.history || []; PUB = !!j.published; DATE = j.date || "";
+  $("soon").innerHTML = ""; PICKS = j.picks || []; HIST = j.history || []; PUB = !!j.published; DATE = j.date || ""; LAST = j.last || null;
   await scores(); draw(); drawHist();
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-lg]"); if (!b) return; LEAGUE = b.dataset.lg;

@@ -5,6 +5,8 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
+ *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
  *   Track pick is the same game (either team order) + same bet dated within 1 day (10/11 Bills @ Rams OVER 54.5 was
  *   both and counted twice); nothing is auto-added for a wager the member already tracks by hand.
@@ -222,13 +224,24 @@ function board(P, s, req) {
   const f = getBig(P, "F_board_" + name);
   if (!f) return { ok: true, live: false, picks: [] };
   const d = f.data || {};
+  // v1.18: the feed's id carries the game + bet ("edge_2026-11-05_A @ B_A ML"), so a locked row can't send it. Opaque, stable.
+  const lockId = function (p) { return "L" + Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(p.id), sessionSecret(P))).slice(0, 16); };
   const list = withGrades(P, d.picks || [], d.history || []).map(function (p) {
     if (canSee(s, p.need || "pro")) return p;
-    return { id: p.id, sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
+    return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
   });
   const pub = P.getProperty("RESULTS_PUBLIC") === "1";
+  // v1.18 NEVER EMPTY (Scott 10/21): "last" = the last day this board published, sent by the feed only when today is empty.
+  // Masked exactly like today's picks; its record is a record, so it rides on RESULTS_PUBLIC like history.
+  const last = d.last && (d.last.picks || []).length ? {
+    date: d.last.date,
+    picks: d.last.picks.map(function (p) {
+      if (canSee(s, p.need || "pro")) return p;
+      return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
+    }),
+    record: pub ? d.last.record || null : null } : null;
   // review = MasterHub page_bench's PAGE UNDER REVIEW (the banner it posts once to Discord) - the page shows the same (v1.11)
-  return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub, review: d.review || null,
+  return { ok: true, live: true, at: f.at, date: d.date, picks: list, published: pub, review: d.review || null, last: last,
            history: pub ? (d.history || []).filter(function (p) { return p.result; }) : [] };
 }
 // v1.9 SCOREBOARD (Scott 10/17: "dashboard should be days total and running totals on all our pages we provide picks

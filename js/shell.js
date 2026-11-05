@@ -206,7 +206,7 @@ const SHELL = (() => {
   // Pro Track. Shown only for a pick the viewer can see that hasn't graded yet.
   const TOOKS = {};
   function took(p) {
-    if (!p || p.locked || !p.id || p.result) return "";
+    if (!p || p.locked || !p.id || p.result || p.past) return "";   // past: the last-day rows on an empty board (10/21)
     TOOKS[p.id] = p;
     return `<button class="btn go tookbtn" data-took2="${E(p.id)}">✓ I Took This Pick</button>`;
   }

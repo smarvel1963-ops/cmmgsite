@@ -76,6 +76,7 @@ const card = p => p.locked
       <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.paper ? '<span class="pill" title="Tracked play, not an official bet">PAPER</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
         <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}</div>
       <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
+const lastDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
 function groups(rows) {
   const g = []; rows.forEach(p => { const k = p.group || p.sport || ""; let x = g.find(y => y.k === k); if (!x) g.push(x = { k, rows: [] }); x.rows.push(p); });
   return g.map(x => `<div class="grp">${ICON.sport(x.rows[0].sport)}${E(x.k)}<span class="n">${x.rows.length} pick${x.rows.length === 1 ? "" : "s"}</span></div>${x.rows.map(card).join("")}`).join("");
@@ -96,7 +97,11 @@ async function load() {
     return;
   }
   const rows = (j.picks || []).slice().sort((a, b) => String(a.time).localeCompare(String(b.time)));
-  $("list").innerHTML = rows.length ? groups(rows) : `<div class="empty">No ${E(B[1])} picks posted yet today${j.date ? " (" + E(j.date) + ")" : ""} — check back soon.</div>`;
+  // never empty (Scott 10/21): the last day this board published, under "new picks on the way" - only when the feed sends it
+  const last = !rows.length && j.last && (j.last.picks || []).length ? j.last : null;
+  $("list").innerHTML = rows.length ? groups(rows)
+    : last ? `<div class="soonbar"><b>New picks on the way.</b> Last published: ${E(lastDay(last.date))}.</div>` + groups(last.picks.map(p => ({ ...p, past: true })).sort((a, b) => String(a.time).localeCompare(String(b.time))))
+    : `<div class="empty">No ${E(B[1])} picks posted yet today${j.date ? " (" + E(j.date) + ")" : ""} — check back soon.</div>`;
   if (j.published && (j.history || []).length) {
     const h = j.history.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
     // no W-L total here: this list is capped, so a sum would not be the board's record (reviewer 10/11, Rule #4)

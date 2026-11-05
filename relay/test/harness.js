@@ -255,6 +255,20 @@ post({ task: "put", key: "wkey", part: "board_top5", data: { date: "2026-10-17",
 post({ task: "put", key: "wkey", part: "board_mm", data: { date: "2026-10-17", picks: [{ id: "mm1", need: "elite", sport: "TENNIS", bet: "Player ML", odds: -140 }], history: [] } });
 post({ task: "put", key: "wkey", part: "board_freepick", data: { date: "2026-10-17", picks: [{ id: "fp9", need: "free", sport: "WNBA", bet: "OVER 154.5", result: "LOSS", profit: -1.5, date: "2026-10-17" }], history: [] } });
 check("pages: Top 5 locked for a signed-out visitor (no bet)", (p => p.locked && !p.bet)(post({ task: "board", name: "top5" }).picks[0]));
+// v1.18 never empty
+post({ task: "put", key: "wkey", part: "board_edge", data: { date: "2026-10-18", picks: [], history: [], last: { date: "2026-10-17", record: { w: 1, l: 1, p: 0, units: -0.1 },
+  picks: [{ id: "e1", need: "pro", sport: "NBA", bet: "Lakers -3", odds: -110, result: "WIN" }, { id: "e2", need: "free", sport: "NBA", bet: "Over 200", odds: -110, result: "LOSS" }] } } });
+const lastAnon = post({ task: "board", name: "edge" });
+check("v1.18: an empty board sends its last day", lastAnon.last && lastAnon.last.date === "2026-10-17" && lastAnon.last.picks.length === 2);
+check("v1.18: last day is masked like today's (no bet, no result on a locked row)", (p => p.locked && !p.bet && !p.result)(lastAnon.last.picks[0]));
+check("v1.18: what the visitor may see, they see, the loss included", lastAnon.last.picks[1].bet === "Over 200" && lastAnon.last.picks[1].result === "LOSS");
+check("v1.18: its record only with RESULTS_PUBLIC", PROPS.RESULTS_PUBLIC === "1" ? !!lastAnon.last.record : lastAnon.last.record === null);
+check("v1.18: a board with no last day sends null", post({ task: "board", name: "top5" }).last === null);
+post({ task: "put", key: "wkey", part: "board_edge", data: { date: "2026-10-18", history: [], picks: [{ id: "edge_2026-10-18_Lakers @ Suns_Lakers -3", need: "pro", sport: "NBA", bet: "Lakers -3", odds: -110 }] } });
+const lockedRow = post({ task: "board", name: "edge" }).picks[0];
+check("v1.18: a locked row's id gives nothing away", lockedRow.locked && !/Lakers|Suns/.test(JSON.stringify(lockedRow)));
+check("v1.18: and it is stable", post({ task: "board", name: "edge" }).picks[0].id === lockedRow.id);
+check("v1.18: a member still gets the real id", post({ task: "board", name: "edge", session: proS }).picks[0].id === "edge_2026-10-18_Lakers @ Suns_Lakers -3");
 check("pages: Top 5 open for VIP (pro sees top5)", post({ task: "board", name: "top5", session: vipS }).picks[0].bet === "Inter Miami CF ML");
 check("pages: Midnight Madness stays locked for VIP (elite only)", post({ task: "board", name: "mm", session: vipS }).picks[0].locked === true);
 SB = post({ task: "scoreboard", session: vipS });

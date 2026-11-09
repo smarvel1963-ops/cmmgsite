@@ -5,6 +5,7 @@
  * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
+ *   v1.19 (Scott 11/08 "Free with sign-in"): a pick the feed marks signed_in opens to anyone signed in with Discord. Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -192,6 +193,9 @@ function session(P, tok) {
 // ---------------------------------------------------------------- picks by entitlement
 // A pick's "need" comes from the feed: "free", "pro", "elite" or "top5". Only the server decides what a session sees.
 function canSee(s, need) { return need === "free" || (!!s && s.ent.indexOf(need) >= 0) || (!!s && need === "top5" && s.ent.indexOf("pro") >= 0); }
+// v1.19 (Scott 11/08 "Free with sign-in"): a pick the feed marks signed_in opens to anyone signed in with Discord, on any plan.
+// Its need stays as it was, so taking the mark off puts the pick back behind that plan.
+function canSeePick(s, p) { return canSee(s, p.need || "pro") || (!!s && p.signed_in === true); }
 // v1.9 (found 10/17): today's Free Pick reached the feed UNGRADED while its graded copy was already in the history part
 // (free OVER 154.5 lost 64-68; the live panel showed no L and the scoreboard called it pending). A today pick with no
 // result takes its result + stored profit from the history copy with the same id. Never the other way round.
@@ -227,8 +231,8 @@ function board(P, s, req) {
   // v1.18: the feed's id carries the game + bet ("edge_2026-11-05_A @ B_A ML"), so a locked row can't send it. Opaque, stable.
   const lockId = function (p) { return "L" + Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(p.id), sessionSecret(P))).slice(0, 16); };
   const list = withGrades(P, d.picks || [], d.history || []).map(function (p) {
-    if (canSee(s, p.need || "pro")) return p;
-    return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
+    if (canSeePick(s, p)) return p;
+    return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true, signin: p.signed_in === true };
   });
   const pub = P.getProperty("RESULTS_PUBLIC") === "1";
   // v1.18 NEVER EMPTY (Scott 10/21): "last" = the last day this board published, sent by the feed only when today is empty.
@@ -236,8 +240,8 @@ function board(P, s, req) {
   const last = d.last && (d.last.picks || []).length ? {
     date: d.last.date,
     picks: d.last.picks.map(function (p) {
-      if (canSee(s, p.need || "pro")) return p;
-      return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true };
+      if (canSeePick(s, p)) return p;
+      return { id: lockId(p), sport: p.sport, time: p.time, tier: p.tier, need: p.need || "pro", locked: true, signin: p.signed_in === true };
     }),
     record: pub ? d.last.record || null : null } : null;
   // review = MasterHub page_bench's PAGE UNDER REVIEW (the banner it posts once to Discord) - the page shows the same (v1.11)
@@ -252,6 +256,7 @@ function board(P, s, req) {
 // Review 10/17 (masterhub-reviewer FIX FIRST + edge-auditor):
 //  - TODAY counts only the picks THIS viewer can see (canSee, same rule as the picks feed); the rest are a "locked"
 //    count. An anonymous visitor gets the Free Pick's day and nothing about a locked pick, not even its price.
+//  - v1.19: a pick marked no_record (Scott's own locks on BBall Lives) is left out of today, the totals and the streak.
 //  - UNITS only on pages whose stored payouts are real money: Pro Track, Free Pick, Live Totals (paper alerts - the
 //    page labels it). Horses (top-3 "in the money" at each finish's payout), PrizePicks (made-up -110), F1/NASCAR (no
 //    odds) show W-L only.
@@ -290,7 +295,8 @@ function sbStreak(st, today) {
   return n ? { n: n, from: from, to: to, net: net == null ? null : Math.round(net * 100) / 100, roi: net == null || !risk ? null : Math.round(net / risk * 10000) / 10000 } : { n: 0 };
 }
 function sbRow(key, today, hist, s, totalsOn, lt, name) {
-  const vis = today.filter(function (p) { return canSee(s, p.need || "pro"); });
+  today = today.filter(function (p) { return !p.no_record; });     // v1.19: Scott's real locks show on BBall Lives and count in no record here
+  const vis = today.filter(function (p) { return canSeePick(s, p); });
   const td = sbTally(vis); td.locked = today.length - vis.length;
   if (!SB_UNITS[key] && key.indexOf("sport:") !== 0) td.net = null;
   let tot = null;
@@ -396,7 +402,8 @@ function track(P, s, req) {
   // could track a locked pick's id and read its details back through My Tracker.
   const known = feedPicksById(P, true)[id];
   if (!known && !req.remove) return { ok: false, error: "that pick isn't on the board" };
-  if (known && !canSee(s, known.need || "pro") && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
+  if (known && known.no_record && !req.remove) return { ok: false, error: "that play isn't one you can track" };     // v1.19: a lock is on the board one night only
+  if (known && !canSeePick(s, known) && !known.result) return { ok: false, error: "that pick is for members — unlock it on Discord" };
   const num = (v, lo, hi) => { const n = Number(v); return isFinite(n) && n >= lo && n <= hi ? n : null; };
   const lock = LockService.getScriptLock(); lock.waitLock(5000);
   try {
@@ -479,7 +486,7 @@ function myTracker(P, s) {
   }
   const rows = mine.map(function (m) {
     let p = byId[m.pick] || m.snap || {};
-    if (p.id && !canSee(s, p.need || "pro") && !p.result) p = { need: p.need, sport: p.sport, tier: p.tier };   // never leak a locked pick
+    if (p.id && !canSeePick(s, p) && !p.result) p = { need: p.need, sport: p.sport, tier: p.tier };   // never leak a locked pick
     const res = p.result || null, odds = m.odds != null ? m.odds : p.odds, u = m.units != null ? m.units : 1;
     let pl = null;
     if (m.auto && m.cmmgProfit != null && res) pl = m.cmmgProfit;                // AUTO row: CMMG's stored payout

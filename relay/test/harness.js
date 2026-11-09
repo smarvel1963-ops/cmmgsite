@@ -403,4 +403,39 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   const frows = post({ task: "mytracker", session: fz }).rows, fhas = id => frows.some(r => r.pick === id);
   check("v1.17: a FREE member (no Pro copy) keeps the Free Pick - nothing is lost", fhas("fr_bills") && !fhas("pt_bills"), frows.map(r => r.pick));
 }
+// v1.19 FREE WITH SIGN-IN (Scott 11/08)
+{
+  const put19 = picks => post({ task: "put", key: "wkey", part: "board_lives", data: { date: "2026-11-08", picks, history: [] } });
+  put19([{ id: "sf1", need: "elite", signed_in: true, sport: "NCAAB", game: "A @ B", bet: "UNDER 156.5", odds: -102 },
+         { id: "el1", need: "elite", sport: "NBA", game: "C @ D", bet: "OVER 220.5", odds: -110 }]);
+  const of19 = (j, sport) => j.picks.find(p => p.sport === sport);
+  const out1 = post({ task: "board", name: "lives" });
+  check("v1.19: signed out, the free-with-sign-in play is locked with no pick in it", (p => p.locked && !p.bet && !p.game && !p.odds)(of19(out1, "NCAAB")));
+  check("v1.19: signed out, the row says sign-in opens it", of19(out1, "NCAAB").signin === true);
+  check("v1.19: an unmarked Elite row does not say that", of19(out1, "NBA").signin === false);
+  check("v1.19: the locked row's id does not give the play away", of19(out1, "NCAAB").id !== "sf1");
+  DISCORD.user = { id: "900000000000000011", username: "free11", global_name: "Free11" }; DISCORD.roles = null;
+  const fr = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED });
+  check("v1.19: a free member signs in as free", fr.ok && fr.me.access.join() === "free", fr.me);
+  const in1 = post({ task: "board", name: "lives", session: fr.session });
+  check("v1.19: signed in on no plan, the play opens", of19(in1, "NCAAB").bet === "UNDER 156.5" && !of19(in1, "NCAAB").locked);
+  check("v1.19: ... and an unmarked Elite row stays locked", of19(in1, "NBA").locked === true && !of19(in1, "NBA").bet);
+  check("v1.19: a free member can track the open play", post({ task: "track", session: fr.session, pick: "sf1" }).ok === true);
+  check("v1.19: ... and not the locked one", post({ task: "track", session: fr.session, pick: "el1" }).ok === false);
+  const mt19 = post({ task: "mytracker", session: fr.session }).rows.find(x => x.pick === "sf1");
+  check("v1.19: My Tracker shows the open play", !!mt19, mt19);
+  put19([{ id: "sf1", need: "elite", sport: "NCAAB", game: "A @ B", bet: "UNDER 156.5", odds: -102 }]);
+  check("v1.19: taking the mark off puts it back behind Elite", of19(post({ task: "board", name: "lives", session: fr.session }), "NCAAB").locked === true);
+  put19([{ id: "sf1", need: "elite", signed_in: "true", sport: "NCAAB", bet: "UNDER 1" }]);
+  check("v1.19: only a real true counts", of19(post({ task: "board", name: "lives", session: fr.session }), "NCAAB").locked === true);
+  put19([{ id: "tp1", need: "pro", sport: "NBA", bet: "OVER 1" }]);
+  check("v1.19: a plain Pro row is unchanged for a free member", post({ task: "board", name: "lives", session: fr.session }).picks[0].locked === true);
+  put19([{ id: "al9", need: "elite", signed_in: true, sport: "NBA", bet: "OVER 2", odds: -110, units: 1, result: "WIN", profit: 0.91, date: "2026-11-08" },
+         { id: "lk9", need: "elite", signed_in: true, no_record: true, kind: "lock", sport: "NCAAB", bet: "UNDER 3", odds: -102, units: 3, result: "LOSS", date: "2026-11-08" }]);
+  const sb19 = post({ task: "scoreboard", session: fr.session }), row19 = (sb19.rows || sb19.pages || []).find(r => r.key === "lives");
+  check("v1.19: a lock is not counted in the Live Totals row", !!row19 && row19.today.w === 1 && row19.today.l === 0, row19);
+  check("v1.19: ... and does not blank its units", row19 && row19.today.net === 0.91, row19 && row19.today);
+  check("v1.19: a lock cannot be tracked, even by a direct call", post({ task: "track", session: fr.session, pick: "lk9" }).ok === false);
+  check("v1.19: ... but it still shows on the board", post({ task: "board", name: "lives", session: fr.session }).picks.some(p => p.id === "lk9" && p.bet === "UNDER 3"));
+}
 console.log(`\n${ok} passed, ${bad} failed`);

@@ -5,8 +5,10 @@
 const SHELL = (() => {
   const UPGRADE = "https://winible.com/cmmgsports", DISCORD = "https://smarvel1963-ops.github.io/join/";
   const MENU = [
-    ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
-              ["lives", "clock", "Live Totals", "/app/lives/"], ["board", "chart", "More Boards", "/app/board/?b=prizepicks"],
+    // Scott 11/03: Pro Track (the site's FIRE 10 slot), Top 5, Football Lives, BBall Lives come first
+    ["MAIN", [["picks", "target", "Pro Track", "/app/"], ["top5", "star", "Top 5", "/app/board/?b=top5"], ["lives", "clock", "Football Lives", "/app/lives/?g=football"], ["lives", "clock", "BBall Lives", "/app/lives/"],
+              ["dashboard", "home", "Dashboard", "/app/dashboard/"], ["scores", "clock", "Live Scores", "/app/scores/"], ["sport", "stadium", "Sport Hubs", "/app/sport/"],
+              ["board", "chart", "More Boards", "/app/board/?b=prizepicks"],
               ["game", "stadium", "My Game Center", "/app/game/"]]],
     ["MY CMMG", [["mygames", "target", "My Games", "/app/mygames/"], ["tracker", "chart", "My Tracker", "/app/tracker/"], ["results", "shield", "Verified Results", "/app/results/"],  ["weekly", "chart", "Weekly Report", "/app/weekly/"],
                  ["teams", "star", "Schedules & My Teams", "/app/schedule/"], ["standings", "chart", "Standings", "/app/standings/"]]],
@@ -338,12 +340,21 @@ const SHELL = (() => {
       ["mygames", "star", "My Games", "/app/mygames/"], ["teams", "stadium", "Teams", "/app/schedule/"], ["results", "shield", "Results", "/app/results/"],
       ["tracker", "chart", "Tracker", "/app/tracker/"], ["alerts", "bell", "Alerts", "/app/alerts/"], ["tools", "calc", "Tools", "/app/tools/"],
       ["learn", "star", "Learn", "/app/learn/"], ["community", "chat", "Community", "/app/community/"]];
-    const SPORTCHIPS = ["NFL", "NCAAF", "NBA", "NCAAB", "WNBA", "MLB", "NHL", "MLS"];
+    // first the sports in season now, so the row follows the calendar (Scott 11/03: "then top sport in session")
+    const SEASON = { NFL: [9, 2], NCAAF: [8, 1], NBA: [10, 6], NCAAB: [11, 4], WNBA: [5, 10], MLB: [3, 10], NHL: [10, 6], MLS: [2, 12] };
+    const inSeason = k => { const m = new Date().getMonth() + 1, [a, b] = SEASON[k]; return a <= b ? m >= a && m <= b : m >= a || m <= b; };
+    const ALLSPORTS = ["NFL", "NCAAF", "NBA", "NCAAB", "NHL", "MLB", "WNBA", "MLS"];
+    const SPORTCHIPS = ALLSPORTS.filter(inSeason).concat(ALLSPORTS.filter(k => !inSeason(k)));
+    const footballPage = active === "lives" && new URLSearchParams(location.search).get("g") === "football";
+    const LEAD = [[active === "picks", typeof ICON !== "undefined" ? ICON.ui("target") : "", "PRO TRACK", "/app/"],
+      [active === "board" && new URLSearchParams(location.search).get("b") === "top5", typeof ICON !== "undefined" ? ICON.sport("TOP5") : "", "TOP 5", "/app/board/?b=top5"],
+      [footballPage, typeof ICON !== "undefined" ? ICON.sport("NFL") : "", "FOOTBALL LIVES", "/app/lives/?g=football"],
+      [active === "lives" && !footballPage, typeof ICON !== "undefined" ? ICON.sport("NBA") : "", "BBALL LIVES", "/app/lives/"]];
     // extra boards (Scott 10/11) - their own page, not an ESPN sport hub
-    const BOARDCHIPS = [["tennis", "TENNIS", "TENNIS"], ["ufc", "UFC", "UFC"], ["lives", "LIVES", "LIVE TOTALS"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"],
+    const BOARDCHIPS = [["tennis", "TENNIS", "TENNIS"], ["ufc", "UFC", "UFC"], ["horses", "HORSES", "HORSES"], ["f1", "F1", "F1"], ["nascar", "NASCAR", "NASCAR"], ["golf", "GOLF", "GOLF"], ["dk", "DK", "DK"], ["prizepicks", "PRIZEPICKS", "PRIZEPICKS"],
       // CMMG pick pages (Scott 10/17 "midnite madness prime 4+ parlay free edge ice top 5" + "KBO and NPB")
       ["mm", "TENNIS", "MIDNIGHT MADNESS"], ["prime4", "PRIME4", "PRIME 4+"], ["parlay", "PARLAY", "PARLAY"], ["freepick", "FREE", "FREE"],
-      ["edge", "EDGE", "EDGE"], ["ice", "ICE", "ICE"], ["top5", "TOP5", "TOP 5"], ["kbo", "KBO", "KBO"], ["npb", "NPB", "NPB"]];
+      ["edge", "EDGE", "EDGE"], ["ice", "ICE", "ICE"], ["kbo", "KBO", "KBO"], ["npb", "NPB", "NPB"]];
     const BOARDHREF = { tennis: "/app/tennis/", ufc: "/app/ufc/", golf: "/app/golf/", lives: "/app/lives/", horses: "/app/horses/", f1: "/app/f1/", nascar: "/app/nascar/" };   // boards that grew their own page (Scott 10/12 "build web horses page")
     const curBoard = active === "board" ? (new URLSearchParams(location.search).get("b") || "lives") : "";
     const curSport = new URLSearchParams(location.search).get("l");
@@ -354,7 +365,7 @@ const SHELL = (() => {
       <form class="tsearch" action="/app/schedule/"><input name="q" placeholder="Search teams, games…" aria-label="Search"><button aria-label="Search">${ic("target")}</button></form>
       <div class="grow"></div>${STORE ? "" : `<a class="crown" href="/app/account/" title="Membership">${typeof ICON.color === "function" ? ICON.color("crown") : ic("star")}</a>`}
       <a class="bell" href="/app/alerts/" aria-label="Alerts">${typeof ICON.color === "function" ? ICON.color("bell") : ic("bell")}<b id="bellN" hidden></b></a><button class="drawbtn livebtn" data-drawer="right" aria-label="Live feed">${ic("chat")}<span>LIVE</span><b class="ldot"></b></button><div id="who"></div></header>
-      <nav class="sportrow" aria-label="Sports"><a class="pickjump" href="#sr-picks" aria-label="Jump to the CMMG pick pages">★ PICKS</a>${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
+      <nav class="sportrow" aria-label="Sports"><a class="pickjump" href="#sr-picks" aria-label="Jump to the CMMG pick pages">★ PICKS</a>${LEAD.map(([on, icon, l, h]) => `<a class="${on ? "on" : ""}" href="${h}">${icon}${l}</a>`).join("")}${SPORTCHIPS.map(k => `<a class="${active === "sport" && curSport === k ? "on" : ""}" href="/app/sport/?l=${k}">${typeof ICON !== "undefined" ? ICON.sport(k) : ""}${k === "MLS" ? "SOCCER" : k}</a>`).join("")}
         ${BOARDCHIPS.map(([k, ik, l]) => `<a ${k === "mm" ? 'id="sr-picks" ' : ""}class="${curBoard === k || active === k ? "on" : ""}${k === "mm" ? " pk-first" : ""}" href="${BOARDHREF[k] || "/app/board/?b=" + k}">${typeof ICON !== "undefined" ? (ik === "ICE" || ik === "EDGE" ? ICON.tier(ik) : ICON.sport(ik)) : ""}${l}</a>`).join("")}
         <a href="/app/standings/" class="${active === "standings" ? "on" : ""}">${ic("chart")}STANDINGS</a></nav>`);
     const rail = `<nav class="rail" aria-label="CMMG menu">` + MENU.map(([g, items]) => `<h4>${E(g)}</h4>` + items.map(([k, ic, label, href]) =>
@@ -370,6 +381,10 @@ const SHELL = (() => {
     const flat = MENU.flatMap(([, items]) => items).filter(([k]) => !SOON[k] || k === active);
     document.querySelector("header.top").insertAdjacentHTML("afterend", `<nav class="mnav" aria-label="CMMG menu">` +
       flat.map(([k, ic, label, href]) => `<a class="${k === active ? "on" : ""}" href="${href}">${typeof ICON !== "undefined" ? ICON.ui(ic) : ""}${E(label)}</a>`).join("") + `</nav>`);
+    if (active === "board" && new URLSearchParams(location.search).get("b") === "top5") {     // Top 5 has its own menu line now
+      document.querySelectorAll('.rail a[href="/app/board/?b=top5"], .mnav a[href="/app/board/?b=top5"]').forEach(a => a.classList.add("on"));
+      document.querySelectorAll('.rail a[href="/app/board/?b=prizepicks"], .mnav a[href="/app/board/?b=prizepicks"]').forEach(a => a.classList.remove("on"));
+    }
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
     // PHONE LAYOUT (Scott's design list #2): bottom tab bar Home / Picks / Scores / Tracker / More; More = sheet with the
     // rest of the menu. CSS shows it only on narrow screens (the rail stays on desktop).

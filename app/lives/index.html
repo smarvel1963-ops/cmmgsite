@@ -6,14 +6,18 @@
      our line; quarter / half plays count that window only). League tabs, tonight's plays with results as they grade, and
      recent results once Verified Results are public (RESULTS_PUBLIC) - never a W-L or units total (capped list).
      Data = relay task "board" name "lives" (same feed + masking as /app/board/?b=lives): a locked play never carries its
-     game, side or line, so it gets no pace meter. Football plays are PAPER (tracked, not official bets), as on Discord. -->
+     game, side or line, so it gets no pace meter. Football plays are PAPER (tracked, not official bets), as on Discord.
+     LIVES PAGES (Scott 11/08, Look A + "Free with sign-in"): ?g=football = Football Lives, otherwise BBall Lives (Scott's locks +
+     posted Auto Lives). Free to anyone signed in with Discord: the relay (v1.19) holds the play back until then. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Live Totals · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<title>Lives · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
 <link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
 <style>
+.gtabs { display:flex; gap:8px; margin-bottom:12px; } .gtabs a { flex:1 1 0; text-align:center; text-decoration:none; color:var(--text); font-family:Saira; font-style:italic; font-weight:800; font-size:17px; letter-spacing:.03em; padding:9px 10px; border-radius:11px; border:1px solid var(--line); background:rgba(10,22,40,.7); } .gtabs a small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); margin-left:5px; } .gtabs a.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .gtabs a.on small { color:#334155; }
+.signbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:12px 14px; border-radius:14px; border:1px solid rgba(127,216,255,.35); background:rgba(127,216,255,.07); margin-bottom:14px; font-size:14px; font-weight:700; }
 .lg { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .lg::-webkit-scrollbar { display:none; }
 .lg button { flex:0 0 auto; display:flex; align-items:center; gap:7px; background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 14px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
 .lg button .ic { width:18px; height:18px; } .lg button small { color:var(--dim); font-weight:700; } .lg button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .lg button.on small { color:#334155; }
@@ -50,12 +54,14 @@
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>LIVE TOTALS</h1><p>IN-GAME TOTALS. NBA · NCAAB · WNBA · FOOTBALL.</p></div>
+    <div class="vhero"><h1 id="vt">LIVES</h1><p id="vs">IN-GAME TOTALS.</p></div>
     <div id="soon"></div>
+    <div class="gtabs" id="gtabs"></div>
+    <div id="signbar"></div>
     <div class="lg" id="lg"></div>
     <div id="live"></div>
     <div id="tonight"></div>
-    <p class="note2">The pace meter is a straight-line projection from the score and clock right now — a guide to where the game is heading, not a prediction. Football plays are tracked paper plays, as posted on Discord.</p>
+    <p class="note2">The pace meter is a straight-line projection from the score and clock right now — a guide to where the game is heading, not a prediction. PAPER plays are tracked, not bet, as posted on Discord. A LOCK is a real bet.</p>
     <div id="hist"></div>
   </main>
 </div>
@@ -65,7 +71,12 @@ const E = CMMG.esc, $ = id => document.getElementById(id);
 // ESPN path, regulation minutes, period length, periods in regulation
 const LG = { NBA: ["basketball/nba", 48, 12, 4], WNBA: ["basketball/wnba", 40, 10, 4], NCAAB: ["basketball/mens-college-basketball", 40, 20, 2],
   NFL: ["football/nfl", 60, 15, 4], NCAAF: ["football/college-football", 60, 15, 4] };
-const ORDER = ["NBA", "NCAAB", "WNBA", "NFL", "NCAAF"];
+const GROUPS = { bball: ["NBA", "NCAAB", "WNBA"], football: ["NFL", "NCAAF"] };
+const GROUP = new URLSearchParams(location.search).get("g") === "football" ? "football" : "bball";
+const ORDER = GROUPS[GROUP];
+const inGroup = p => ORDER.includes(p.sport);
+$("vt").textContent = GROUP === "football" ? "FOOTBALL LIVES" : "BBALL LIVES";
+$("vs").textContent = GROUP === "football" ? "IN-GAME TOTALS. NFL · NCAAF." : "IN-GAME TOTALS. NBA · NCAAB · WNBA.";
 const ct = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" }); };
 const dayOf = t => { const d = new Date(t); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric" }); };
 const odds = o => o == null || o === "" ? "" : Number(o) > 0 ? "+" + o : String(o);
@@ -114,33 +125,47 @@ function liveCard(p, ev) {
   const cs = ev.competitions[0].competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1));
   return `<div class="lcard"><div class="ltop"><span>${ICON.sport(p.sport)} ${E(p.sport)}</span><span class="clk">${E(ev.status.type.shortDetail || "")}</span></div>
     <div class="sc">${cs.map(c => `<span>${E(c.team.shortDisplayName || c.team.displayName)}</span><b>${E(c.score)}</b>`).join("")}</div>
-    <div class="play">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-family:Inter;font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? '<span class="pill">PAPER</span>' : ""}</div>
-    <div class="why">${odds(p.odds) ? `${odds(p.odds)} ${E(p.book || "")} · ` : ""}${p.units ? `${E(p.units)}u · ` : ""}fired ${ct(p.time)} CT${p.detail ? " · " + E(p.detail) : ""}</div>
-    ${paceMeter(p, ev)}${SHELL.took(p)}</div>`;
+    <div class="play">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-family:Inter;font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${kindPill(p)}</div>
+    <div class="why">${facts(p)}</div>
+    <div class="why">${E(dayOf(p.time))} · fired ${ct(p.time)} CT${p.detail ? " · " + E(p.detail) : ""}</div>
+    ${paceMeter(p, ev)}${tookBtn(p)}</div>`;
 }
+const kindPill = p => p.kind === "lock" ? ' <span class="pill pro">LOCK</span>' : p.paper ? ' <span class="pill">PAPER</span>' : "";
+// a lock is on the board for its own night only, so My Tracker could never grade it
+const tookBtn = p => p.no_record ? "" : SHELL.took(p);
+// Rule #8: odds, book, stake and confidence on every play. A dash = the system did not record it, never a guess.
+function facts(p) { return `${odds(p.odds) || "—"} · ${E(p.book || "book —")}${p.units ? ` · ${E(p.units)}u` : ""} · conf ${p.confidence ? E(p.confidence) : "—"}`; }
 function row(p) {
+  if (p.locked && p.signin) return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div><div><div class="pk">${ICON.ui("lock")} Live play</div><div class="gm">Free with a Discord sign-in.</div></div>
+    <div class="r"><button class="btn disc" data-signin>Continue with Discord</button></div></div>`;
   if (p.locked) return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${E(p.sport)}</span></div><div><div class="pk">${ICON.ui("lock")} Members-only live play</div><div class="gm">Live plays come with an ELITE CMMG Discord membership.</div></div>
     <div class="r">${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`;
   const ev = eventFor(p), live = !p.result && ev && ev.status.type.state === "in";
-  return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${live ? '<span class="livepill">LIVE</span>' : "CT"}</span></div>
-    <div><div class="pk">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${p.paper ? ' <span class="pill">PAPER</span>' : ""}</div>
-      <div class="gm">${E(p.game)}${p.detail ? " · " + E(p.detail) : ""}</div></div>
-    <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
+  return `<div class="prow"><div class="t"><b>${ct(p.time)}</b><span>${live ? '<span class="livepill">LIVE</span> ' : ""}CT · ${E(dayOf(p.time))}</span></div>
+    <div><div class="pk">${E(p.bet)} ${p.tier ? `<span class="tag ${E(p.tier)}" style="font-size:11px">${ICON.tier(p.tier)} ${E(p.tier)}</span>` : ""}${kindPill(p)}</div>
+      <div class="gm">${E(p.sport)} · ${E(p.game)}${p.detail ? " · " + E(p.detail) : ""}</div></div>
+    <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "book —")}${p.units ? " · " + E(p.units) + "u" : ""} · conf ${p.confidence ? E(p.confidence) : "—"}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : tookBtn(p)}</div></div>`;
+}
+function gtabs() {
+  const n = g => PICKS.filter(p => GROUPS[g].includes(p.sport)).length, tab = (g, label, h) => `<a class="${GROUP === g ? "on" : ""}" href="${h}">${label}${n(g) ? `<small>${n(g)}</small>` : ""}</a>`;
+  $("gtabs").innerHTML = tab("bball", "BBall", "/app/lives/") + tab("football", "Football", "/app/lives/?g=football");
+  $("signbar").innerHTML = CMMG.session() ? "" : `<div class="signbar"><span>Live plays are free. Sign in to see them.</span><button class="btn disc" data-signin>Continue with Discord</button></div>`;
 }
 let LAST = null;
 const lastDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
 function draw() {
-  const lgs = ORDER.filter(k => PICKS.some(p => p.sport === k));
+  gtabs();
+  const mine = PICKS.filter(inGroup), lgs = ORDER.filter(k => mine.some(p => p.sport === k));
   if (LEAGUE && !lgs.includes(LEAGUE)) LEAGUE = "";
-  $("lg").innerHTML = lgs.length > 1 ? `<button data-lg="" class="${LEAGUE ? "" : "on"}">All<small>${PICKS.length}</small></button>` +
-    lgs.map(k => `<button data-lg="${k}" class="${LEAGUE === k ? "on" : ""}">${ICON.sport(k)}${k}<small>${PICKS.filter(p => p.sport === k).length}</small></button>`).join("") : "";
-  const vis = PICKS.filter(p => !LEAGUE || p.sport === LEAGUE);
+  $("lg").innerHTML = lgs.length > 1 ? `<button data-lg="" class="${LEAGUE ? "" : "on"}">All<small>${mine.length}</small></button>` +
+    lgs.map(k => `<button data-lg="${k}" class="${LEAGUE === k ? "on" : ""}">${ICON.sport(k)}${k}<small>${mine.filter(p => p.sport === k).length}</small></button>`).join("") : "";
+  const vis = mine.filter(p => !LEAGUE || p.sport === LEAGUE);
   const live = vis.filter(p => !p.locked && !p.result).map(p => [p, eventFor(p)]).filter(([, ev]) => ev && ev.status.type.state === "in");
   $("live").innerHTML = live.length ? `<div class="sech"><span class="dot"></span>ON THE CLOCK NOW<small>${live.length} live play${live.length === 1 ? "" : "s"}</small></div><div class="livegrid">${live.map(([p, ev]) => liveCard(p, ev)).join("")}</div>` : "";
-  if (!PICKS.length && LAST && (LAST.picks || []).length) {   // never empty (Scott 10/21: "lives should show previous nite total")
-    const r = LAST.record, tot = r && r.w + r.l + r.p ? ` ${r.w}-${r.l}${r.p ? "-" + r.p : ""}${r.units != null ? `, ${r.units > 0 ? "+" : ""}${r.units.toFixed(2)}u` : ""}` : "";
+  if (!mine.length && LAST && (LAST.picks || []).filter(inGroup).length) {   // never empty (Scott 10/21: "lives should show previous nite total")
+    const r = LAST.picks.every(inGroup) ? LAST.record : null, tot = r && r.w + r.l + r.p ? ` ${r.w}-${r.l}${r.p ? "-" + r.p : ""}${r.units != null ? `, ${r.units > 0 ? "+" : ""}${r.units.toFixed(2)}u` : ""}` : "";
     const lbl = Date.parse(DATE + "T12:00:00Z") - Date.parse(LAST.date + "T12:00:00Z") === 86400000 ? "Last night" : "Last plays";   // up to a week back
-    $("tonight").innerHTML = `<div class="soonbar"><b>New plays on the way.</b> ${tot ? `${lbl}, ${E(lastDay(LAST.date))}:${E(tot)}` : `${lbl}: ${E(lastDay(LAST.date))}.`}</div><div class="lsec">${LAST.picks.slice().sort((a, b) => String(a.time).localeCompare(String(b.time))).map(row).join("")}</div>`;
+    $("tonight").innerHTML = `<div class="soonbar"><b>New plays on the way.</b> ${tot ? `${lbl}, ${E(lastDay(LAST.date))}:${E(tot)}` : `${lbl}: ${E(lastDay(LAST.date))}.`}</div><div class="lsec">${LAST.picks.filter(inGroup).sort((a, b) => String(a.time).localeCompare(String(b.time))).map(row).join("")}</div>`;
     return;
   }
   if (!vis.length) { $("tonight").innerHTML = `<div class="empty">No live plays yet${DATE ? " for " + E(dayOf(DATE + "T17:00:00Z")) : ""}. Our engines fire once games are under way — this page updates on its own.</div>`; return; }
@@ -151,7 +176,7 @@ function draw() {
 }
 function drawHist() {
   if (!PUB || !HIST.length) { $("hist").innerHTML = ""; return; }
-  const h = HIST.filter(p => !LEAGUE || p.sport === LEAGUE).sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
+  const h = HIST.filter(p => inGroup(p) && (!LEAGUE || p.sport === LEAGUE)).sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
   // no W-L / units total: the list is capped, so a sum would not be the record (reviewer 10/11)
   $("hist").innerHTML = h.length ? `<div class="box"><h3>RECENT RESULTS</h3><div style="overflow-x:auto"><table class="rt"><tr><th>DATE</th><th>LEAGUE</th><th>PLAY</th><th>ODDS</th><th>RESULT</th></tr>
     ${h.map(p => `<tr><td style="white-space:nowrap">${E(p.date || dayOf(p.time))}</td><td>${E(p.sport)}</td><td><b>${E(p.bet)}</b>${p.paper ? ' <span class="pill">PAPER</span>' : ""}<div class="game">${E(p.game || "")}</div></td><td>${odds(p.odds)}</td><td><span class="rb ${E(p.result)}">${E(p.result)}</span></td></tr>`).join("")}</table></div></div>` : "";
@@ -176,6 +201,8 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-lg]"
   try { localStorage.setItem("cmmg.lives.lg", LEAGUE); } catch (x) {} draw(); drawHist(); });
 // plays every 60 s (the feed), scores + pace every 30 s
 setInterval(load, 60000); setInterval(async () => { if (PICKS.length) { await scores(); draw(); } }, 30000);
-SHELL.mount("lives"); load();
+SHELL.mount("lives");
+document.querySelectorAll('a[href^="/app/lives/"]').forEach(a => a.classList.toggle("on", (new URL(a.href).searchParams.get("g") === "football") === (GROUP === "football")));
+gtabs(); load();
 </script>
 </body></html>

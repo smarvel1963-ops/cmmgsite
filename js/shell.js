@@ -62,9 +62,16 @@ const SHELL = (() => {
     setTimeout(done, 5000);                                   // never hold the page longer than this
     el.addEventListener("click", done);
   }
-  function welcomeGate() {   // first visit while signed out -> the welcome / sign-in screen (design list #1)
+  // SIGNED OUT -> the welcome / sign-in screen, Continue with Discord first (design list #1). Scott 11/09: "the app and pc for
+  // cmmg are not always giving customer the discord login button first" - this used to fire only on the FIRST visit ever
+  // (localStorage cmmg.welcomed, set forever by one tap on sign-in or preview), so a member whose sign-in expired, or who backed
+  // out of Discord once, landed on the dashboard with the button buried in the menu. Now EVERY signed-out visit gets it; "Browse
+  // Free Preview" skips it for this browser session only (sessionStorage cmmg.preview). The page they wanted is kept in
+  // cmmg.next so they land back on it after signing in.
+  function welcomeGate() {
     try {
-      if (!CMMG.session() && localStorage.getItem("cmmg.welcomed") !== "1" && !/^\/app\/welcome\//.test(location.pathname)) {
+      if (!CMMG.session() && sessionStorage.getItem("cmmg.preview") !== "1" && !/^\/app\/welcome\//.test(location.pathname)) {
+        if (/^\/app\/[a-z/]*$/.test(location.pathname)) sessionStorage.setItem("cmmg.next", location.pathname + (location.search === "?g=football" ? location.search : ""));
         location.replace("/app/welcome/"); return true;
       }
     } catch (e) {}

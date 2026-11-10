@@ -86,12 +86,15 @@ body { min-height:100vh; }
 <script>
 document.querySelectorAll("[data-ic]").forEach(e => e.innerHTML = ICON.ui(e.dataset.ic));
 document.querySelectorAll("[data-tier]").forEach(e => e.innerHTML = ICON.tier(e.dataset.tier));
-const seen = () => { try { localStorage.setItem("cmmg.welcomed", "1"); } catch (e) {} };
+// Browse Free Preview skips this screen for THIS browser session only - the next signed-out visit sees Continue with Discord
+// first again (Scott 11/09). Tapping sign-in marks nothing, so backing out of Discord brings them back here.
+const preview = () => { try { sessionStorage.setItem("cmmg.preview", "1"); } catch (e) {} };
 document.addEventListener("click", e => {
-  if (e.target.closest("[data-signin]")) { seen(); CMMG.signIn(); return; }
-  if (e.target.closest("#preview, [data-pv]")) seen();
+  if (e.target.closest("[data-signin]")) { CMMG.signIn(); return; }
+  if (e.target.closest("#preview, [data-pv]")) preview();
 });
-if (CMMG.session()) location.replace("/app/dashboard/");      // already signed in: straight in
+const next = () => { try { const n = sessionStorage.getItem("cmmg.next") || ""; sessionStorage.removeItem("cmmg.next"); return /^\/app\/[a-z/]*(\?g=football)?$/.test(n) && n !== "/app/welcome/" ? n : "/app/dashboard/"; } catch (e) { return "/app/dashboard/"; } };
+if (CMMG.session()) location.replace(next());      // already signed in (or just came back from Discord): to the page they wanted
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
 </script>
 </body></html>

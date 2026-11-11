@@ -82,10 +82,11 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>EVERY AUTO LIVES PICK, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
+    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>AUTO LIVES, YOUR LIVES LOCKS + FOOTBALL LIVES, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
     <div id="gate"></div>
     <div id="status"></div>
     <div id="tiles"></div>
+    <div id="bysrc"></div>
     <div id="acct"></div>
     <div id="chart"></div>
     <div id="rows"></div>
@@ -119,7 +120,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "acct", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "bysrc", "acct", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -192,7 +193,9 @@ function liveOf0(r) {          // {cls: "lw"|"ll"|"", html}
   const score = `<span class="sc">${E(away.team.abbreviation || away.team.shortDisplayName)} ${num(pa)} - ${num(ph)} ${E(home.team.abbreviation || home.team.shortDisplayName)}</span>`;
   if (state === "pre") return { cls: "", html: `<div class="live"><span class="pre">${E((st.type || {}).shortDetail || "not started")}</span></div>` };
   let win = null, label = "", extra = "";
-  if (b.kind === "TOTAL") {
+  if (b.kind === "TOTAL" && r.per) {
+    extra = ` · ${E(PER_TXT[r.per] || r.per)} total ${num(b.line, 1)}: the game score can't judge it`;   // football half / quarter
+  } else if (b.kind === "TOTAL") {
     if (state === "post") { win = pts === b.line ? null : (b.side === "OVER") === (pts > b.line); label = win == null ? "PUSH" : win ? "WON" : "LOST"; }
     else if (pts > b.line) { win = b.side === "OVER"; label = win ? "CASHED" : "LOST"; }
     else {
@@ -287,17 +290,34 @@ function drawChart0(k) {
 }
 
 function gradedCls(res) { return res === "WIN" ? "lw" : res === "LOSS" ? "ll" : null; }
+// Pick sources (Scott 11/11: "i want nba ncaab auto and manual and football lives all in the test"). A row with no
+// src is Auto Lives; per = a football half / quarter (absent = the full game).
+const PER_TXT = { "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2nd quarter", Q3: "3rd quarter", Q4: "4th quarter" };
+function srcTxt(r) {
+  if (r.src === "manual") return "YOUR LOCK";
+  if (r.src === "football") return "FOOTBALL" + (r.per ? " " + (PER_TXT[r.per] || r.per).toUpperCase() : " GAME") + (r.tier ? " · " + r.tier : "") + (r.rs ? " (never posted)" : "");
+  return r.eng || "";
+}
+function drawSrc(k) {
+  const el = $("bysrc"), s = k.by_src || []; if (!el) return;
+  if (!s.length) { el.innerHTML = ""; return; }
+  const cell = x => x && N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)} <span class="${cls(x.profit)}">${sgn(x.profit)}</span>` : `<span class="why">${num((x || {}).fills)} filled</span>`;
+  el.innerHTML = `<div class="sech">BY SOURCE<small>each source's paper record on each venue · best = the cheaper venue, picked at pick time</small></div>
+    <div class="lsec xs"><table class="kt"><tr><th>SOURCE</th><th>PICKS</th><th>KALSHI</th><th>POLYMARKET</th><th>BEST</th></tr>
+    ${s.map(x => `<tr><td>${E(x.label)}</td><td class="n">${num((x.K || {}).picks)}</td><td>${cell(x.K)}</td><td>${cell(x.P)}</td><td>${cell(x.B)}</td></tr>`).join("")}</table></div>`;
+}
 
 function row(r) {
   const [d, t] = when(r.t);
-  const book = r.bk ? E(r.bk) : "Auto Lives line";
+  const book = r.bk ? E(r.bk) : r.src === "manual" ? "your line" : r.src === "football" ? "football Lives line" : "Auto Lives line";
   const conf = N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
   const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, r.pl, r.best === "KALSHI")
            + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
   const bk = r.bres ? `logged line: ${E(r.bres)}${N(r.bpl) != null ? " " + sgn(r.bpl) : ""}` : "";
   const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.res) || lv.cls;
-  return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${r.eng ? " · " + E(r.eng) : ""}</span></div>
-    <div><div class="pk">${E(r.side)} ${num(r.line, 1)} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
+  const sx = srcTxt(r);
+  return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${sx ? " · " + E(sx) : ""}</span></div>
+    <div><div class="pk">${E(r.side)} ${num(r.line, 1)}${r.per ? ` <span class="why">${E(PER_TXT[r.per] || r.per)}</span>` : ""} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
     <div class="kx">${kx}</div>
     <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
 }
@@ -311,7 +331,8 @@ function drawAcct(k) {
   el.querySelectorAll("details[data-k]").forEach(d => { d.open ? ACCT_OPEN.add(d.dataset.k) : ACCT_OPEN.delete(d.dataset.k); });
   const st = a.start || {}, since = a.since ? dayLbl(a.since) : "";
   const line = o => {
-    const [, tm] = when(o.t), g = `${E(o.game || "")} <b>${E(o.side || "")}${N(o.k) != null ? " " + num(o.k, 1) : ""}</b>${N(o.o) != null ? " " + odds(o.o) : ""}`;
+    const sm = o.src === "manual" ? " (your lock)" : o.src === "football" ? ` (football${o.per ? " " + (PER_TXT[o.per] || o.per) : ""})` : "";
+    const [, tm] = when(o.t), g = `${E(o.game || "")}${E(sm)} <b>${E(o.side || "")}${N(o.k) != null ? " " + num(o.k, 1) : ""}</b>${N(o.o) != null ? " " + odds(o.o) : ""}`;
     if (!o.v) return `<div class="al sk"><span>${E(tm)}</span><span class="g">${g}</span><span class="r">skip: ${E(o.why || "")}</span></div>`;
     const venue = o.v === "POLY" ? "Polymarket" : o.v === "BOTH" ? "both venues" : "Kalshi";
     const res = o.res ? `<span class="${cls(o.pl)}">${E(o.res)} ${sgn(o.pl)}</span>` : `<span>open</span>`;
@@ -349,11 +370,12 @@ function draw(k, at) {
   tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
+  try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
   try { drawAcct(k); } catch (e) { $("acct").innerHTML = ""; }
   drawChart(k);
   const rows = k.rows || [];
   $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
-    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within a few minutes.</div>`);
+    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives, your Lives locks and football Lives make them once games are under way; they show here within a few minutes.</div>`);
   const bd = k.boards;
   if (bd) {
     const rc = bd.records || {};
@@ -395,9 +417,10 @@ function draw(k, at) {
   $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>Kalshi fills</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">PROFIT</th><th style="text-align:right">LOGGED LINE</th></tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n ${cls(d.profit)}">${N(d.w) + N(d.l) ? sgn(d.profit) : "—"}</td><td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td></tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders. Each pick is priced on Kalshi and Polymarket US within seconds of
-    Auto Lives making it: on each venue the line at least as good as ours, an order of the pick's own stake (units × $5) walked through
-    the live book, the venue's fee included, graded off that venue's own result. BEST = the venue the pick takes, chosen when it was
-    priced, never after. "Logged line" is the same pick at the line + price Auto Lives wrote down — a comparison, not a CMMG record.
+    being made (Auto Lives, your Lives locks, football Lives): on each venue the line at least as good as ours, an order of the pick's own
+    stake (units × $5, or your locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
+    BEST = the venue the pick takes, chosen when it was priced, never after. "Logged line" is the same pick at the line + price its page
+    wrote down — a comparison, not a CMMG record. Football research plays (recorded, never posted) are priced but never bet by the accounts.
     Both sides = an Over on one venue + an Under on the other: an arb costs under $1 per $1 pair (profit either way); a middle costs a
     little over $1 and wins both legs if the final lands in its window. Sizing plans start at $1,500 and are paper; which one ever sizes
     real money is Scott's call.</p>`;

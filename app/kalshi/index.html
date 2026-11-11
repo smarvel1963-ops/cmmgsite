@@ -56,6 +56,18 @@
 table.kt { width:100%; border-collapse:collapse; font-size:14px; } table.kt th { text-align:left; font-size:11px; letter-spacing:.08em; color:var(--dim); padding:10px 14px; border-bottom:1px solid var(--line); }
 table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); } table.kt tr:last-child td { border-bottom:0; } table.kt td.n { text-align:right; font-family:Saira; font-weight:800; }
 .note2 { font-size:12px; color:var(--dim); margin:4px 2px 16px; line-height:1.5; }
+.chart { position:relative; border-radius:16px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.9)); padding:12px 12px 6px; margin-bottom:12px; }
+.chart .ch { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 4px 6px; }
+.chart .ch b { font-family:Saira; font-style:italic; font-weight:800; font-size:22px; } .chart .ch span { font-size:12px; color:var(--dim); font-weight:700; }
+.chart svg { display:block; width:100%; height:200px; overflow:visible; }
+.chart .grid { stroke:rgba(127,216,255,.10); stroke-width:1; } .chart .zero { stroke:rgba(255,255,255,.35); stroke-width:1; stroke-dasharray:4 4; }
+.chart .tick { fill:#7d93ad; font:600 10px Inter, sans-serif; }
+.chart .ln { fill:none; stroke-width:2.5; stroke-linejoin:round; } .chart .ln.up { stroke:#4ade80; } .chart .ln.dn { stroke:#f87171; } .chart .ln.ev { stroke:#93c5fd; }
+.chart .area.up { fill:url(#gUp); } .chart .area.dn { fill:url(#gDn); }
+.chart .bet { fill:#0b1a2e; stroke:#93c5fd; stroke-width:2; } .chart .bet.lw { stroke:#4ade80; } .chart .bet.ll { stroke:#f87171; }
+.chart .w { fill:#22c55e; stroke:#04140a; stroke-width:1.5; } .chart .l { fill:#ef4444; stroke:#1f0505; stroke-width:1.5; }
+.chart .head { fill:#ffd700; } .chart .ring { fill:none; stroke:#ffd700; stroke-width:2; transform-box:fill-box; transform-origin:center; animation:ping 1.6s ease-out infinite; }
+@keyframes ping { 0% { opacity:.9; transform:scale(.6); } 100% { opacity:0; transform:scale(2.6); } }
 @media (max-width:760px) { .krow { grid-template-columns:minmax(0,1fr) auto; } .krow .t { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } .krow .kx { grid-column:1 / -1; } }
 </style></head>
 <body>
@@ -65,6 +77,7 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
     <div id="gate"></div>
     <div id="status"></div>
     <div id="tiles"></div>
+    <div id="chart"></div>
     <div id="rows"></div>
     <div id="boards"></div>
     <div id="both"></div>
@@ -96,7 +109,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -189,6 +202,80 @@ function liveOf0(r) {          // {cls: "lw"|"ll"|"", html}
   const pill = label ? `<span class="lp ${win == null ? "even" : win ? "win" : "lose"}">${label}</span>` : "";
   return { cls: win == null ? "" : win ? "lw" : "ll", html: `<div class="live">${pill}${score}<span class="clk">${clock}</span><span class="why">${extra.replace(/^ · /, "")}</span></div>` };
 }
+// LIVE RUNNING TOTAL (Scott 11/10: "right above the latest picks should be live graph going across screen like when bet
+// made blip win it climbs lose it drops and keeps ticking across screen with minutes as go by"). Tonight's Kalshi paper
+// dollars: a blip when a bet is made (green / red while its game is live), a step up or down when its result lands, the
+// line running on to "now" (pulsing) as the minutes pass. Kalshi fills only - the headline record.
+const ctMs = t => { const m = String(t || "").match(/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)(?::(\d\d))?/);
+  return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : null; };          // naive CT -> one clock
+const nowCt = () => ctMs(new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).replace(" ", "T"));
+function drawChart(k) { try { drawChart0(k); } catch (e) { const el = $("chart"); if (el) el.innerHTML = ""; } }   // never blanks the page
+function drawChart0(k) {
+  const el = $("chart"); if (!el) return;
+  const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+  const day = k.day || todayCt, live = day === todayCt || !!nowCt() && nowCt() - ctMs(day + "T00:00") < 30 * 3600e3;
+  // the session day (r.d), so a late game settling after midnight stays on tonight's line
+  const rows = (k.rows || []).filter(r => (r.d || String(r.t || "").slice(0, 10)) === day);
+  const bets = rows.filter(r => r.st === "FILLED" || r.st === "PARTIAL");
+  if (!bets.length) { el.innerHTML = ""; return; }
+  const evs = [];
+  bets.forEach(r => {
+    const tb = ctMs(r.t); if (tb != null) evs.push({ t: tb, kind: "bet", r });
+    const tg = ctMs(r.gat); if (tg != null && (r.res === "WIN" || r.res === "LOSS" || r.res === "VOID")) evs.push({ t: tg, kind: "res", r, d: N(r.pl) || 0 });
+  });
+  let now = nowCt();
+  if (now == null || !evs.length) { el.innerHTML = ""; return; }
+  evs.sort((a, b) => a.t - b.t || (a.kind === b.kind ? 0 : a.kind === "bet" ? -1 : 1));
+  let cum = 0;
+  evs.forEach(e => { if (e.kind === "res") cum = Math.round((cum + e.d) * 100) / 100; e.v = cum; });
+  const lastT = evs[evs.length - 1].t;
+  now = live ? Math.max(now, lastT) : lastT + 10 * 60e3;          // a past night ends at its last result
+  const t0 = Math.min(evs[0].t, now - 3600e3) - 5 * 60e3, t1 = Math.max(now, lastT) + 4 * 60e3;
+  const vals = [0, ...evs.map(e => e.v)], lo = Math.min(...vals), hi = Math.max(...vals), pad = Math.max(5, (hi - lo) * 0.15);
+  const W = Math.max(280, (el.clientWidth || 624) - 24), H = 200, L = 46, R = 12, T = 10, B = 22;
+  const X = t => L + (W - L - R) * (t - t0) / (t1 - t0), Y = v => T + (H - T - B) * (1 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)));
+  let d = `M${X(t0).toFixed(1)},${Y(0).toFixed(1)}`;
+  evs.forEach(e => { if (e.kind === "res") d += ` H${X(e.t).toFixed(1)} V${Y(e.v).toFixed(1)}`; });
+  d += ` H${X(now).toFixed(1)}`;
+  const dir = cum > 0 ? "up" : cum < 0 ? "dn" : "ev";
+  const area = `${d} V${Y(0).toFixed(1)} H${X(t0).toFixed(1)} Z`;
+  const step = Math.max(1, Math.ceil(30 / ((W - L - R) * 3600e3 / (t1 - t0))));      // hour labels never crowd on a phone
+  const hours = []; for (let h = Math.ceil(t0 / (step * 3600e3)) * step * 3600e3; h <= t1; h += step * 3600e3) hours.push(h);
+  const hl = h => { const x = new Date(h).getUTCHours(); return `${x % 12 || 12}${x < 12 ? "a" : "p"}`; };
+  const yt = [Math.round(lo - pad / 2), 0, Math.round(hi + pad / 2)].filter((v, i, a) => a.indexOf(v) === i);
+  const valAt = t => { let v = 0; evs.forEach(e => { if (e.kind === "res" && e.t <= t) v = e.v; }); return v; };
+  const marks = evs.map(e => {
+    const g = `${e.r.side || ""} ${num(e.r.line, 1)} ${e.r.game || ""}`;
+    if (e.kind === "bet") {
+      const open = !e.r.res, lv = open ? liveOf(e.r).cls : "";
+      return `<circle class="bet ${lv}" cx="${X(e.t).toFixed(1)}" cy="${Y(valAt(e.t)).toFixed(1)}" r="4.5"><title>${E(when(e.r.t)[1])} bet: ${E(g)} at ${odds(e.r.ko)}</title></circle>`;
+    }
+    const c = e.r.res === "WIN" ? "w" : e.r.res === "LOSS" ? "l" : "bet";            // colour by the result, not the sign
+    return `<circle class="${c}" cx="${X(e.t).toFixed(1)}" cy="${Y(e.v).toFixed(1)}" r="5"><title>${E(when(e.r.gat)[1])} ${E(e.r.res)} ${sgn(e.d)}: ${E(g)}</title></circle>`;
+  }).join("");
+  // the headline = the day's own total (the BY DAY row), so it always matches - even past ROWS_MAX picks
+  const dr = (k.days || []).find(x => x.day === day);
+  const tot = dr ? N(dr.profit) || 0 : cum, nW = dr ? N(dr.w) || 0 : evs.filter(e => e.r.res === "WIN" && e.kind === "res").length,
+        nL = dr ? N(dr.l) || 0 : evs.filter(e => e.r.res === "LOSS" && e.kind === "res").length;
+  const open = bets.filter(r => !r.res).length;
+  const title = live ? "TONIGHT" : String(dayLbl(day)).toUpperCase();
+  el.innerHTML = `<div class="chart"><div class="ch"><b class="${cls(tot)}">${title} ${sgn(tot)}</b>
+    <span>Kalshi paper · ${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Tonight's running total">
+      <defs><linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
+        <linearGradient id="gDn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ef4444" stop-opacity=".35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient>
+        <clipPath id="cUp"><rect x="0" y="0" width="${W}" height="${Y(0).toFixed(1)}"/></clipPath>
+        <clipPath id="cDn"><rect x="0" y="${Y(0).toFixed(1)}" width="${W}" height="${H}"/></clipPath></defs>
+      ${hours.map(h => `<line class="grid" x1="${X(h).toFixed(1)}" x2="${X(h).toFixed(1)}" y1="${T}" y2="${H - B}"/><text class="tick" x="${X(h).toFixed(1)}" y="${H - 6}" text-anchor="middle">${hl(h)}</text>`).join("")}
+      ${yt.map(v => `<text class="tick" x="${L - 6}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${v === 0 ? "$0" : (v > 0 ? "+$" : "-$") + Math.abs(Math.round(v))}</text>`).join("")}
+      <line class="zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
+      ${evs.some(e => e.v !== 0) ? `<path class="area up" clip-path="url(#cUp)" d="${area}"/><path class="area dn" clip-path="url(#cDn)" d="${area}"/>
+      <path class="ln up" clip-path="url(#cUp)" d="${d}"/><path class="ln dn" clip-path="url(#cDn)" d="${d}"/>` : `<path class="ln ev" d="${d}"/>`}
+      ${marks}
+      ${live ? `<circle class="ring" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="6"/>` : ""}<circle class="head" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="4"/>
+    </svg></div>`;
+}
+
 function gradedCls(res) { return res === "WIN" ? "lw" : res === "LOSS" ? "ll" : null; }
 
 function row(r) {
@@ -223,6 +310,7 @@ function draw(k, at) {
   tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
+  drawChart(k);
   const rows = k.rows || [];
   $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
     (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within a few minutes.</div>`);
@@ -295,6 +383,7 @@ let STOP = false;
 setInterval(() => { if (!STOP && !document.hidden) load(); }, 120000);
 setInterval(async () => { if (LAST && !document.hidden) { await scores(LAST.k); draw(LAST.k, LAST.at); } }, 30000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && !STOP) load(); });
+addEventListener("resize", () => { if (LAST) drawChart(LAST.k); });
 SHELL.mount("kalshi");
 load();
 </script>

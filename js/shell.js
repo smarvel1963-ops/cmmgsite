@@ -341,7 +341,8 @@ const SHELL = (() => {
     if (known === "1") return show();
     if (known === "0" || active === "kalshi") return;          // the page sets the flag itself when its data loads
     CMMG.relay({ task: "kalshi", session: s.token }).then(j => {
-      const yes = !!(j && j.ok && j.denied === false);
+      if (!j || !j.ok) return;                                  // an expired session / error decides nothing
+      const yes = j.denied === false;
       try { sessionStorage.setItem("cmmg.kalshi.owner", yes ? "1" : "0"); } catch (e) {}
       if (yes) show();
     }).catch(() => {});

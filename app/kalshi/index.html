@@ -9,7 +9,8 @@
      each venue's own settlement, each sizing plan's bankroll (money_manager, paper), and the both-sides scanner's arbs +
      middles between the two venues (both_sides.py). PAPER - no account, no money, no orders.
      Data = relay task "kalshi" (v1.20), OWNER ONLY - opening it to members is a code change after Scott's go + a review
-     (it carries an uncalibrated win-chance number). Never a board, never on the scoreboard. Not linked from the menu. -->
+     (it carries an uncalibrated win-chance number). Never a board, never on the scoreboard. Menu chip shown to the owner only (shell.js ownerKalshi). Live scores: ESPN,
+     display only. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kalshi Paper Run · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -35,6 +36,12 @@
 .lsec { border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); margin-bottom:12px; }
 .krow { display:grid; grid-template-columns:110px minmax(0,1.2fr) minmax(0,1.3fr) auto; gap:12px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(127,216,255,.08); }
 .krow:last-child { border-bottom:0; }
+.krow.lw { box-shadow:inset 4px 0 0 #22c55e; background:linear-gradient(90deg, rgba(34,197,94,.13), transparent 60%); }
+.krow.ll { box-shadow:inset 4px 0 0 #ef4444; background:linear-gradient(90deg, rgba(239,68,68,.13), transparent 60%); }
+.live { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:5px; font-size:12px; font-weight:800; }
+.live .sc { font-family:Saira; font-size:15px; color:var(--text); } .live .clk { color:#f87171; } .live .pre { color:var(--dim); }
+.lp { display:inline-block; font-size:10px; font-weight:900; letter-spacing:.08em; border-radius:6px; padding:2px 7px; }
+.lp.win { background:#16a34a; color:#04140a; } .lp.lose { background:#dc2626; color:#fff; } .lp.even { background:#64748b; color:#fff; }
 .krow .t b { display:block; font-family:Saira; font-size:15px; } .krow .t span { font-size:12px; color:var(--dim); }
 .krow .pk { font-weight:800; font-size:16px; } .krow .gm, .krow .why { font-size:12px; color:var(--dim); margin-top:2px; }
 .krow .kx { font-size:13px; display:flex; flex-direction:column; gap:4px; } .krow .kx b { font-family:Saira; font-size:15px; }
@@ -87,6 +94,7 @@ const ago = iso => { const t = Date.parse(iso || ""); if (!t) return "never"; co
 const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 
 function gate(msg, btn) {
+  LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
   ["status", "tiles", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
@@ -103,6 +111,86 @@ function venueLine(name, side, k, gap, o, dep, st, why, res, pl, best) {
       + (res ? ` <span class="rb ${E(res)}">${E(res)}</span> <span class="${cls(pl)}">${sgn(pl)}</span>` : "");
   return `<div class="vline ${best ? "best" : ""}"><span class="vtag">${VNAME[name]}</span>${body}${best ? '<span class="btag">BEST</span>' : ""}</div>`;
 }
+// LIVE SCORES (Scott 11/10: "each of those lines should have live score and bet be green or red if winning or losing").
+// ESPN's public scoreboard (no key), every 30 s, the same source as the Lives pages. Display only - the paper record is
+// graded off each venue's own settlement, never off this. Totals: a straight-line pace from the score and clock (a guide,
+// not a prediction); MLs: who is leading.
+const ESPN = { NBA: ["basketball/nba", 48, 12, 4, ""], NCAAB: ["basketball/mens-college-basketball", 40, 20, 2, "&groups=50&limit=400"],
+  WNBA: ["basketball/wnba", 40, 10, 4, ""], NFL: ["football/nfl", 60, 15, 4, ""], NCAAF: ["football/college-football", 60, 15, 4, "&groups=80&limit=300"],
+  NHL: ["hockey/nhl", 60, 20, 3, ""] };
+let EV = {}, LAST = null;
+const nm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+const ymd = t => String(t || "").slice(0, 10).replace(/-/g, "");
+async function scores(k) {
+  const want = new Set();
+  const recent = new Set([0, 1].map(dd => new Date(Date.now() - dd * 86400000).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "")));
+  [...(k.rows || []), ...((k.boards || {}).rows || [])].forEach(r => {
+    if (ESPN[r.lg] && r.t && recent.has(ymd(r.t)) && !(r.res || r.pres || r.kres)) want.add(r.lg + "|" + ymd(r.t)); });
+  await Promise.all([...want].map(async key => {
+    const [lg, d] = key.split("|"), x = ESPN[lg];
+    try { const j = await (await fetch(`https://site.api.espn.com/apis/site/v2/sports/${x[0]}/scoreboard?dates=${d}${x[4]}`)).json(); EV[key] = j.events || []; } catch (e) {}
+  }));
+}
+// how well a team's ESPN names fit a text: the longest name found in it (full name beats mascot or city)
+const fit = (c, txt) => Math.max(0, ...[c.team.displayName, c.team.shortDisplayName, c.team.location, c.team.name]
+  .filter(Boolean).map(n => (txt.includes(nm(n)) ? nm(n).length + (n === c.team.displayName ? 100 : 0) : 0)));
+function evFor(lg, t, game) {       // both teams must fit; the best-fitting game wins (never the first "Bears vs Eagles")
+  const g = nm(game);
+  let best = null, bs = 0;
+  for (const e of EV[lg + "|" + ymd(t)] || []) {
+    const cs = ((e.competitions || [])[0] || {}).competitors || [];
+    if (cs.length !== 2) continue;
+    const a = fit(cs[0], g), b = fit(cs[1], g);
+    if (a && b && a + b > bs) { best = e; bs = a + b; }
+  }
+  return best;
+}
+function betOf(r) {          // {kind, side, line} or {kind:"ML", team}
+  if (r.side && N(r.line) != null) return { kind: "TOTAL", side: String(r.side).toUpperCase(), line: N(r.line) };
+  const m = String(r.bet || "").match(/^(over|under)\s+([\d.]+)$/i);
+  if (m) return { kind: "TOTAL", side: m[1].toUpperCase(), line: Number(m[2]) };
+  const ml = String(r.bet || "").match(/^(.+)\s+ML$/i);
+  return ml ? { kind: "ML", team: ml[1] } : null;
+}
+function liveOf(r) { try { return liveOf0(r); } catch (e) { return { cls: "", html: "" }; } }   // one odd ESPN event never breaks the page
+function liveOf0(r) {          // {cls: "lw"|"ll"|"", html}
+  const b = betOf(r), x = ESPN[r.lg], ev = b && x ? evFor(r.lg, r.t, r.game) : null;
+  // a total is judged at the line the paper position actually holds: the venue the row takes, else the logged line
+  let vname = "";
+  if (b && b.kind === "TOTAL") {
+    const vk = r.best === "POLY" ? r.pk : r.k;
+    if (N(vk) != null && (r.best || r.st === "FILLED" || r.st === "PARTIAL" || r.kst === "FILLED")) {
+      b.line = N(vk); vname = r.best === "POLY" ? "Polymarket " : "Kalshi "; }
+  }
+  if (!ev) return { cls: "", html: "" };
+  const st = ev.status || {}, state = (st.type || {}).state, cs = ev.competitions[0].competitors || [];
+  const away = cs.find(c => c.homeAway === "away") || cs[0], home = cs.find(c => c.homeAway === "home") || cs[1];
+  const pa = Number(away.score) || 0, ph = Number(home.score) || 0, pts = pa + ph;
+  const score = `<span class="sc">${E(away.team.abbreviation || away.team.shortDisplayName)} ${num(pa)} - ${num(ph)} ${E(home.team.abbreviation || home.team.shortDisplayName)}</span>`;
+  if (state === "pre") return { cls: "", html: `<div class="live"><span class="pre">${E((st.type || {}).shortDetail || "not started")}</span></div>` };
+  let win = null, label = "", extra = "";
+  if (b.kind === "TOTAL") {
+    if (state === "post") { win = pts === b.line ? null : (b.side === "OVER") === (pts > b.line); label = win == null ? "PUSH" : win ? "WON" : "LOST"; }
+    else if (pts > b.line) { win = b.side === "OVER"; label = win ? "CASHED" : "LOST"; }
+    else {
+      const [, reg, plen, nper] = x, p = Number(st.period) || 1, c = String(st.displayClock || "0:00").split(":").map(Number);
+      const left = c.length === 2 ? c[0] + c[1] / 60 : (c[0] || 0) / 60;
+      const el = p > nper ? reg : Math.min(reg, (p - 1) * plen + Math.max(0, plen - left));
+      if (el > 1) { const proj = pts * reg / el; win = b.side === "OVER" ? proj >= b.line : proj < b.line; label = win ? "ON PACE" : "OFF PACE"; extra = ` · pace ${num(proj, 1)}`; }
+    }
+    extra = ` · total ${num(pts)} vs ${E(vname)}${num(b.line, 1)}` + extra;
+  } else {
+    const fa = fit(away, nm(b.team)), fh = fit(home, nm(b.team));
+    const ours = fa === fh ? null : fa > fh ? away : home;            // a tie (e.g. two "Wildcats") = no colour
+    if (ours) { const theirs = ours === away ? home : away, d = (Number(ours.score) || 0) - (Number(theirs.score) || 0);
+      win = d === 0 ? null : d > 0; label = state === "post" ? (win == null ? "TIED" : win ? "WON" : "LOST") : (win == null ? "TIED" : win ? "LEADING" : "TRAILING"); }
+  }
+  const clock = state === "post" ? "FINAL" : E((st.type || {}).shortDetail || "");
+  const pill = label ? `<span class="lp ${win == null ? "even" : win ? "win" : "lose"}">${label}</span>` : "";
+  return { cls: win == null ? "" : win ? "lw" : "ll", html: `<div class="live">${pill}${score}<span class="clk">${clock}</span><span class="why">${extra.replace(/^ · /, "")}</span></div>` };
+}
+function gradedCls(res) { return res === "WIN" ? "lw" : res === "LOSS" ? "ll" : null; }
+
 function row(r) {
   const [d, t] = when(r.t);
   const book = r.bk ? E(r.bk) : "Auto Lives line";
@@ -110,8 +198,9 @@ function row(r) {
   const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, r.pl, r.best === "KALSHI")
            + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
   const bk = r.bres ? `logged line: ${E(r.bres)}${N(r.bpl) != null ? " " + sgn(r.bpl) : ""}` : "";
-  return `<div class="krow"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${r.eng ? " · " + E(r.eng) : ""}</span></div>
-    <div><div class="pk">${E(r.side)} ${num(r.line, 1)} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
+  const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.res) || lv.cls;
+  return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${r.eng ? " · " + E(r.eng) : ""}</span></div>
+    <div><div class="pk">${E(r.side)} ${num(r.line, 1)} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
     <div class="kx">${kx}</div>
     <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
 }
@@ -121,7 +210,7 @@ function draw(k, at) {
   const s = k.status || {}, age = N(s.runner_age_s), up = age != null && age < 120;
   const fedAge = Date.now() - Date.parse(at || "");
   $("status").innerHTML = `<div class="status"><span><span class="dot ${age == null ? "unk" : up ? "up" : "down"}"></span>Runner <b>${age == null ? "unknown" : up ? "up" : "down"}</b> when sent</span>
-    <span>Sent <b>${ago(at)}</b>${fedAge > 45 * 60000 ? ' <span class="neg">(stale - the PC feed sends every 15 min)</span>' : ""}</span>
+    <span>Sent <b>${ago(at)}</b>${fedAge > 10 * 60000 ? ' <span class="neg">(stale - the PC sends every 2 min while the runner is up)</span>' : ""}</span>
     <span>Health <b class="${s.health === "OK" ? "pos" : "neg"}">${E(s.health || "?")}</b></span><span>${E(s.detail || "")}</span></div>`;
   const a = (k.record || {}).all || {}, c = k.counts || {}, pr = k.price, v = k.venues || {};
   const tiles = [tile("KALSHI", recTxt(a), recSub(a))];
@@ -136,7 +225,7 @@ function draw(k, at) {
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
   const rows = k.rows || [];
   $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
-    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within 15 minutes.</div>`);
+    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within a few minutes.</div>`);
   const bd = k.boards;
   if (bd) {
     const rc = bd.records || {};
@@ -144,8 +233,9 @@ function draw(k, at) {
       const kx = venueLine("KALSHI", "", r.k, null, r.ko, null, r.kst, r.kwhy, r.kres, r.kpl, r.best === "KALSHI")
                + venueLine("POLY", "", r.pk, null, r.po, null, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
       const [d, t] = when(r.t);
-      return `<div class="krow"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}</span></div>
-        <div><div class="pk">${E(r.bet)} <span class="why">at ${odds(r.bo)}${r.bk ? " " + E(r.bk) : ""}</span></div><div class="gm">${E(r.game)}</div>
+      const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.kres) || lv.cls;
+      return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}</span></div>
+        <div><div class="pk">${E(r.bet)} <span class="why">at ${odds(r.bo)}${r.bk ? " " + E(r.bk) : ""}</span></div><div class="gm">${E(r.game)}</div>${lv.html}
         <div class="why">posted on ${E((r.boards || []).join(", "))}${N(r.stake) ? ` · stake ${usd(r.stake)}` : ""}</div></div>
         <div class="kx">${kx}</div><div class="r"><span>${r.bwhy ? E(r.bwhy) : ""}</span></div></div>`;
     };
@@ -186,18 +276,25 @@ function draw(k, at) {
 }
 async function load() {
   const sess = CMMG.session();
-  if (!sess) { gate("Owner only. Sign in with Discord to see the paper run.", true); return; }
+  if (!sess) { STOP = true; gate("Owner only. Sign in with Discord to see the paper run.", true); return; }
   let j; try { j = await CMMG.relay({ task: "kalshi", session: sess.token }); } catch (e) { j = null; }
   if (!j) { gate("Couldn't reach CMMG right now — trying again shortly."); return; }
   if (!j.ok && j.error === "unknown task") { gate("<b>Almost there.</b> This page needs the CMMG relay v1.20 deployed in Apps Script."); return; }
   if (!j.ok) { gate(E(j.error || "Sign in again to continue."), /sign in/i.test(j.error || "")); return; }
   try { sessionStorage.setItem("cmmg.kalshi.owner", j.denied ? "0" : "1"); } catch (e) {}   // the menu's owner-only chip
-  if (j.denied) { gate("<b>Owner only for now.</b> This page is not open to members yet."); return; }
-  if (!j.kalshi) { gate("<b>No data yet.</b> The PC sends this page every 15 minutes once the feed switch is on."); return; }
+  if (j.denied) { STOP = true; gate("<b>Owner only for now.</b> This page is not open to members yet."); return; }
+  if (!j.kalshi) { gate("<b>No data yet.</b> The PC sends this page every 2 minutes once the feed switch is on."); return; }
   $("gate").innerHTML = "";
+  LAST = { k: j.kalshi, at: j.at };
+  draw(j.kalshi, j.at);
+  await scores(j.kalshi);
   draw(j.kalshi, j.at);
 }
-setInterval(load, 5 * 60000);     // the feed refreshes every 15 min
+// the runner sends this page every 2 min (Scott 11/10 "it should react more frequently"); scores + colors every 30 s
+let STOP = false;
+setInterval(() => { if (!STOP && !document.hidden) load(); }, 120000);
+setInterval(async () => { if (LAST && !document.hidden) { await scores(LAST.k); draw(LAST.k, LAST.at); } }, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !STOP) load(); });
 SHELL.mount("kalshi");
 load();
 </script>

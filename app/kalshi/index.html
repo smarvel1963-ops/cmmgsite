@@ -191,6 +191,7 @@ async function load() {
   if (!j) { gate("Couldn't reach CMMG right now — trying again shortly."); return; }
   if (!j.ok && j.error === "unknown task") { gate("<b>Almost there.</b> This page needs the CMMG relay v1.20 deployed in Apps Script."); return; }
   if (!j.ok) { gate(E(j.error || "Sign in again to continue."), /sign in/i.test(j.error || "")); return; }
+  try { sessionStorage.setItem("cmmg.kalshi.owner", j.denied ? "0" : "1"); } catch (e) {}   // the menu's owner-only chip
   if (j.denied) { gate("<b>Owner only for now.</b> This page is not open to members yet."); return; }
   if (!j.kalshi) { gate("<b>No data yet.</b> The PC sends this page every 15 minutes once the feed switch is on."); return; }
   $("gate").innerHTML = "";

@@ -324,6 +324,29 @@ const SHELL = (() => {
   // MOMENTUM EXPLOSION research alert (Game Center, live game) - only while the pop-ups are on / previewed
   function momentum(d) { if (BIGON) loadBig(() => CMMGBIG.momentum(d)); }
 
+  // OWNER-ONLY KALSHI BUTTON (Scott 11/10: "i went straight to page but never found button for it"). The Kalshi paper
+  // run page (/app/kalshi/) is owner only, so its button is too: once per browser session a signed-in visitor asks the
+  // relay (task "kalshi", v1.20 - owner only) and the answer is kept in sessionStorage cmmg.kalshi.owner ("1" / "0").
+  // Members get "denied" and never see the chip; the data itself stays behind the relay either way.
+  function ownerKalshi(active) {
+    const s = CMMG.session(); if (!s) return;
+    const show = () => {
+      const on = active === "kalshi" ? "on" : "", ic = typeof ICON !== "undefined" ? ICON.ui("chart") : "";
+      document.querySelector("nav.sportrow .pickjump")?.insertAdjacentHTML("afterend", `<a class="${on}" href="/app/kalshi/">${ic}KALSHI PAPER</a>`);
+      const rail = document.getElementById("leftDrawer");
+      if (rail) rail.insertAdjacentHTML("afterbegin", `<h4>Owner</h4><a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper Run</a>`);
+      document.querySelector("nav.mnav")?.insertAdjacentHTML("afterbegin", `<a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper</a>`);
+    };
+    let known = null; try { known = sessionStorage.getItem("cmmg.kalshi.owner"); } catch (e) {}
+    if (known === "1") return show();
+    if (known === "0" || active === "kalshi") return;          // the page sets the flag itself when its data loads
+    CMMG.relay({ task: "kalshi", session: s.token }).then(j => {
+      const yes = !!(j && j.ok && j.denied === false);
+      try { sessionStorage.setItem("cmmg.kalshi.owner", yes ? "1" : "0"); } catch (e) {}
+      if (yes) show();
+    }).catch(() => {});
+  }
+
   function mount(active) {
     if (welcomeGate()) return;
     tipsInit(active);
@@ -393,6 +416,7 @@ const SHELL = (() => {
       document.querySelectorAll('.rail a[href="/app/board/?b=prizepicks"], .mnav a[href="/app/board/?b=prizepicks"]').forEach(a => a.classList.remove("on"));
     }
     const on = document.querySelector(".mnav a.on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
+    ownerKalshi(active);
     // PHONE LAYOUT (Scott's design list #2): bottom tab bar Home / Picks / Scores / Tracker / More; More = sheet with the
     // rest of the menu. CSS shows it only on narrow screens (the rail stays on desktop).
     const TABS = [["picks", "target", "Pro Track", "/app/"], ["dashboard", "home", "Home", "/app/dashboard/"], ["scores", "clock", "Scores", "/app/scores/"],

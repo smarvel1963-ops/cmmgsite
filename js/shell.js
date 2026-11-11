@@ -68,14 +68,46 @@ const SHELL = (() => {
   // out of Discord once, landed on the dashboard with the button buried in the menu. Now EVERY signed-out visit gets it; "Browse
   // Free Preview" skips it for this browser session only (sessionStorage cmmg.preview). The page they wanted is kept in
   // cmmg.next so they land back on it after signing in.
-  function welcomeGate() {
+  // CHANGED 11/11 (Scott: "load front page then ask for discord let them look around on free part"): the wall is gone - a
+  // signed-out visitor lands on the page they opened and browses the free part; discordAsk() puts a "Continue with Discord"
+  // bar on every page and asks once per browser session with a sheet. (A sign-in lasts 24 h - relay SESSION_HOURS - so the
+  // wall hit members every day.) /app/welcome/ stays for links that point at it.
+  function welcomeGate() { return false; }
+  function discordAsk() {
     try {
-      if (!CMMG.session() && sessionStorage.getItem("cmmg.preview") !== "1" && !/^\/app\/welcome\//.test(location.pathname)) {
-        if (/^\/app\/[a-z/]*$/.test(location.pathname)) sessionStorage.setItem("cmmg.next", location.pathname + (location.search === "?g=football" ? location.search : ""));
-        location.replace("/app/welcome/"); return true;
-      }
+      if (CMMG.session() || /^\/app\/welcome\//.test(location.pathname)) return;
+      const ownBar = !!document.querySelector(".signbar, #signbar, #gate");     // a page with its own sign-in bar (Lives) gets no second one
+      if (!document.getElementById("daskCss")) document.head.insertAdjacentHTML("beforeend", `<style id="daskCss">
+        .dask { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin:10px 0 14px; padding:12px 14px; border-radius:14px;
+          border:1px solid rgba(88,101,242,.55); background:linear-gradient(90deg, rgba(88,101,242,.28), rgba(88,101,242,.08)); font-size:14px; font-weight:700; }
+        .dask span { min-width:0; } .dask b { color:#fff; }
+        .dbtn { display:inline-flex; align-items:center; gap:8px; border:0; border-radius:10px; padding:10px 16px; background:#5865f2; color:#fff; font-weight:800; font-size:14px; cursor:pointer; white-space:nowrap; }
+        .dbtn:hover { background:#4752c4; }
+        .dsheet { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(84px + env(safe-area-inset-bottom)); width:min(440px, calc(100vw - 32px)); z-index:35;
+          padding:18px; border-radius:18px; border:1px solid rgba(88,101,242,.6); background:linear-gradient(180deg, #1b2347, #0b1224); box-shadow:0 18px 50px rgba(0,0,0,.55);
+          animation:dsUp .35s ease-out; }
+        @media (min-width:900px) { .dsheet { bottom:24px; } }
+        .dsheet h3 { margin:0 0 6px; font-size:18px; } .dsheet p { margin:0 0 14px; color:#b9c6dc; font-size:14px; line-height:1.45; }
+        .dsheet .drow { display:flex; gap:10px; flex-wrap:wrap; } .dsheet .later { border:1px solid rgba(255,255,255,.25); background:transparent; color:#dbe4f3; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; }
+        @keyframes dsUp { from { opacity:0; transform:translate(-50%, 20px); } to { opacity:1; transform:translate(-50%, 0); } }
+      </style>`);
+      const bar = `<div class="dask" role="region" aria-label="Sign in"><span>You're looking at the free part. <b>Sign in with Discord</b> for live plays, your own tracker and the picks your plan includes.</span>
+        <button class="dbtn" data-signin>Continue with Discord</button></div>`;
+      const main = document.querySelector("main");
+      if (ownBar) { /* the page asks already */ }
+      else if (main) main.insertAdjacentHTML("afterbegin", bar);
+      else document.querySelector(".mnav, header.top")?.insertAdjacentHTML("afterend", bar);
+      let asked = false; try { asked = sessionStorage.getItem("cmmg.asked") === "1"; } catch (e) {}
+      if (asked) return;
+      setTimeout(() => {
+        if (CMMG.session() || document.getElementById("dsheet")) return;
+        try { sessionStorage.setItem("cmmg.asked", "1"); } catch (e) {}
+        document.body.insertAdjacentHTML("beforeend", `<div class="dsheet" id="dsheet" role="dialog" aria-label="Sign in with Discord">
+          <h3>Welcome to CMMG Sports Edge</h3><p>Look around the free picks as long as you like. Sign in with Discord to see live plays, keep your own tracker and open the picks your membership includes.</p>
+          <div class="drow"><button class="dbtn" data-signin>Continue with Discord</button><button class="later" data-dlater>Look around first</button></div></div>`);
+        document.querySelector("[data-dlater]")?.addEventListener("click", () => document.getElementById("dsheet")?.remove());
+      }, 2200);                                               // after the splash, once the page is up
     } catch (e) {}
-    return false;
   }
   // SPORT THEME (Scott 10/11: "stick to sports themes no team or person themes"): the member picks a sport and the app
   // background becomes that sport's playing surface, drawn in CSS (css/app.css .theme-*). Never a team or a player.
@@ -446,6 +478,7 @@ const SHELL = (() => {
       const t = e.target.closest("[data-signin],[data-signout]"); if (!t) return;
       if (t.hasAttribute("data-signin")) CMMG.signIn(); else { CMMG.signOut(); location.reload(); }
     });
+    discordAsk();
   }
   return { mount, plan, membershipBox, who, took, tip, tipGame, momentum, UPGRADE, DISCORD, STORE, theme, setTheme, THEMES };
 })();

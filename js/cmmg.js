@@ -18,7 +18,7 @@ const CMMG = (() => {
   async function signIn() {
     const verifier = rand(48), state = rand(24);
     const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
-    sessionStorage.setItem("cmmg.oauth", JSON.stringify({ verifier, state, at: Date.now(), back: /^\/app\/[a-z/]*$/.test(location.pathname) ? location.pathname + (location.search === "?g=football" ? location.search : "") : "" }));
+    sessionStorage.setItem("cmmg.oauth", JSON.stringify({ verifier, state, at: Date.now(), back: /^\/app\/[a-z/]*$/.test(location.pathname) ? location.pathname + (/^\?(g=football|b=[a-z0-9]+|l=[A-Za-z0-9]+)$/.test(location.search) ? location.search : "") : "" }));   // back to the same board / sport after sign-in (11/11)
     const u = new URL("https://discord.com/oauth2/authorize");
     Object.entries({ client_id: CLIENT_ID, response_type: "code", redirect_uri: REDIRECT, scope: "identify guilds.members.read",
       state, code_challenge: challenge, code_challenge_method: "S256" }).forEach(([k, v]) => u.searchParams.set(k, v));

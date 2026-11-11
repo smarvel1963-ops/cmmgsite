@@ -59,6 +59,7 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
     <div id="status"></div>
     <div id="tiles"></div>
     <div id="rows"></div>
+    <div id="boards"></div>
     <div id="both"></div>
     <div id="sizing"></div>
     <div id="gaps"></div>
@@ -87,7 +88,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 
 function gate(msg, btn) {
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "rows", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -98,7 +99,7 @@ function gapTxt(g) { const x = N(g); return x == null ? "" : x === 0 ? "same lin
 function venueLine(name, side, k, gap, o, dep, st, why, res, pl, best) {
   if (!st) return "";
   const body = st === "NO_FILL" ? `<span class="why">${E(why)}</span>`
-    : `<b>${E(side)} ${num(k, 1)}</b> at <b>${odds(o)}</b> <span class="why">(${gapTxt(gap)}${N(dep) != null ? ` · $${num(dep)} in book within 5¢` : ""})</span>`
+    : `${N(k) != null ? `<b>${E(side)} ${num(k, 1)}</b> at ` : ""}<b>${odds(o)}</b>${N(gap) != null || N(dep) != null ? ` <span class="why">(${[gapTxt(gap), N(dep) != null ? `$${num(dep)} in book within 5¢` : ""].filter(Boolean).join(" · ")})</span>` : ""}`
       + (res ? ` <span class="rb ${E(res)}">${E(res)}</span> <span class="${cls(pl)}">${sgn(pl)}</span>` : "");
   return `<div class="vline ${best ? "best" : ""}"><span class="vtag">${VNAME[name]}</span>${body}${best ? '<span class="btag">BEST</span>' : ""}</div>`;
 }
@@ -136,6 +137,22 @@ function draw(k, at) {
   const rows = k.rows || [];
   $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
     (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within 15 minutes.</div>`);
+  const bd = k.boards;
+  if (bd) {
+    const rc = bd.records || {};
+    const brow = r => {
+      const kx = venueLine("KALSHI", "", r.k, null, r.ko, null, r.kst, r.kwhy, r.kres, r.kpl, r.best === "KALSHI")
+               + venueLine("POLY", "", r.pk, null, r.po, null, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
+      const [d, t] = when(r.t);
+      return `<div class="krow"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}</span></div>
+        <div><div class="pk">${E(r.bet)} <span class="why">at ${odds(r.bo)}${r.bk ? " " + E(r.bk) : ""}</span></div><div class="gm">${E(r.game)}</div>
+        <div class="why">posted on ${E((r.boards || []).join(", "))}${N(r.stake) ? ` · stake ${usd(r.stake)}` : ""}</div></div>
+        <div class="kx">${kx}</div><div class="r"><span>${r.bwhy ? E(r.bwhy) : ""}</span></div></div>`;
+    };
+    $("boards").innerHTML = `<div class="sech">ALL BOARD PICKS<small>every posted game line (ML + totals) priced pregame on both venues · ${num(bd.n)} so far · spreads, props, tennis next</small></div>
+      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile(v === "BEST" ? "BEST PRICE" : VNAME[v], recTxt(rc[v]), recSub(rc[v]))).join("")}</div>` +
+      ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No board picks priced yet. Each one is priced on both venues as its board posts it, before the game starts.</div>`);
+  } else $("boards").innerHTML = "";
   const b = k.both;
   if (b) {
     const sa = (b.summary || {}).ARB || {}, sm = (b.summary || {}).MIDDLE || {}, ru = b.rules || {};

@@ -2,10 +2,12 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.9.1 (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
+ * CMMG SPORTS EDGE RELAY v1.20 - see the v1.20 line below. (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
  *   v1.19 (Scott 11/08 "Free with sign-in"): a pick the feed marks signed_in opens to anyone signed in with Discord. Needs a redeploy.
+ *   v1.20 (Scott 11/10 "a page on cmmg that shows whats happening and its tracking" -> "Just me" "for now"): feed part
+ *   "kalshi" + task "kalshi" - the Kalshi / Polymarket paper run, OWNER ONLY (no switch widens it). Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -78,7 +80,7 @@ const CHUNK = 8000;                   // Script Property values max ~9 KB - big 
 const TRACK_MAX = 300;                // a member's tracked picks kept (v1.8: 500 -> 300, Script Properties are ~500 KB in all)
 // v1.8 byte caps per feed part (escaped JSON as stored). The PC exporter (cmmg_feed_export.py) caps a little lower, by
 // UTF-8 bytes: history 120 KB, today 60 KB, each board 40 KB, all together ~320 KB - the margin here covers \u escapes.
-const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000 };
+const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000, kalshi: 24000 };
 
 function doGet() { return out({ ok: true, app: "cmmg relay", v: 1 }); }
 
@@ -100,6 +102,7 @@ function doPost(e) {
       case "mytracker": return out(myTracker(P, session(P, req.session)));
       case "trackall": return out(trackAll(P, session(P, req.session), req));
       case "hubrecords": return out(hubRecords(P, session(P, req.session)));
+      case "kalshi": return out(kalshiPaper(P, session(P, req.session)));
       case "share": return out(shareTracker(P, session(P, req.session), req));
       case "members": return out(members(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
@@ -115,7 +118,7 @@ function doPost(e) {
 function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
-  if (["today", "history", "records", "hub"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
+  if (["today", "history", "records", "hub", "kalshi"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
   const str = ascii(JSON.stringify({ at: new Date().toISOString(), data: req.data }));
   const cap = PART_CAP[/^board_/.test(req.part) ? "board" : req.part];
   if (str.length > cap) return { ok: false, error: "part too big: " + str.length + " > " + cap + " bytes - not stored (the last copy stays)" };
@@ -513,6 +516,21 @@ function hubRecords(P, s) {
   if (!allowed) return { ok: true, at: null, hub: null };
   const r = getBig(P, "F_hub");
   return { ok: true, at: r ? r.at : null, hub: r && r.data || null };
+}
+
+// v1.20 KALSHI PAPER RUN (Scott 11/10 "i need a page on cmmg that shows whats happening and its tracking" -> "Just me"
+// "for now"): the feed's "kalshi" part as the PC sent it - every Auto Lives pick priced on Kalshi + Polymarket US at
+// pick time, the paper records, each sizing plan's bankroll and the both-sides scanner (MasterHub kalshi_paper.py,
+// poly_paper.py, both_sides.py, cmmg_feed_kalshi.py). PAPER, no money. OWNER ONLY - the accounts in OWNER_IDS and
+// nothing else (no role, no Script Property). It carries an uncalibrated win-chance number and a comparison record, so
+// opening it to members is a code change after Scott's go + a review (review 11/10).
+// Never a board, so it never reaches the scoreboard or any public record.
+function kalshiPaper(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  const allowed = isOwner(P, s.uid);
+  if (!allowed) return { ok: true, denied: true, at: null, kalshi: null };
+  const r = getBig(P, "F_kalshi");
+  return { ok: true, denied: false, at: r ? r.at : null, kalshi: r && r.data || null };
 }
 
 // v1.16 MEMBERS (Scott 10/18 "both"): what members mark, for the owner. Two parts, never mixed:

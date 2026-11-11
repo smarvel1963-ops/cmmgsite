@@ -1,0 +1,186 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/kalshi/index.html
+     KALSHI + POLYMARKET PAPER RUN (Scott 11/10: "i need a page on cmmg that shows whats happening and its tracking" ->
+     "Just me" "for now"; "polymarket"; "get best of the number and possibly play both sides"; "run paper for next few
+     days ... i want to be able to see in on cmmg website").
+     Every Auto Lives NBA / NCAAB total pick priced on Kalshi AND Polymarket US the moment it is made (MasterHub
+     kalshi_paper.py + poly_paper.py): the Auto Lives line + price beside each venue's line + price a real order would
+     have filled at (fees in), the money in each book, the venue the pick takes (chosen at pick time), the results off
+     each venue's own settlement, each sizing plan's bankroll (money_manager, paper), and the both-sides scanner's arbs +
+     middles between the two venues (both_sides.py). PAPER - no account, no money, no orders.
+     Data = relay task "kalshi" (v1.20), OWNER ONLY - opening it to members is a code change after Scott's go + a review
+     (it carries an uncalibrated win-chance number). Never a board, never on the scoreboard. Not linked from the menu. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalshi Paper Run · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<meta name="robots" content="noindex">
+<style>
+.signbar, .soonbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 16px; border-radius:14px; margin-bottom:14px; font-size:14px; font-weight:700; }
+.signbar { border:1px solid rgba(127,216,255,.35); background:rgba(127,216,255,.07); }
+.soonbar { border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); } .soonbar b { color:#ffd700; }
+.status { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(10,22,40,.7); margin-bottom:14px; font-size:13px; font-weight:700; color:var(--dim); }
+.status .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+.status .up { background:#22c55e; box-shadow:0 0 8px #22c55e; } .status .down { background:#ef4444; box-shadow:0 0 8px #ef4444; } .status .unk { background:#64748b; }
+.status b { color:var(--text); }
+.paper { display:inline-block; font-size:10px; font-weight:900; letter-spacing:.1em; color:#06101f; background:#ffd700; border-radius:6px; padding:2px 7px; vertical-align:middle; }
+.ktiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; margin-bottom:16px; }
+.ktile { padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.88)); }
+.ktile .k { font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--dim); } .ktile .v { font-family:Saira; font-style:italic; font-weight:800; font-size:26px; margin-top:4px; }
+.ktile .s { font-size:12px; color:var(--dim); margin-top:2px; } .pos { color:#4ade80; } .neg { color:#f87171; }
+.sech { display:flex; align-items:center; gap:10px; margin:20px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
+.sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+.lsec { border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); margin-bottom:12px; }
+.krow { display:grid; grid-template-columns:110px minmax(0,1.2fr) minmax(0,1.3fr) auto; gap:12px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(127,216,255,.08); }
+.krow:last-child { border-bottom:0; }
+.krow .t b { display:block; font-family:Saira; font-size:15px; } .krow .t span { font-size:12px; color:var(--dim); }
+.krow .pk { font-weight:800; font-size:16px; } .krow .gm, .krow .why { font-size:12px; color:var(--dim); margin-top:2px; }
+.krow .kx { font-size:13px; display:flex; flex-direction:column; gap:4px; } .krow .kx b { font-family:Saira; font-size:15px; }
+.vline { padding:4px 8px; border-radius:8px; border:1px solid transparent; } .vline.best { border-color:rgba(74,222,128,.55); background:rgba(74,222,128,.07); }
+.vtag { display:inline-block; min-width:62px; margin-right:8px; font-size:10px; font-weight:900; letter-spacing:.08em; color:var(--dim); }
+.xs { overflow-x:auto; }
+.btag { font-size:10px; font-weight:900; letter-spacing:.08em; color:#4ade80; margin-left:4px; }
+.krow .r { text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:5px; font-size:12px; color:var(--dim); }
+.rb { display:inline-block; min-width:34px; text-align:center; font-weight:900; border-radius:7px; padding:4px 8px; font-family:Saira, Inter; font-size:12px; }
+.rb.WIN, .rb.HIT { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.VOID { background:#64748b; color:#fff; }
+.rb.OPEN { background:rgba(127,216,255,.18); color:#bfe6ff; } .rb.NOFILL { background:rgba(148,163,184,.18); color:#cbd5e1; } .rb.PART, .rb.ONE { background:#ca8a04; color:#1f1600; }
+table.kt { width:100%; border-collapse:collapse; font-size:14px; } table.kt th { text-align:left; font-size:11px; letter-spacing:.08em; color:var(--dim); padding:10px 14px; border-bottom:1px solid var(--line); }
+table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); } table.kt tr:last-child td { border-bottom:0; } table.kt td.n { text-align:right; font-family:Saira; font-weight:800; }
+.note2 { font-size:12px; color:var(--dim); margin:4px 2px 16px; line-height:1.5; }
+@media (max-width:760px) { .krow { grid-template-columns:minmax(0,1fr) auto; } .krow .t { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } .krow .kx { grid-column:1 / -1; } }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>EVERY AUTO LIVES PICK, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
+    <div id="gate"></div>
+    <div id="status"></div>
+    <div id="tiles"></div>
+    <div id="rows"></div>
+    <div id="both"></div>
+    <div id="sizing"></div>
+    <div id="gaps"></div>
+    <div id="days"></div>
+    <div id="note"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const N = v => v == null || v === "" ? null : (isFinite(+v) ? +v : null);    // feed numbers stay numbers; missing stays missing
+const num = (v, d = 0) => { const x = N(v); return x == null ? "—" : x.toLocaleString("en-US", { maximumFractionDigits: d }); };
+const odds = o => { const x = N(o); return x == null || o === "" ? "—" : x > 0 ? "+" + x : String(x); };
+const usd = v => { const x = N(v); return x == null ? "—" : (x < 0 ? "-$" : "$") + Math.abs(x).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+const sgn = v => { const x = N(v); return x == null ? "—" : (x > 0 ? "+" : "") + usd(x); };
+const cls = v => { const x = N(v); return x > 0 ? "pos" : x < 0 ? "neg" : ""; };
+const pct = v => { const x = N(v); return x == null ? "—" : (x * 100).toFixed(1) + "%"; };
+// MasterHub writes pick times in Central time without a zone ("2026-11-10T20:23")
+const when = t => { const m = String(t || "").match(/^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/); if (!m) return ["", ""];
+  const mo = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Number(m[2]) - 1], h = Number(m[4]);
+  return [`${mo} ${Number(m[3])}`, `${h % 12 || 12}:${m[5]} ${h < 12 ? "AM" : "PM"} CT`]; };
+const dayLbl = d => /^\d{4}-\d\d-\d\d$/.test(String(d || "")) ? new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }) : E(d);
+const recTxt = r => !r || !N(r.graded) ? "—" : `${num(r.w)}-${num(r.l)}`;
+const ago = iso => { const t = Date.parse(iso || ""); if (!t) return "never"; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`; };
+const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
+
+function gate(msg, btn) {
+  $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
+  ["status", "tiles", "rows", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+}
+function badge(st, res) {
+  if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
+  if (res) return `<span class="rb ${E(res)}">${E(res)}</span>`;
+  return st === "PARTIAL" ? '<span class="rb PART">PART</span>' : '<span class="rb OPEN">OPEN</span>';
+}
+function gapTxt(g) { const x = N(g); return x == null ? "" : x === 0 ? "same line" : `${num(x, 1)} pt better`; }
+function venueLine(name, side, k, gap, o, dep, st, why, res, pl, best) {
+  if (!st) return "";
+  const body = st === "NO_FILL" ? `<span class="why">${E(why)}</span>`
+    : `<b>${E(side)} ${num(k, 1)}</b> at <b>${odds(o)}</b> <span class="why">(${gapTxt(gap)}${N(dep) != null ? ` · $${num(dep)} in book within 5¢` : ""})</span>`
+      + (res ? ` <span class="rb ${E(res)}">${E(res)}</span> <span class="${cls(pl)}">${sgn(pl)}</span>` : "");
+  return `<div class="vline ${best ? "best" : ""}"><span class="vtag">${VNAME[name]}</span>${body}${best ? '<span class="btag">BEST</span>' : ""}</div>`;
+}
+function row(r) {
+  const [d, t] = when(r.t);
+  const book = r.bk ? E(r.bk) : "Auto Lives line";
+  const conf = N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
+  const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, r.pl, r.best === "KALSHI")
+           + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
+  const bk = r.bres ? `logged line: ${E(r.bres)}${N(r.bpl) != null ? " " + sgn(r.bpl) : ""}` : "";
+  return `<div class="krow"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${r.eng ? " · " + E(r.eng) : ""}</span></div>
+    <div><div class="pk">${E(r.side)} ${num(r.line, 1)} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
+    <div class="kx">${kx}</div>
+    <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
+}
+function tile(k, v, s) { return `<div class="ktile"><div class="k">${E(k)}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
+function recSub(r) { return r && N(r.graded) ? `<span class="${cls(r.profit)}">${sgn(r.profit)}</span> on ${usd(r.staked)} · ROI ${pct(r.roi)}` : `${num((r || {}).fills)} filled, none graded`; }
+function draw(k, at) {
+  const s = k.status || {}, age = N(s.runner_age_s), up = age != null && age < 120;
+  const fedAge = Date.now() - Date.parse(at || "");
+  $("status").innerHTML = `<div class="status"><span><span class="dot ${age == null ? "unk" : up ? "up" : "down"}"></span>Runner <b>${age == null ? "unknown" : up ? "up" : "down"}</b> when sent</span>
+    <span>Sent <b>${ago(at)}</b>${fedAge > 45 * 60000 ? ' <span class="neg">(stale - the PC feed sends every 15 min)</span>' : ""}</span>
+    <span>Health <b class="${s.health === "OK" ? "pos" : "neg"}">${E(s.health || "?")}</b></span><span>${E(s.detail || "")}</span></div>`;
+  const a = (k.record || {}).all || {}, c = k.counts || {}, pr = k.price, v = k.venues || {};
+  const tiles = [tile("KALSHI", recTxt(a), recSub(a))];
+  const since = v.since ? ` · SINCE ${String(dayLbl(v.since)).toUpperCase()}` : "";
+  const sameK = v.KALSHI && N(v.KALSHI.graded) ? `<div>Kalshi, same days: ${recTxt(v.KALSHI)} <span class="${cls(v.KALSHI.profit)}">${sgn(v.KALSHI.profit)}</span></div>` : "";
+  if (v.POLY) tiles.push(tile("POLYMARKET" + since, recTxt(v.POLY), recSub(v.POLY) + sameK));
+  if (v.BEST) tiles.push(tile("BEST PRICE (EACH PICK)" + since, recTxt(v.BEST), recSub(v.BEST) + sameK));
+  tiles.push(tile("AT THE LOGGED LINE", N(a.book_w) + N(a.book_l) ? `${num(a.book_w)}-${num(a.book_l)}` : "—",
+    N(a.book_w) + N(a.book_l) ? `<span class="${cls(a.book_profit)}">${sgn(a.book_profit)}</span> (comparison only)` : "waits for grades"));
+  tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
+  tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
+  $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
+  const rows = k.rows || [];
+  $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
+    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives makes them once NBA / college games are under way; they show here within 15 minutes.</div>`);
+  const b = k.both;
+  if (b) {
+    const sa = (b.summary || {}).ARB || {}, sm = (b.summary || {}).MIDDLE || {}, ru = b.rules || {};
+    const legs = p => (p.legs || []).map(l => `${E(VNAME[l.v] || l.v)} ${E(l.s)} ${num(l.k, 1)} @ ${num(N(l.px) * 100, 1)}¢`).join(" + ");
+    const res = p => p.status === "GRADED" ? `<span class="rb ${p.result === "ONE LEG" ? "ONE" : E(p.result)}">${E(p.result)}</span> <span class="${cls(p.profit)}">${sgn(p.profit)}</span>` : '<span class="rb OPEN">OPEN</span>';
+    $("both").innerHTML = `<div class="sech">BOTH SIDES<small>Kalshi vs Polymarket, every live game, every minute · ${num(b.scans_today)} scans today${b.last_scan_at ? `, last ${E(String(b.last_scan_at).slice(11, 16))} (${num(b.last_live_games)} live games)` : ""}</small></div>
+      <div class="ktiles">${tile("ARBS (PROFIT EITHER WAY)", num(sa.found), N(sa.graded) ? `${num(sa.graded)} graded · <span class="${cls(sa.profit)}">${sgn(sa.profit)}</span> on ${usd(sa.outlay)}` : `a pair under $${num(ru.arb_max, 2)} per $1, fees in`)}
+      ${tile("MIDDLES (WIN BOTH IN THE WINDOW)", num(sm.found), N(sm.graded) ? `hit ${num(sm.hits)} of ${num(sm.graded)} · <span class="${cls(sm.profit)}">${sgn(sm.profit)}</span> on ${usd(sm.outlay)}` : `a pair up to $${num(ru.middle_max, 2)} per $1`)}</div>` +
+      ((b.plays || []).length ? `<div class="lsec xs"><table class="kt"><tr><th>TIME</th><th>GAME</th><th>PLAY</th><th style="text-align:right">PER $1</th><th style="text-align:right">PAIRS</th><th style="text-align:right">RESULT</th></tr>
+      ${b.plays.map(p => `<tr><td style="white-space:nowrap">${E(String(p.at || "").slice(11, 16))}<div class="why">${E(p.league)} ${E(p.period || "")} ${E(p.clock || "")}</div></td><td>${E(p.game)}</td><td><b>${E(p.kind)}</b>${p.window ? ` ${num(p.window[0], 1)}-${num(p.window[1], 1)}` : ""}<div class="why">${legs(p)}</div></td><td class="n">$${num(p.cost, 3)}</td><td class="n">${num(p.pairs)}</td><td class="n">${res(p)}</td></tr>`).join("")}</table></div>`
+      : `<div class="empty">No arbs or middles yet. The two venues usually agree within a cent near the live total — this lists every time they don't.</div>`);
+  } else $("both").innerHTML = "";
+  const sz = k.sizing || {}, caps = sz.caps || {}, start = N(sz.start) || 1500;
+  $("sizing").innerHTML = (sz.plans || []).length ? `<div class="sech">SIZING PLANS<small>$${num(start)} start · caps ${pct(caps.bet)}/bet, ${pct(caps.game)}/game, ${pct(caps.night)}/night · Kalshi fills · paper</small></div>
+    <div class="lsec"><table class="kt"><tr><th>PLAN</th><th style="text-align:right">BANKROLL</th><th style="text-align:right">BETS</th><th style="text-align:right">WORST DROP</th></tr>
+    ${sz.plans.map(p => `<tr><td><b>${E(p.label)}</b>${N(p.over_depth) ? `<div class="why">${num(p.over_depth)} stakes above Kalshi's depth</div>` : ""}</td><td class="n ${cls(N(p.final) - start)}">${usd(p.final)}</td><td class="n">${num(p.bets)}</td><td class="n">${pct(p.max_dd)}</td></tr>`).join("")}</table></div>` : "";
+  const gaps = k.gaps || [], nf = Object.entries(k.no_fill || {});
+  $("gaps").innerHTML = gaps.length || nf.length ? `<div class="sech">KALSHI LINE vs OURS</div><div class="lsec"><table class="kt"><tr><th>KALSHI LINE</th><th style="text-align:right">FILLED</th><th style="text-align:right">RECORD</th><th style="text-align:right">PROFIT</th></tr>
+    ${gaps.map(g => `<tr><td>${E(g.label)}</td><td class="n">${num(g.rec.fills)}</td><td class="n">${recTxt(g.rec)}</td><td class="n ${cls(g.rec.profit)}">${N(g.rec.graded) ? sgn(g.rec.profit) : "—"}</td></tr>`).join("")}
+    ${nf.map(([why, n]) => `<tr><td colspan="3"><span class="why">No fill: ${E(why)}</span></td><td class="n">${num(n)}</td></tr>`).join("")}</table></div>` : "";
+  const days = k.days || [];
+  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>Kalshi fills</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">PROFIT</th><th style="text-align:right">LOGGED LINE</th></tr>
+    ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n ${cls(d.profit)}">${N(d.w) + N(d.l) ? sgn(d.profit) : "—"}</td><td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td></tr>`).join("")}</table></div>` : "";
+  $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders. Each pick is priced on Kalshi and Polymarket US within seconds of
+    Auto Lives making it: on each venue the line at least as good as ours, an order of the pick's own stake (units × $5) walked through
+    the live book, the venue's fee included, graded off that venue's own result. BEST = the venue the pick takes, chosen when it was
+    priced, never after. "Logged line" is the same pick at the line + price Auto Lives wrote down — a comparison, not a CMMG record.
+    Both sides = an Over on one venue + an Under on the other: an arb costs under $1 per $1 pair (profit either way); a middle costs a
+    little over $1 and wins both legs if the final lands in its window. Sizing plans start at $1,500 and are paper; which one ever sizes
+    real money is Scott's call.</p>`;
+}
+async function load() {
+  const sess = CMMG.session();
+  if (!sess) { gate("Owner only. Sign in with Discord to see the paper run.", true); return; }
+  let j; try { j = await CMMG.relay({ task: "kalshi", session: sess.token }); } catch (e) { j = null; }
+  if (!j) { gate("Couldn't reach CMMG right now — trying again shortly."); return; }
+  if (!j.ok && j.error === "unknown task") { gate("<b>Almost there.</b> This page needs the CMMG relay v1.20 deployed in Apps Script."); return; }
+  if (!j.ok) { gate(E(j.error || "Sign in again to continue."), /sign in/i.test(j.error || "")); return; }
+  if (j.denied) { gate("<b>Owner only for now.</b> This page is not open to members yet."); return; }
+  if (!j.kalshi) { gate("<b>No data yet.</b> The PC sends this page every 15 minutes once the feed switch is on."); return; }
+  $("gate").innerHTML = "";
+  draw(j.kalshi, j.at);
+}
+setInterval(load, 5 * 60000);     // the feed refreshes every 15 min
+SHELL.mount("kalshi");
+load();
+</script>
+</body></html>

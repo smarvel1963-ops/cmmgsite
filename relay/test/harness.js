@@ -327,6 +327,37 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   delete PROPS.ROLE_MAP;
   check("hub: unknown part still refused", post({ task: "put", key: "wkey", part: "hubx", data: {} }).error === "unknown part");
 }
+// v1.20 KALSHI PAPER RUN (Scott 11/10 "Just me" "for now"): part "kalshi" + task "kalshi" - owner only unless widened
+{
+  const kd = { v: 1, day: "2026-11-10", record: { all: { w: 1, l: 0 } }, rows: [{ t: "2026-11-10T20:23", game: "Bucks @ Knicks", side: "UNDER", line: 213.5 }] };
+  check("kalshi: wrong write key refused", post({ task: "put", key: "nope", part: "kalshi", data: kd }).error === "not allowed");
+  check("kalshi: PUT stored", post({ task: "put", key: "wkey", part: "kalshi", data: kd }).ok && !!PROPS["F_kalshi#n"]);
+  check("kalshi: too big refused (24 KB cap)", /too big/.test(post({ task: "put", key: "wkey", part: "kalshi", data: { x: "y".repeat(26000) } }).error));
+  check("kalshi: signed out refused", post({ task: "kalshi" }).ok === false);
+  check("kalshi: VIP member gets nothing (owner only)", (r => r.ok && r.kalshi === null)(post({ task: "kalshi", session: proS })));
+  check("kalshi: Elite member gets nothing either", post({ task: "kalshi", session: eliteS }).kalshi === null);
+  check("kalshi: the owner's account gets nothing while not in OWNER_IDS", post({ task: "kalshi", session: oldOwnerS }).kalshi === null);
+  PROPS.OWNER_IDS = OWNER;
+  const r = post({ task: "kalshi", session: oldOwnerS });
+  check("kalshi: owner gets the paper run exactly as sent", r.ok && JSON.stringify(r.kalshi) === JSON.stringify(kd) && !!r.at, r);
+  check("kalshi: the oversized PUT did not replace the good copy", r.kalshi && r.kalshi.rows[0].line === 213.5);
+  delete PROPS.OWNER_IDS;
+  check("kalshi: a member is told 'denied' (not 'no data yet')", post({ task: "kalshi", session: proS }).denied === true);
+  PROPS.OWNER_IDS = OWNER;
+  check("kalshi: the owner is not denied", post({ task: "kalshi", session: oldOwnerS }).denied === false);
+  delete PROPS.OWNER_IDS;
+  PROPS.KALSHI_FOR = "all";
+  check("kalshi: no Script Property opens it to members (review 11/10)", post({ task: "kalshi", session: freeS }).kalshi === null);
+  delete PROPS.KALSHI_FOR;
+  PROPS.ROLE_MAP = JSON.stringify({ "1471082166149578936": ["pro", "kalshi"] });
+  DISCORD.roles = ["1471082166149578936"]; DISCORD.user = { id: "557", username: "kalshirole" };
+  const kS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  check("kalshi: not even a role mapped to 'kalshi' in ROLE_MAP opens it (owner only)", post({ task: "kalshi", session: kS }).kalshi === null);
+  delete PROPS.ROLE_MAP;
+  const sbk = post({ task: "scoreboard", session: proS });
+  check("kalshi: never on the scoreboard", !JSON.stringify(sbk).includes("kalshi"), sbk);
+  check("kalshi: not a board", post({ task: "board", name: "kalshi", session: proS }).error === "unknown board");
+}
 // v1.16 MEMBERS (Scott 10/18 "how would me track each individules bets they mark" -> "both")
 {
   post({ task: "put", key: "wkey", part: "history", data: { picks: [

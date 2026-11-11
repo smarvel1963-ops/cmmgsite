@@ -31,6 +31,15 @@
 .ktile { padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.88)); }
 .ktile .k { font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--dim); } .ktile .v { font-family:Saira; font-style:italic; font-weight:800; font-size:26px; margin-top:4px; }
 .ktile .s { font-size:12px; color:var(--dim); margin-top:2px; } .pos { color:#4ade80; } .neg { color:#f87171; }
+.acc2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px; margin-bottom:12px; }
+.acc { padding:14px; border-radius:16px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.6), rgba(8,17,32,.88)); min-width:0; }
+.acc .ah { font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--dim); }
+.acc .av { font-family:Saira; font-style:italic; font-weight:800; font-size:30px; margin-top:2px; }
+.acc .as { font-size:12px; color:var(--dim); margin-top:3px; } .acc .as b { color:var(--text); }
+.acc .ab { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--dim); margin-top:8px; } .acc .ab b { color:var(--text); font-family:Saira; font-size:15px; }
+.acc details { margin-top:8px; } .acc summary { cursor:pointer; font-size:12px; font-weight:800; color:#93c5fd; }
+.acc .al { display:grid; grid-template-columns:62px minmax(0,1fr) auto; gap:8px; align-items:baseline; font-size:12px; padding:6px 0; border-top:1px solid rgba(127,216,255,.08); }
+.acc .al .g { min-width:0; overflow-wrap:anywhere; } .acc .al.sk { color:var(--dim); } .acc .al .r { text-align:right; white-space:nowrap; font-weight:800; }
 .sech { display:flex; align-items:center; gap:10px; margin:20px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
 .sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
 .lsec { border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); margin-bottom:12px; }
@@ -77,6 +86,7 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
     <div id="gate"></div>
     <div id="status"></div>
     <div id="tiles"></div>
+    <div id="acct"></div>
     <div id="chart"></div>
     <div id="rows"></div>
     <div id="boards"></div>
@@ -109,7 +119,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "acct", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -291,6 +301,35 @@ function row(r) {
     <div class="kx">${kx}</div>
     <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
 }
+// REAL-RULES ACCOUNTS (Scott 11/10: "run like we will do for real", "bet needs to be programmed by our bankroll so as it
+// grows bet grows"). $100 Kalshi + $100 Polymarket; each pick one bet on the cheaper venue, sized off the bankroll; his
+// limits; -140 on and off side by side (kalshi_accounts.py on the PC). Paper.
+const ACCT_OPEN = new Set();
+function drawAcct(k) {
+  const el = $("acct"), a = k.acct; if (!el) return;
+  if (!a || !(a.tracks || []).length) { el.innerHTML = ""; return; }
+  el.querySelectorAll("details[data-k]").forEach(d => { d.open ? ACCT_OPEN.add(d.dataset.k) : ACCT_OPEN.delete(d.dataset.k); });
+  const st = a.start || {}, since = a.since ? dayLbl(a.since) : "";
+  const line = o => {
+    const [, tm] = when(o.t), g = `${E(o.game || "")} <b>${E(o.side || "")}${N(o.k) != null ? " " + num(o.k, 1) : ""}</b>${N(o.o) != null ? " " + odds(o.o) : ""}`;
+    if (!o.v) return `<div class="al sk"><span>${E(tm)}</span><span class="g">${g}</span><span class="r">skip: ${E(o.why || "")}</span></div>`;
+    const venue = o.v === "POLY" ? "Polymarket" : o.v === "BOTH" ? "both venues" : "Kalshi";
+    const res = o.res ? `<span class="${cls(o.pl)}">${E(o.res)} ${sgn(o.pl)}</span>` : `<span>open</span>`;
+    return `<div class="al"><span>${E(tm)}</span><span class="g">${g} · ${venue} ${usd(o.stake)}${o.capped ? " (all the venue had)" : ""}</span><span class="r">${res}</span></div>`;
+  };
+  const card = tr => {
+    const up = N(tr.equity) - N(tr.start), sk = Object.entries(tr.skips || {}).map(([w, n]) => `${num(n)} ${E(w)}`).join(" · ");
+    return `<div class="acc"><div class="ah">${E(String(tr.label || "").toUpperCase())}</div>
+      <div class="av ${cls(up)}">${usd(tr.equity)}</div>
+      <div class="as"><span class="${cls(up)}">${sgn(up)}</span> from ${usd(tr.start)} · ${num(tr.w)}-${num(tr.l)} · ${num(tr.bets)} bets${N(tr.plays) ? ` · ${num(tr.plays)} both-sides` : ""}</div>
+      <div class="ab"><span>Kalshi <b>${usd(tr.kalshi)}</b></span><span>Polymarket <b>${usd(tr.poly)}</b></span><span>Riding <b>${usd(tr.riding)}</b></span></div>
+      <div class="as">${E(tr.how || "")}${N(tr.next_bet) != null ? ` · next standard bet <b>${usd(tr.next_bet)}</b>` : ""}</div>
+      ${sk ? `<div class="as">Skipped: ${sk}</div>` : ""}
+      ${(tr.list || []).length ? `<details data-k="${E(tr.key)}"${ACCT_OPEN.has(tr.key) ? " open" : ""}><summary>Bets (newest ${num(tr.list.length)})</summary>${tr.list.map(line).join("")}</details>` : ""}</div>`;
+  };
+  el.innerHTML = `<div class="sech">REAL-RULES ACCOUNTS<small>${usd(st.KALSHI)} Kalshi + ${usd(st.POLY)} Polymarket since ${E(since)} · one bet per pick on the cheaper venue · bets sized off the bankroll, so they grow and shrink with it · ${num(a.per_game)} a game, ${num(a.spacing)} pts apart, never both sides · paper</small></div>
+    <div class="acc2">${a.tracks.map(card).join("")}</div>`;
+}
 function tile(k, v, s) { return `<div class="ktile"><div class="k">${E(k)}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
 function recSub(r) { return r && N(r.graded) ? `<span class="${cls(r.profit)}">${sgn(r.profit)}</span> on ${usd(r.staked)} · ROI ${pct(r.roi)}` : `${num((r || {}).fills)} filled, none graded`; }
 function draw(k, at) {
@@ -310,6 +349,7 @@ function draw(k, at) {
   tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
+  try { drawAcct(k); } catch (e) { $("acct").innerHTML = ""; }
   drawChart(k);
   const rows = k.rows || [];
   $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +

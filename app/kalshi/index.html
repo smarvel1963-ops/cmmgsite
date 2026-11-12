@@ -42,6 +42,11 @@
 .acc .al .g { min-width:0; overflow-wrap:anywhere; } .acc .al.sk { color:var(--dim); } .acc .al .r { text-align:right; white-space:nowrap; font-weight:800; }
 .sech { display:flex; align-items:center; gap:10px; margin:20px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
 .sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+.dayh { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin:14px 2px 8px; font-family:Saira; font-style:italic; font-weight:800; font-size:15px; letter-spacing:.04em; color:var(--text); }
+.dayh small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
+.orow { display:grid; grid-template-columns:78px 1fr auto; gap:10px; align-items:baseline; padding:9px 14px; border-top:1px solid var(--line); font-size:13px; }
+.orow:first-child { border-top:0; } .orow .ot { font-family:Saira; color:var(--dim); } .orow .og { min-width:0; overflow-wrap:anywhere; }
+.orow .or { text-align:right; white-space:nowrap; font-weight:800; }
 .lsec { border-radius:16px; overflow:hidden; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.5), rgba(8,17,32,.78)); margin-bottom:12px; }
 .krow { display:grid; grid-template-columns:110px minmax(0,1.2fr) minmax(0,1.3fr) auto; gap:12px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(127,216,255,.08); }
 .krow:last-child { border-bottom:0; }
@@ -82,14 +87,17 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>AUTO LIVES, YOUR LIVES LOCKS + FOOTBALL LIVES, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
+    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>AUTO LIVES, YOUR LIVES LOCKS, FOOTBALL LIVES + TENNIS, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
     <div id="gate"></div>
+    <!-- order (Scott 11/11: "new day grapgh should always be under running totals and then days pics that old days
+         below"): running totals, today's graph, today's picks, earlier days by day, then the rest -->
     <div id="status"></div>
     <div id="tiles"></div>
-    <div id="bysrc"></div>
-    <div id="acct"></div>
     <div id="chart"></div>
     <div id="rows"></div>
+    <div id="older"></div>
+    <div id="bysrc"></div>
+    <div id="acct"></div>
     <div id="boards"></div>
     <div id="both"></div>
     <div id="sizing"></div>
@@ -120,7 +128,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "bysrc", "acct", "chart", "rows", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "chart", "rows", "older", "bysrc", "acct", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -223,27 +231,35 @@ const ctMs = t => { const m = String(t || "").match(/^(\d{4})-(\d\d)-(\d\d)T(\d\
   return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : null; };          // naive CT -> one clock
 const nowCt = () => ctMs(new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).replace(" ", "T"));
 function drawChart(k) { try { drawChart0(k); } catch (e) { const el = $("chart"); if (el) el.innerHTML = ""; } }   // never blanks the page
+// The page's day: the newest day while its night is still going (a late game settling after midnight stays on
+// tonight's line), else today in CT - so the graph is always the current day's, even before its first pick.
+function curDay(k) {
+  const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" }), n = nowCt();
+  const kd = k.day || todayCt;
+  // ... and while its newest pick is under 12 h old (a skipped close keeps tonight's picks on tonight, not "earlier")
+  const newest = Math.max(0, ...(k.rows || []).filter(r => (r.d || String(r.t || "").slice(0, 10)) === kd).map(r => ctMs(r.t) || 0));
+  return kd === todayCt || (n != null && (n - ctMs(kd + "T00:00") < 30 * 3600e3 || (newest && n - newest < 12 * 3600e3))) ? kd : todayCt;
+}
+const rowDay = r => r.d || String(r.t || "").slice(0, 10);       // the session day (r.d), never split at midnight
 function drawChart0(k) {
   const el = $("chart"); if (!el) return;
-  const todayCt = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-  const day = k.day || todayCt, live = day === todayCt || !!nowCt() && nowCt() - ctMs(day + "T00:00") < 30 * 3600e3;
-  // the session day (r.d), so a late game settling after midnight stays on tonight's line
-  const rows = (k.rows || []).filter(r => (r.d || String(r.t || "").slice(0, 10)) === day);
+  const day = curDay(k), live = true;
+  const rows = (k.rows || []).filter(r => rowDay(r) === day);
   const bets = rows.filter(r => r.st === "FILLED" || r.st === "PARTIAL");
-  if (!bets.length) { el.innerHTML = ""; return; }
   const evs = [];
   bets.forEach(r => {
     const tb = ctMs(r.t); if (tb != null) evs.push({ t: tb, kind: "bet", r });
     const tg = ctMs(r.gat); if (tg != null && (r.res === "WIN" || r.res === "LOSS" || r.res === "VOID")) evs.push({ t: tg, kind: "res", r, d: N(r.pl) || 0 });
   });
   let now = nowCt();
-  if (now == null || !evs.length) { el.innerHTML = ""; return; }
+  if (now == null) { el.innerHTML = ""; return; }
   evs.sort((a, b) => a.t - b.t || (a.kind === b.kind ? 0 : a.kind === "bet" ? -1 : 1));
   let cum = 0;
   evs.forEach(e => { if (e.kind === "res") cum = Math.round((cum + e.d) * 100) / 100; e.v = cum; });
-  const lastT = evs[evs.length - 1].t;
-  now = live ? Math.max(now, lastT) : lastT + 10 * 60e3;          // a past night ends at its last result
-  const t0 = Math.min(evs[0].t, now - 3600e3) - 5 * 60e3, t1 = Math.max(now, lastT) + 4 * 60e3;
+  const lastT = evs.length ? evs[evs.length - 1].t : now;           // no picks yet: a flat $0 line up to now
+  now = live ? Math.max(now, lastT) : lastT + 10 * 60e3;
+  const t0 = Math.min(evs.length ? evs[0].t : now, now - (evs.length ? 3600e3 : 3 * 3600e3)) - 5 * 60e3,
+        t1 = Math.max(now, lastT) + 4 * 60e3;
   const vals = [0, ...evs.map(e => e.v)], lo = Math.min(...vals), hi = Math.max(...vals), pad = Math.max(5, (hi - lo) * 0.15);
   const W = Math.max(280, (el.clientWidth || 624) - 24), H = 200, L = 46, R = 12, T = 10, B = 22;
   const X = t => L + (W - L - R) * (t - t0) / (t1 - t0), Y = v => T + (H - T - B) * (1 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)));
@@ -271,9 +287,10 @@ function drawChart0(k) {
   const tot = dr ? N(dr.profit) || 0 : cum, nW = dr ? N(dr.w) || 0 : evs.filter(e => e.r.res === "WIN" && e.kind === "res").length,
         nL = dr ? N(dr.l) || 0 : evs.filter(e => e.r.res === "LOSS" && e.kind === "res").length;
   const open = bets.filter(r => !r.res).length;
-  const title = live ? "TONIGHT" : String(dayLbl(day)).toUpperCase();
+  const title = bets.length ? "TONIGHT" : "TODAY";
   el.innerHTML = `<div class="chart"><div class="ch"><b class="${cls(tot)}">${title} ${sgn(tot)}</b>
-    <span>Kalshi paper · ${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss</span></div>
+    <span>Kalshi paper · ${bets.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
+      : `${E(dayLbl(day))} · no picks yet today - the line starts moving with the first bet`}</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Tonight's running total">
       <defs><linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
         <linearGradient id="gDn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ef4444" stop-opacity=".35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient>
@@ -307,6 +324,15 @@ function drawSrc(k) {
     ${s.map(x => `<tr><td>${E(x.label)}</td><td class="n">${num((x.K || {}).picks)}</td><td>${cell(x.K)}</td><td>${cell(x.P)}</td><td>${cell(x.B)}</td></tr>`).join("")}</table></div>`;
 }
 
+// an earlier day's pick, short (k.old): what it was, the venue it took, the result
+function oldRow(o) {
+  const [, tm] = when(o.t);
+  const who = o.src === "manual" ? "your lock" : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : (o.eng || "");
+  const venue = o.v === "P" ? "Polymarket" : o.v === "K" ? "Kalshi" : "";
+  const res = o.st === "NO_FILL" ? `<span class="why">no fill</span>` : o.res ? `<span class="${cls(o.pl)}">${E(o.res)} ${sgn(o.pl)}</span>` : `<span class="why">open</span>`;
+  return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${E(o.side || "")} ${num(o.line, 1)}</b> ${E(o.game || "")}
+    <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
+}
 function row(r) {
   const [d, t] = when(r.t);
   const book = r.bk ? E(r.bk) : r.src === "manual" ? "your line" : r.src === "football" ? "football Lives line" : "Auto Lives line";
@@ -357,7 +383,7 @@ function draw(k, at) {
   const s = k.status || {}, age = N(s.runner_age_s), up = age != null && age < 120;
   const fedAge = Date.now() - Date.parse(at || "");
   $("status").innerHTML = `<div class="status"><span><span class="dot ${age == null ? "unk" : up ? "up" : "down"}"></span>Runner <b>${age == null ? "unknown" : up ? "up" : "down"}</b> when sent</span>
-    <span>Sent <b>${ago(at)}</b>${fedAge > 10 * 60000 ? ' <span class="neg">(stale - the PC sends every 2 min while the runner is up)</span>' : ""}</span>
+    <span>Sent <b>${ago(at)}</b>${fedAge > 10 * 60000 ? ' <span class="neg">(stale - the page is sent every 2 min while a runner is up: the PC, or the server when the PC is off)</span>' : ""}</span>
     <span>Health <b class="${s.health === "OK" ? "pos" : "neg"}">${E(s.health || "?")}</b></span><span>${E(s.detail || "")}</span></div>`;
   const a = (k.record || {}).all || {}, c = k.counts || {}, pr = k.price, v = k.venues || {};
   const tiles = [tile("KALSHI", recTxt(a), recSub(a))];
@@ -373,9 +399,24 @@ function draw(k, at) {
   try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
   try { drawAcct(k); } catch (e) { $("acct").innerHTML = ""; }
   drawChart(k);
-  const rows = k.rows || [];
-  $("rows").innerHTML = `<div class="sech">LATEST PICKS<small>${rows.length ? `newest ${rows.length}` : ""}</small></div>` +
-    (rows.length ? `<div class="lsec">${rows.map(row).join("")}</div>` : `<div class="empty">No picks priced yet. Auto Lives, your Lives locks and football Lives make them once games are under way; they show here within a few minutes.</div>`);
+  // today's picks, then the earlier days below, newest day first (the part carries the newest ROWS_MAX picks;
+  // a day cut short says "newest x of y" - its full record is in BY DAY)
+  const rows = k.rows || [], cd = curDay(k), dayRow = d => (k.days || []).find(x => x.day === d);
+  const ofAll = (d, n) => { const dr = dayRow(d), all = dr ? N(dr.picks) : null; return all != null && all > n ? `newest ${num(n)} of ${num(all)}` : `${num(n)} picks`; };
+  const today = rows.filter(r => rowDay(r) === cd), byDay = {};
+  // earlier days: full rows when the newest day is not today, then the short ones (k.old, the earlier days' picks)
+  [...rows.filter(r => rowDay(r) !== cd).map(r => [r, row]), ...(k.old || []).map(r => [r, oldRow])]
+    .forEach(([r, fn]) => { (byDay[rowDay(r)] = byDay[rowDay(r)] || []).push({ r, fn }); });
+  $("rows").innerHTML = `<div class="sech">TODAY'S PICKS<small>${E(dayLbl(cd))}${today.length ? ` · ${ofAll(cd, today.length)}` : ""}</small></div>` +
+    (today.length ? `<div class="lsec">${today.map(row).join("")}</div>` : `<div class="empty">No picks yet today. Auto Lives, your Lives locks, football Lives and tennis make them; they show here within a few minutes.</div>`);
+  // an earlier day with picks but none carried (a busy night fills the page's room - today first): said so, never hidden
+  const missing = (k.days || []).filter(x => x.day !== cd && !byDay[x.day] && N(x.picks)).map(x => x.day);
+  const ds = [...new Set([...Object.keys(byDay), ...missing])].sort().reverse();
+  $("older").innerHTML = ds.length ? `<div class="sech">EARLIER DAYS<small>newest day first</small></div>` + ds.map(d => {
+    const dr = dayRow(d), wl = dr && N(dr.w) + N(dr.l) ? ` · ${num(dr.w)}-${num(dr.l)} <span class="${cls(dr.profit)}">${sgn(dr.profit)}</span>` : "";
+    if (!byDay[d]) return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${num((dr || {}).picks)} picks${wl} · not listed tonight - today's picks fill the page's room; the day's record is in BY DAY below</small></div>`;
+    return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${ofAll(d, byDay[d].length)}${wl}</small></div><div class="lsec">${byDay[d].map(x => x.fn(x.r)).join("")}</div>`;
+  }).join("") : "";
   const bd = k.boards;
   if (bd) {
     const rc = bd.records || {};
@@ -389,9 +430,11 @@ function draw(k, at) {
         <div class="why">posted on ${E((r.boards || []).join(", "))}${N(r.stake) ? ` · stake ${usd(r.stake)}` : ""}</div></div>
         <div class="kx">${kx}</div><div class="r"><span>${r.bwhy ? E(r.bwhy) : ""}</span></div></div>`;
     };
-    $("boards").innerHTML = `<div class="sech">ALL BOARD PICKS<small>every posted game line (ML + totals) priced pregame on both venues · ${num(bd.n)} so far · spreads, props, tennis next</small></div>
-      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile(v === "BEST" ? "BEST PRICE" : VNAME[v], recTxt(rc[v]), recSub(rc[v]))).join("")}</div>` +
-      ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No board picks priced yet. Each one is priced on both venues as its board posts it, before the game starts.</div>`);
+    const ln = bd.lines, lnTxt = ln ? ["KALSHI", "POLY", "BEST"].map(v => `${v === "BEST" ? "best" : v === "POLY" ? "Polymarket" : "Kalshi"} ${recTxt(ln[v])} <span class="${cls((ln[v] || {}).profit)}">${sgn((ln[v] || {}).profit)}</span>`).join(" · ") : "";
+    $("boards").innerHTML = `<div class="sech">BOARD PICKS · TENNIS<small>every posted tennis pick priced on both venues before the match (no ITF on Polymarket) · ${num(bd.n)} so far · pregame game lines (ML + totals) stopped 11/11 - their earlier rows stay below</small></div>
+      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile("TENNIS · " + (v === "BEST" ? "BEST PRICE" : VNAME[v]), recTxt(rc[v]), recSub(rc[v]))).join("")}</div>` +
+      (ln ? `<div class="why" style="margin:-4px 2px 10px">Game lines priced before 11/11 (${num(bd.n_lines)}, not in the tennis record): ${lnTxt}</div>` : "") +
+      ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No tennis picks priced yet. Each one is priced on both venues as its board posts it, before the match starts.</div>`);
   } else $("boards").innerHTML = "";
   const b = k.both;
   if (b) {
@@ -417,7 +460,8 @@ function draw(k, at) {
   $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>Kalshi fills</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">PROFIT</th><th style="text-align:right">LOGGED LINE</th></tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n ${cls(d.profit)}">${N(d.w) + N(d.l) ? sgn(d.profit) : "—"}</td><td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td></tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders. Each pick is priced on Kalshi and Polymarket US within seconds of
-    being made (Auto Lives, your Lives locks, football Lives): on each venue the line at least as good as ours, an order of the pick's own
+    being made (Auto Lives, your Lives locks, football Lives; tennis board picks as their board posts them, before the match - no
+    other pregame picks since 11/11): on each venue the line at least as good as ours, an order of the pick's own
     stake (units × $5, or your locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
     BEST = the venue the pick takes, chosen when it was priced, never after. "Logged line" is the same pick at the line + price its page
     wrote down — a comparison, not a CMMG record. Football research plays (recorded, never posted) are priced but never bet by the accounts.

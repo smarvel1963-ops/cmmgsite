@@ -8,6 +8,9 @@
  *   v1.19 (Scott 11/08 "Free with sign-in"): a pick the feed marks signed_in opens to anyone signed in with Discord. Needs a redeploy.
  *   v1.20 (Scott 11/10 "a page on cmmg that shows whats happening and its tracking" -> "Just me" "for now"): feed part
  *   "kalshi" + task "kalshi" - the Kalshi / Polymarket paper run, OWNER ONLY (no switch widens it). Needs a redeploy.
+ *   v1.21 (Scott 11/11 "allow my polymarkets to be viewed by others not altered by them" -> "All CMMG members" -> "free
+ *   as well"): task "kalshi" opens to ANYONE signed in with Discord (free included), READ ONLY - the only writer is the
+ *   feed's write key. The reply carries owner true/false so the page says "Scott's lock" to members. Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -521,16 +524,16 @@ function hubRecords(P, s) {
 // v1.20 KALSHI PAPER RUN (Scott 11/10 "i need a page on cmmg that shows whats happening and its tracking" -> "Just me"
 // "for now"): the feed's "kalshi" part as the PC sent it - every Auto Lives pick priced on Kalshi + Polymarket US at
 // pick time, the paper records, each sizing plan's bankroll and the both-sides scanner (MasterHub kalshi_paper.py,
-// poly_paper.py, both_sides.py, cmmg_feed_kalshi.py). PAPER, no money. OWNER ONLY - the accounts in OWNER_IDS and
-// nothing else (no role, no Script Property). It carries an uncalibrated win-chance number and a comparison record, so
-// opening it to members is a code change after Scott's go + a review (review 11/10).
+// poly_paper.py, both_sides.py, cmmg_feed_kalshi.py). PAPER, no money. v1.20 was OWNER ONLY (review 11/10: it carries
+// an uncalibrated win-chance number and a comparison record, so opening it was a code change after Scott's go).
+// v1.21 is that change: Scott 11/11 "allow my polymarkets to be viewed by others not altered by them" -> "All CMMG
+// members" -> "free as well" - anyone signed in with Discord (free included) READS it; nothing here writes, and the
+// part is only ever written with the feed's write key ("put"). The page labels it a paper test, not picks.
 // Never a board, so it never reaches the scoreboard or any public record.
 function kalshiPaper(P, s) {
   if (!s) return { ok: false, error: "sign in with Discord first" };
-  const allowed = isOwner(P, s.uid);
-  if (!allowed) return { ok: true, denied: true, at: null, kalshi: null };
   const r = getBig(P, "F_kalshi");
-  return { ok: true, denied: false, at: r ? r.at : null, kalshi: r && r.data || null };
+  return { ok: true, denied: false, owner: isOwner(P, s.uid), at: r ? r.at : null, kalshi: r && r.data || null };
 }
 
 // v1.16 MEMBERS (Scott 10/18 "both"): what members mark, for the owner. Two parts, never mixed:

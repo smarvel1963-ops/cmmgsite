@@ -8,9 +8,11 @@
      have filled at (fees in), the money in each book, the venue the pick takes (chosen at pick time), the results off
      each venue's own settlement, each sizing plan's bankroll (money_manager, paper), and the both-sides scanner's arbs +
      middles between the two venues (both_sides.py). PAPER - no account, no money, no orders.
-     Data = relay task "kalshi" (v1.20), OWNER ONLY - opening it to members is a code change after Scott's go + a review
-     (it carries an uncalibrated win-chance number). Never a board, never on the scoreboard. Menu chip shown to the owner only (shell.js ownerKalshi). Live scores: ESPN,
-     display only. -->
+     Data = relay task "kalshi". v1.20 was OWNER ONLY; v1.21 (Scott 11/11 "allow my polymarkets to be viewed by others not
+     altered by them" -> "All CMMG members" -> "free as well") opens it READ ONLY to anyone signed in with Discord, free
+     included. Members see "Scott's lock" where Scott sees "your lock" (relay "owner" flag) and a paper-test banner. Nothing
+     on this page writes. Never a board, never on the scoreboard. Menu chip for anyone the relay lets in (shell.js
+     ownerKalshi). Live scores: ESPN, display only. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kalshi Paper Run · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -87,7 +89,7 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>AUTO LIVES, YOUR LIVES LOCKS, FOOTBALL LIVES + TENNIS, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
+    <div class="vhero"><h1>KALSHI PAPER RUN</h1><p>AUTO LIVES, <span id="heroSrc">YOUR LIVES LOCKS</span>, FOOTBALL LIVES + TENNIS, PRICED ON KALSHI + POLYMARKET. <span class="paper">PAPER</span></p></div>
     <div id="gate"></div>
     <!-- order (Scott 11/11: "new day grapgh should always be under running totals and then days pics that old days
          below"): running totals, today's graph, today's picks, earlier days by day, then the rest -->
@@ -151,6 +153,10 @@ const ESPN = { NBA: ["basketball/nba", 48, 12, 4, ""], NCAAB: ["basketball/mens-
   WNBA: ["basketball/wnba", 40, 10, 4, ""], NFL: ["football/nfl", 60, 15, 4, ""], NCAAF: ["football/college-football", 60, 15, 4, "&groups=80&limit=300"],
   NHL: ["hockey/nhl", 60, 20, 3, ""] };
 let EV = {}, LAST = null;
+// v1.21: members read this page too (Scott 11/11 "All CMMG members", "free as well"). The relay says who is Scott; an
+// older relay sends no flag, and then only the owner could have loaded the data at all.
+let MINE = true;
+const LOCK = () => MINE ? "your lock" : "Scott's lock", LOCKS = () => MINE ? "your Lives locks" : "Scott's Lives locks";
 const nm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 const ymd = t => String(t || "").slice(0, 10).replace(/-/g, "");
 async function scores(k) {
@@ -311,7 +317,7 @@ function gradedCls(res) { return res === "WIN" ? "lw" : res === "LOSS" ? "ll" : 
 // src is Auto Lives; per = a football half / quarter (absent = the full game).
 const PER_TXT = { "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2nd quarter", Q3: "3rd quarter", Q4: "4th quarter" };
 function srcTxt(r) {
-  if (r.src === "manual") return "YOUR LOCK";
+  if (r.src === "manual") return LOCK().toUpperCase();
   if (r.src === "football") return "FOOTBALL" + (r.per ? " " + (PER_TXT[r.per] || r.per).toUpperCase() : " GAME") + (r.tier ? " · " + r.tier : "") + (r.rs ? " (never posted)" : "");
   return r.eng || "";
 }
@@ -321,13 +327,13 @@ function drawSrc(k) {
   const cell = x => x && N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)} <span class="${cls(x.profit)}">${sgn(x.profit)}</span>` : `<span class="why">${num((x || {}).fills)} filled</span>`;
   el.innerHTML = `<div class="sech">BY SOURCE<small>each source's paper record on each venue · best = the cheaper venue, picked at pick time</small></div>
     <div class="lsec xs"><table class="kt"><tr><th>SOURCE</th><th>PICKS</th><th>KALSHI</th><th>POLYMARKET</th><th>BEST</th></tr>
-    ${s.map(x => `<tr><td>${E(x.label)}</td><td class="n">${num((x.K || {}).picks)}</td><td>${cell(x.K)}</td><td>${cell(x.P)}</td><td>${cell(x.B)}</td></tr>`).join("")}</table></div>`;
+    ${s.map(x => `<tr><td>${E(MINE ? x.label : String(x.label || "").replace(/^Your\b/, "Scott's"))}</td><td class="n">${num((x.K || {}).picks)}</td><td>${cell(x.K)}</td><td>${cell(x.P)}</td><td>${cell(x.B)}</td></tr>`).join("")}</table></div>`;
 }
 
 // an earlier day's pick, short (k.old): what it was, the venue it took, the result
 function oldRow(o) {
   const [, tm] = when(o.t);
-  const who = o.src === "manual" ? "your lock" : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : (o.eng || "");
+  const who = o.src === "manual" ? LOCK() : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : (o.eng || "");
   const venue = o.v === "P" ? "Polymarket" : o.v === "K" ? "Kalshi" : "";
   const res = o.st === "NO_FILL" ? `<span class="why">no fill</span>` : o.res ? `<span class="${cls(o.pl)}">${E(o.res)} ${sgn(o.pl)}</span>` : `<span class="why">open</span>`;
   return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${E(o.side || "")} ${num(o.line, 1)}</b> ${E(o.game || "")}
@@ -335,8 +341,9 @@ function oldRow(o) {
 }
 function row(r) {
   const [d, t] = when(r.t);
-  const book = r.bk ? E(r.bk) : r.src === "manual" ? "your line" : r.src === "football" ? "football Lives line" : "Auto Lives line";
-  const conf = N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
+  const book = r.bk ? E(r.bk) : r.src === "manual" ? (MINE ? "your line" : "Scott's line") : r.src === "football" ? "football Lives line" : "Auto Lives line";
+  // the win-chance number is not proven yet (review 11/10) - Scott sees it, members don't, so it never reads like a pick rating
+  const conf = MINE && N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
   const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, r.pl, r.best === "KALSHI")
            + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
   const bk = r.bres ? `logged line: ${E(r.bres)}${N(r.bpl) != null ? " " + sgn(r.bpl) : ""}` : "";
@@ -357,7 +364,7 @@ function drawAcct(k) {
   el.querySelectorAll("details[data-k]").forEach(d => { d.open ? ACCT_OPEN.add(d.dataset.k) : ACCT_OPEN.delete(d.dataset.k); });
   const st = a.start || {}, since = a.since ? dayLbl(a.since) : "";
   const line = o => {
-    const sm = o.src === "manual" ? " (your lock)" : o.src === "football" ? ` (football${o.per ? " " + (PER_TXT[o.per] || o.per) : ""})` : "";
+    const sm = o.src === "manual" ? ` (${LOCK()})` : o.src === "football" ? ` (football${o.per ? " " + (PER_TXT[o.per] || o.per) : ""})` : "";
     const [, tm] = when(o.t), g = `${E(o.game || "")}${E(sm)} <b>${E(o.side || "")}${N(o.k) != null ? " " + num(o.k, 1) : ""}</b>${N(o.o) != null ? " " + odds(o.o) : ""}`;
     if (!o.v) return `<div class="al sk"><span>${E(tm)}</span><span class="g">${g}</span><span class="r">skip: ${E(o.why || "")}</span></div>`;
     const venue = o.v === "POLY" ? "Polymarket" : o.v === "BOTH" ? "both venues" : "Kalshi";
@@ -408,7 +415,7 @@ function draw(k, at) {
   [...rows.filter(r => rowDay(r) !== cd).map(r => [r, row]), ...(k.old || []).map(r => [r, oldRow])]
     .forEach(([r, fn]) => { (byDay[rowDay(r)] = byDay[rowDay(r)] || []).push({ r, fn }); });
   $("rows").innerHTML = `<div class="sech">TODAY'S PICKS<small>${E(dayLbl(cd))}${today.length ? ` · ${ofAll(cd, today.length)}` : ""}</small></div>` +
-    (today.length ? `<div class="lsec">${today.map(row).join("")}</div>` : `<div class="empty">No picks yet today. Auto Lives, your Lives locks, football Lives and tennis make them; they show here within a few minutes.</div>`);
+    (today.length ? `<div class="lsec">${today.map(row).join("")}</div>` : `<div class="empty">No picks yet today. Auto Lives, ${LOCKS()}, football Lives and tennis make them; they show here within a few minutes.</div>`);
   // an earlier day with picks but none carried (a busy night fills the page's room - today first): said so, never hidden
   const missing = (k.days || []).filter(x => x.day !== cd && !byDay[x.day] && N(x.picks)).map(x => x.day);
   const ds = [...new Set([...Object.keys(byDay), ...missing])].sort().reverse();
@@ -459,10 +466,10 @@ function draw(k, at) {
   const days = k.days || [];
   $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>Kalshi fills</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">PROFIT</th><th style="text-align:right">LOGGED LINE</th></tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n ${cls(d.profit)}">${N(d.w) + N(d.l) ? sgn(d.profit) : "—"}</td><td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td></tr>`).join("")}</table></div>` : "";
-  $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders. Each pick is priced on Kalshi and Polymarket US within seconds of
-    being made (Auto Lives, your Lives locks, football Lives; tennis board picks as their board posts them, before the match - no
+  $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders.${MINE ? "" : " A research test, read only — not picks to bet."} Each pick is priced on Kalshi and Polymarket US within seconds of
+    being made (Auto Lives, ${LOCKS()}, football Lives; tennis board picks as their board posts them, before the match - no
     other pregame picks since 11/11): on each venue the line at least as good as ours, an order of the pick's own
-    stake (units × $5, or your locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
+    stake (units × $5, or ${MINE ? "your" : "Scott's"} locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
     BEST = the venue the pick takes, chosen when it was priced, never after. "Logged line" is the same pick at the line + price its page
     wrote down — a comparison, not a CMMG record. Football research plays (recorded, never posted) are priced but never bet by the accounts.
     Both sides = an Over on one venue + an Under on the other: an arb costs under $1 per $1 pair (profit either way); a middle costs a
@@ -471,15 +478,17 @@ function draw(k, at) {
 }
 async function load() {
   const sess = CMMG.session();
-  if (!sess) { STOP = true; gate("Owner only. Sign in with Discord to see the paper run.", true); return; }
+  if (!sess) { STOP = true; gate("Sign in with Discord (free) to see the paper run.", true); return; }
   let j; try { j = await CMMG.relay({ task: "kalshi", session: sess.token }); } catch (e) { j = null; }
   if (!j) { gate("Couldn't reach CMMG right now — trying again shortly."); return; }
   if (!j.ok && j.error === "unknown task") { gate("<b>Almost there.</b> This page needs the CMMG relay v1.20 deployed in Apps Script."); return; }
   if (!j.ok) { gate(E(j.error || "Sign in again to continue."), /sign in/i.test(j.error || "")); return; }
-  try { sessionStorage.setItem("cmmg.kalshi.owner", j.denied ? "0" : "1"); } catch (e) {}   // the menu's owner-only chip
-  if (j.denied) { STOP = true; gate("<b>Owner only for now.</b> This page is not open to members yet."); return; }
+  try { sessionStorage.setItem("cmmg.kalshi.see", j.denied ? "0" : "1"); } catch (e) {}   // the menu's chip
+  if (j.denied) { STOP = true; gate("<b>Not open yet.</b> This page is not open to members yet."); return; }
   if (!j.kalshi) { gate("<b>No data yet.</b> The PC sends this page every 2 minutes once the feed switch is on."); return; }
-  $("gate").innerHTML = "";
+  MINE = j.owner !== false;
+  $("heroSrc").textContent = MINE ? "YOUR LIVES LOCKS" : "SCOTT'S LIVES LOCKS";
+  $("gate").innerHTML = MINE ? "" : `<div class="soonbar"><span><b>PAPER TEST — read only, not picks.</b> No money is bet. CMMG's live picks priced on Kalshi and Polymarket the moment they're made, then graded, to see which venue pays best.</span></div>`;
   LAST = { k: j.kalshi, at: j.at };
   draw(j.kalshi, j.at);
   await scores(j.kalshi);

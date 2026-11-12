@@ -142,7 +142,7 @@ function venueLine(name, side, k, gap, o, dep, st, why, res, pl, best) {
   if (!st) return "";
   const body = st === "NO_FILL" ? `<span class="why">${E(why)}</span>`
     : `${N(k) != null ? `<b>${E(side)} ${num(k, 1)}</b> at ` : ""}<b>${odds(o)}</b>${N(gap) != null || N(dep) != null ? ` <span class="why">(${[gapTxt(gap), N(dep) != null ? `$${num(dep)} in book within 5¢` : ""].filter(Boolean).join(" · ")})</span>` : ""}`
-      + (res ? ` <span class="rb ${E(res)}">${E(res)}</span> <span class="${cls(pl)}">${sgn(pl)}</span>` : "");
+      + (res ? ` <span class="rb ${E(res)}">${E(res)}</span>${N(pl) != null ? ` <span class="${cls(pl)}">${sgn(pl)}</span>` : ""}` : "");
   return `<div class="vline ${best ? "best" : ""}"><span class="vtag">${VNAME[name]}</span>${body}${best ? '<span class="btag">BEST</span>' : ""}</div>`;
 }
 // LIVE SCORES (Scott 11/10: "each of those lines should have live score and bet be green or red if winning or losing").
@@ -251,11 +251,17 @@ function drawChart0(k) {
   const el = $("chart"); if (!el) return;
   const day = curDay(k), live = true;
   const rows = (k.rows || []).filter(r => rowDay(r) === day);
-  const bets = rows.filter(r => r.st === "FILLED" || r.st === "PARTIAL");
+  const ares = r => r.av === "P" ? r.pres : r.res;                 // the result of the venue the 1% account bet
+  // the 1% paper account's bets (Scott 11/11): its own series for the day when sent - every bet, even past the pick rows
+  // that fit in the part - else the rows. Each as {t, ag, apl, res, g}.
+  const hs = k.head && k.head.day === day && Array.isArray(k.head.series) ? k.head.series : null;
+  const RES = { W: "WIN", L: "LOSS", P: "PUSH", V: "VOID" };
+  const bets = hs ? hs.map(x => ({ t: x[0], ag: x[1], apl: x[2], res: RES[x[3]] || x[3] || null, g: x[4] || "", as: null }))
+    : rows.filter(r => N(r.as) != null).map(r => ({ t: r.t, ag: r.ag, apl: r.apl, res: ares(r), g: `${r.side || ""} ${num(r.line, 1)} ${r.game || ""}`, as: r.as, row: r }));
   const evs = [];
-  bets.forEach(r => {
-    const tb = ctMs(r.t); if (tb != null) evs.push({ t: tb, kind: "bet", r });
-    const tg = ctMs(r.gat); if (tg != null && (r.res === "WIN" || r.res === "LOSS" || r.res === "VOID")) evs.push({ t: tg, kind: "res", r, d: N(r.pl) || 0 });
+  bets.forEach(b => {
+    const tb = ctMs(b.t); if (tb != null) evs.push({ t: tb, kind: "bet", r: b });
+    const tg = ctMs(b.ag); if (tg != null && N(b.apl) != null) evs.push({ t: tg, kind: "res", r: b, d: N(b.apl) || 0 });
   });
   let now = nowCt();
   if (now == null) { el.innerHTML = ""; return; }
@@ -280,22 +286,22 @@ function drawChart0(k) {
   const yt = [Math.round(lo - pad / 2), 0, Math.round(hi + pad / 2)].filter((v, i, a) => a.indexOf(v) === i);
   const valAt = t => { let v = 0; evs.forEach(e => { if (e.kind === "res" && e.t <= t) v = e.v; }); return v; };
   const marks = evs.map(e => {
-    const g = `${e.r.side || ""} ${num(e.r.line, 1)} ${e.r.game || ""}`;
+    const g = e.r.g;
     if (e.kind === "bet") {
-      const open = !e.r.res, lv = open ? liveOf(e.r).cls : "";
-      return `<circle class="bet ${lv}" cx="${X(e.t).toFixed(1)}" cy="${Y(valAt(e.t)).toFixed(1)}" r="4.5"><title>${E(when(e.r.t)[1])} bet: ${E(g)} at ${odds(e.r.ko)}</title></circle>`;
+      const open = N(e.r.apl) == null, lv = open && e.r.row ? liveOf(e.r.row).cls : "";
+      return `<circle class="bet ${lv}" cx="${X(e.t).toFixed(1)}" cy="${Y(valAt(e.t)).toFixed(1)}" r="4.5"><title>${E(when(e.r.t)[1])} bet: ${E(g)}</title></circle>`;
     }
     const c = e.r.res === "WIN" ? "w" : e.r.res === "LOSS" ? "l" : "bet";            // colour by the result, not the sign
-    return `<circle class="${c}" cx="${X(e.t).toFixed(1)}" cy="${Y(e.v).toFixed(1)}" r="5"><title>${E(when(e.r.gat)[1])} ${E(e.r.res)} ${sgn(e.d)}: ${E(g)}</title></circle>`;
+    return `<circle class="${c}" cx="${X(e.t).toFixed(1)}" cy="${Y(e.v).toFixed(1)}" r="5"><title>${E(when(e.r.ag)[1])} ${E(e.r.res || "")} ${sgn(e.d)}: ${E(g)}</title></circle>`;
   }).join("");
   // the headline = the day's own total (the BY DAY row), so it always matches - even past ROWS_MAX picks
-  const dr = (k.days || []).find(x => x.day === day);
-  const tot = dr ? N(dr.profit) || 0 : cum, nW = dr ? N(dr.w) || 0 : evs.filter(e => e.r.res === "WIN" && e.kind === "res").length,
+  const dr = ((k.head || {}).days || {})[day];                      // the 1% account's own day (Scott 11/11)
+  const tot = dr ? N(dr.pl) || 0 : cum, nW = dr ? N(dr.w) || 0 : evs.filter(e => e.r.res === "WIN" && e.kind === "res").length,
         nL = dr ? N(dr.l) || 0 : evs.filter(e => e.r.res === "LOSS" && e.kind === "res").length;
-  const open = bets.filter(r => !r.res).length;
+  const open = bets.filter(r => N(r.apl) == null).length;
   const title = bets.length ? "TONIGHT" : "TODAY";
   el.innerHTML = `<div class="chart"><div class="ch"><b class="${cls(tot)}">${title} ${sgn(tot)}</b>
-    <span>Kalshi paper · ${bets.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
+    <span>1% paper account · ${bets.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
       : `${E(dayLbl(day))} · no picks yet today - the line starts moving with the first bet`}</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Tonight's running total">
       <defs><linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
@@ -324,7 +330,8 @@ function srcTxt(r) {
 function drawSrc(k) {
   const el = $("bysrc"), s = k.by_src || []; if (!el) return;
   if (!s.length) { el.innerHTML = ""; return; }
-  const cell = x => x && N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)} <span class="${cls(x.profit)}">${sgn(x.profit)}</span>` : `<span class="why">${num((x || {}).fills)} filled</span>`;
+  const roiOf = x => N(x.staked) ? N(x.profit) / N(x.staked) : null;      // ROI holds at any bet size (Scott 11/11: 1%, not $15)
+  const cell = x => x && N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)}${roiOf(x) != null ? ` <span class="${cls(roiOf(x))}">${pct(roiOf(x))}</span>` : ""}` : `<span class="why">${num((x || {}).fills)} filled</span>`;
   el.innerHTML = `<div class="sech">BY SOURCE<small>each source's paper record on each venue · best = the cheaper venue, picked at pick time</small></div>
     <div class="lsec xs"><table class="kt"><tr><th>SOURCE</th><th>PICKS</th><th>KALSHI</th><th>POLYMARKET</th><th>BEST</th></tr>
     ${s.map(x => `<tr><td>${E(MINE ? x.label : String(x.label || "").replace(/^Your\b/, "Scott's"))}</td><td class="n">${num((x.K || {}).picks)}</td><td>${cell(x.K)}</td><td>${cell(x.P)}</td><td>${cell(x.B)}</td></tr>`).join("")}</table></div>`;
@@ -335,22 +342,26 @@ function oldRow(o) {
   const [, tm] = when(o.t);
   const who = o.src === "manual" ? LOCK() : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : (o.eng || "");
   const venue = o.v === "P" ? "Polymarket" : o.v === "K" ? "Kalshi" : "";
-  const res = o.st === "NO_FILL" ? `<span class="why">no fill</span>` : o.res ? `<span class="${cls(o.pl)}">${E(o.res)} ${sgn(o.pl)}</span>` : `<span class="why">open</span>`;
+  const res = N(o.as) != null ? (N(o.apl) != null ? `<span class="${cls(o.apl)}">${E(o.res || "")} ${sgn(o.apl)}</span>` : `<span class="why">open</span>`)
+    : o.st === "NO_FILL" ? `<span class="why">no fill</span>` : `<span class="why">no 1% bet${o.aw ? " - " + E(o.aw) : ""}</span>`;
   return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${E(o.side || "")} ${num(o.line, 1)}</b> ${E(o.game || "")}
-    <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
+    <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${N(o.as) != null ? ` · 1% bet ${usd(o.as)}` : ""}${MINE && o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
 }
 function row(r) {
   const [d, t] = when(r.t);
   const book = r.bk ? E(r.bk) : r.src === "manual" ? (MINE ? "your line" : "Scott's line") : r.src === "football" ? "football Lives line" : "Auto Lives line";
   // the win-chance number is not proven yet (review 11/10) - Scott sees it, members don't, so it never reads like a pick rating
   const conf = MINE && N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
-  const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, r.pl, r.best === "KALSHI")
-           + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
-  const bk = r.bres ? `logged line: ${E(r.bres)}${N(r.bpl) != null ? " " + sgn(r.bpl) : ""}` : "";
+  const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, null, r.best === "KALSHI")
+           + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, null, r.best === "POLY");
+  const bk = MINE && r.bres ? `logged line: ${E(r.bres)}` : "";
+  // the 1% paper account's bet on this pick (Scott 11/11: "build on 1 percent my 15 is for all bets")
+  const acc = N(r.as) != null ? `1% account: bet ${usd(r.as)} on ${r.av === "P" ? "Polymarket" : "Kalshi"}${N(r.apl) != null ? ` → <span class="${cls(r.apl)}">${sgn(r.apl)}</span>` : " (open)"}`
+    : r.aw ? `1% account: no bet - ${E(r.aw)}` : "";
   const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.res) || lv.cls;
   const sx = srcTxt(r);
   return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${sx ? " · " + E(sx) : ""}</span></div>
-    <div><div class="pk">${E(r.side)} ${num(r.line, 1)}${r.per ? ` <span class="why">${E(PER_TXT[r.per] || r.per)}</span>` : ""} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${N(r.stake) ? `<div class="why">stake ${usd(r.stake)}${N(r.delay) != null ? ` · priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
+    <div><div class="pk">${E(r.side)} ${num(r.line, 1)}${r.per ? ` <span class="why">${E(PER_TXT[r.per] || r.per)}</span>` : ""} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${acc || N(r.delay) != null ? `<div class="why">${acc}${acc && N(r.delay) != null ? " · " : ""}${N(r.delay) != null ? `priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
     <div class="kx">${kx}</div>
     <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
 }
@@ -385,21 +396,28 @@ function drawAcct(k) {
     <div class="acc2">${a.tracks.map(card).join("")}</div>`;
 }
 function tile(k, v, s) { return `<div class="ktile"><div class="k">${E(k)}</div><div class="v">${v}</div><div class="s">${s}</div></div>`; }
+function roiSub(r) { return r && N(r.graded) ? `<span class="${cls(r.roi)}">ROI ${pct(r.roi)}</span> · every pick, at any size` : `${num((r || {}).fills)} filled, none graded`; }
 function recSub(r) { return r && N(r.graded) ? `<span class="${cls(r.profit)}">${sgn(r.profit)}</span> on ${usd(r.staked)} · ROI ${pct(r.roi)}` : `${num((r || {}).fills)} filled, none graded`; }
 function draw(k, at) {
   const s = k.status || {}, age = N(s.runner_age_s), up = age != null && age < 120;
   const fedAge = Date.now() - Date.parse(at || "");
   $("status").innerHTML = `<div class="status"><span><span class="dot ${age == null ? "unk" : up ? "up" : "down"}"></span>Runner <b>${age == null ? "unknown" : up ? "up" : "down"}</b> when sent</span>
     <span>Sent <b>${ago(at)}</b>${fedAge > 10 * 60000 ? ' <span class="neg">(stale - the page is sent every 2 min while a runner is up: the PC, or the server when the PC is off)</span>' : ""}</span>
-    <span>Health <b class="${s.health === "OK" ? "pos" : "neg"}">${E(s.health || "?")}</b></span><span>${E(s.detail || "")}</span></div>`;
-  const a = (k.record || {}).all || {}, c = k.counts || {}, pr = k.price, v = k.venues || {};
-  const tiles = [tile("KALSHI", recTxt(a), recSub(a))];
+    <span>Health <b class="${s.health === "OK" ? "pos" : "neg"}">${E(s.health || "?")}</b></span><span>${E(String(s.detail || "").split(" | all-time")[0])}</span></div>`;
+  const a = (k.record || {}).all || {}, c = k.counts || {}, pr = k.price, v = k.venues || {}, h = k.head;
+  // the money on this page is the 1% paper account (Scott 11/11: "use the number for total but build on 1 percent my
+  // 15 is for all bets") - the venue tiles give each venue's win-loss and ROI, never dollars at his $15 stake
+  const tiles = [];
+  if (h) tiles.push(tile(`PAPER ACCOUNT · ${String(h.label || "1%").toUpperCase()}`, usd(h.equity),
+    `<span class="${cls(h.profit)}">${sgn(h.profit)}</span> from ${usd(h.start)} · picks ${num(h.w)}-${num(h.l)} <span class="${cls(h.picks_pl)}">${sgn(h.picks_pl)}</span>`
+    + ` · both sides <span class="${cls(h.plays_pl)}">${sgn(h.plays_pl)}</span>${N(h.next_bet) != null ? ` · next standard bet ${usd(h.next_bet)}` : ""}`));
+  tiles.push(tile("KALSHI · EVERY PICK", recTxt(a), roiSub(a)));
   const since = v.since ? ` · SINCE ${String(dayLbl(v.since)).toUpperCase()}` : "";
-  const sameK = v.KALSHI && N(v.KALSHI.graded) ? `<div>Kalshi, same days: ${recTxt(v.KALSHI)} <span class="${cls(v.KALSHI.profit)}">${sgn(v.KALSHI.profit)}</span></div>` : "";
-  if (v.POLY) tiles.push(tile("POLYMARKET" + since, recTxt(v.POLY), recSub(v.POLY) + sameK));
-  if (v.BEST) tiles.push(tile("BEST PRICE (EACH PICK)" + since, recTxt(v.BEST), recSub(v.BEST) + sameK));
-  tiles.push(tile("AT THE LOGGED LINE", N(a.book_w) + N(a.book_l) ? `${num(a.book_w)}-${num(a.book_l)}` : "—",
-    N(a.book_w) + N(a.book_l) ? `<span class="${cls(a.book_profit)}">${sgn(a.book_profit)}</span> (comparison only)` : "waits for grades"));
+  const sameK = v.KALSHI && N(v.KALSHI.graded) ? `<div>Kalshi, same days: ${recTxt(v.KALSHI)}</div>` : "";
+  if (v.POLY) tiles.push(tile("POLYMARKET" + since, recTxt(v.POLY), roiSub(v.POLY) + sameK));
+  if (v.BEST) tiles.push(tile("BEST PRICE (EACH PICK)" + since, recTxt(v.BEST), roiSub(v.BEST) + sameK));
+  if (MINE) tiles.push(tile("AT THE LOGGED LINE", N(a.book_w) + N(a.book_l) ? `${num(a.book_w)}-${num(a.book_l)}` : "—",
+    N(a.book_w) + N(a.book_l) ? "the same picks at the line their page wrote down (comparison only)" : "waits for grades"));
   tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
@@ -420,7 +438,8 @@ function draw(k, at) {
   const missing = (k.days || []).filter(x => x.day !== cd && !byDay[x.day] && N(x.picks)).map(x => x.day);
   const ds = [...new Set([...Object.keys(byDay), ...missing])].sort().reverse();
   $("older").innerHTML = ds.length ? `<div class="sech">EARLIER DAYS<small>newest day first</small></div>` + ds.map(d => {
-    const dr = dayRow(d), wl = dr && N(dr.w) + N(dr.l) ? ` · ${num(dr.w)}-${num(dr.l)} <span class="${cls(dr.profit)}">${sgn(dr.profit)}</span>` : "";
+    const dr = dayRow(d), ad = ((k.head || {}).days || {})[d];      // the day on the 1% paper account (Scott 11/11)
+    const wl = ad && N(ad.w) + N(ad.l) ? ` · 1% account ${num(ad.w)}-${num(ad.l)} <span class="${cls(ad.pl)}">${sgn(ad.pl)}</span>` : "";
     if (!byDay[d]) return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${num((dr || {}).picks)} picks${wl} · not listed tonight - today's picks fill the page's room; the day's record is in BY DAY below</small></div>`;
     return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${ofAll(d, byDay[d].length)}${wl}</small></div><div class="lsec">${byDay[d].map(x => x.fn(x.r)).join("")}</div>`;
   }).join("") : "";
@@ -428,18 +447,18 @@ function draw(k, at) {
   if (bd) {
     const rc = bd.records || {};
     const brow = r => {
-      const kx = venueLine("KALSHI", "", r.k, null, r.ko, null, r.kst, r.kwhy, r.kres, r.kpl, r.best === "KALSHI")
-               + venueLine("POLY", "", r.pk, null, r.po, null, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
+      const kx = venueLine("KALSHI", "", r.k, null, r.ko, null, r.kst, r.kwhy, r.kres, null, r.best === "KALSHI")
+               + venueLine("POLY", "", r.pk, null, r.po, null, r.pst, r.pwhy, r.pres, null, r.best === "POLY");
       const [d, t] = when(r.t);
       const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.kres) || lv.cls;
       return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}</span></div>
         <div><div class="pk">${E(r.bet)} <span class="why">at ${odds(r.bo)}${r.bk ? " " + E(r.bk) : ""}</span></div><div class="gm">${E(r.game)}</div>${lv.html}
-        <div class="why">posted on ${E((r.boards || []).join(", "))}${N(r.stake) ? ` · stake ${usd(r.stake)}` : ""}</div></div>
+        <div class="why">posted on ${E((r.boards || []).join(", "))}</div></div>
         <div class="kx">${kx}</div><div class="r"><span>${r.bwhy ? E(r.bwhy) : ""}</span></div></div>`;
     };
-    const ln = bd.lines, lnTxt = ln ? ["KALSHI", "POLY", "BEST"].map(v => `${v === "BEST" ? "best" : v === "POLY" ? "Polymarket" : "Kalshi"} ${recTxt(ln[v])} <span class="${cls((ln[v] || {}).profit)}">${sgn((ln[v] || {}).profit)}</span>`).join(" · ") : "";
+    const ln = bd.lines, lnTxt = ln ? ["KALSHI", "POLY", "BEST"].map(v => `${v === "BEST" ? "best" : v === "POLY" ? "Polymarket" : "Kalshi"} ${recTxt(ln[v])}${N((ln[v] || {}).graded) ? ` <span class="${cls(ln[v].roi)}">ROI ${pct(ln[v].roi)}</span>` : ""}`).join(" · ") : "";
     $("boards").innerHTML = `<div class="sech">BOARD PICKS · TENNIS<small>every posted tennis pick priced on both venues before the match (no ITF on Polymarket) · ${num(bd.n)} so far · pregame game lines (ML + totals) stopped 11/11 - their earlier rows stay below</small></div>
-      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile("TENNIS · " + (v === "BEST" ? "BEST PRICE" : VNAME[v]), recTxt(rc[v]), recSub(rc[v]))).join("")}</div>` +
+      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile("TENNIS · " + (v === "BEST" ? "BEST PRICE" : VNAME[v]), recTxt(rc[v]), roiSub(rc[v]))).join("")}</div>` +
       (ln ? `<div class="why" style="margin:-4px 2px 10px">Game lines priced before 11/11 (${num(bd.n_lines)}, not in the tennis record): ${lnTxt}</div>` : "") +
       ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No tennis picks priced yet. Each one is priced on both venues as its board posts it, before the match starts.</div>`);
   } else $("boards").innerHTML = "";
@@ -448,7 +467,7 @@ function draw(k, at) {
     const sa = (b.summary || {}).ARB || {}, sm = (b.summary || {}).MIDDLE || {}, ru = b.rules || {};
     const legs = p => (p.legs || []).map(l => `${E(VNAME[l.v] || l.v)} ${E(l.s)} ${num(l.k, 1)} @ ${num(N(l.px) * 100, 1)}¢`).join(" + ");
     const res = p => p.status === "GRADED" ? `<span class="rb ${p.result === "ONE LEG" ? "ONE" : E(p.result)}">${E(p.result)}</span> <span class="${cls(p.profit)}">${sgn(p.profit)}</span>` : '<span class="rb OPEN">OPEN</span>';
-    $("both").innerHTML = `<div class="sech">BOTH SIDES<small>Kalshi vs Polymarket, every live game, every minute · ${num(b.scans_today)} scans today${b.last_scan_at ? `, last ${E(String(b.last_scan_at).slice(11, 16))} (${num(b.last_live_games)} live games)` : ""}</small></div>
+    $("both").innerHTML = `<div class="sech">BOTH SIDES<small>Kalshi vs Polymarket, every live game, every minute · dollars at the scanner's own pair size (the 1% account sizes its own) · ${num(b.scans_today)} scans today${b.last_scan_at ? `, last ${E(String(b.last_scan_at).slice(11, 16))} (${num(b.last_live_games)} live games)` : ""}</small></div>
       <div class="ktiles">${tile("ARBS (PROFIT EITHER WAY)", num(sa.found), N(sa.graded) ? `${num(sa.graded)} graded · <span class="${cls(sa.profit)}">${sgn(sa.profit)}</span> on ${usd(sa.outlay)}` : `a pair under $${num(ru.arb_max, 2)} per $1, fees in`)}
       ${tile("MIDDLES (WIN BOTH IN THE WINDOW)", num(sm.found), N(sm.graded) ? `hit ${num(sm.hits)} of ${num(sm.graded)} · <span class="${cls(sm.profit)}">${sgn(sm.profit)}</span> on ${usd(sm.outlay)}` : `a pair up to $${num(ru.middle_max, 2)} per $1`)}</div>` +
       ((b.plays || []).length ? `<div class="lsec xs"><table class="kt"><tr><th>TIME</th><th>GAME</th><th>PLAY</th><th style="text-align:right">PER $1</th><th style="text-align:right">PAIRS</th><th style="text-align:right">RESULT</th></tr>
@@ -456,20 +475,24 @@ function draw(k, at) {
       : `<div class="empty">No arbs or middles yet. The two venues usually agree within a cent near the live total — this lists every time they don't.</div>`);
   } else $("both").innerHTML = "";
   const sz = k.sizing || {}, caps = sz.caps || {}, start = N(sz.start) || 1500;
-  $("sizing").innerHTML = (sz.plans || []).length ? `<div class="sech">SIZING PLANS<small>$${num(start)} start · caps ${pct(caps.bet)}/bet, ${pct(caps.game)}/game, ${pct(caps.night)}/night · Kalshi fills · paper</small></div>
+  $("sizing").innerHTML = (sz.plans || []).length ? `<div class="sech">SIZING PLANS<small>a separate $${num(start)} paper bankroll per plan (not the 1% account) · caps ${pct(caps.bet)}/bet, ${pct(caps.game)}/game, ${pct(caps.night)}/night · Kalshi fills · paper</small></div>
     <div class="lsec"><table class="kt"><tr><th>PLAN</th><th style="text-align:right">BANKROLL</th><th style="text-align:right">BETS</th><th style="text-align:right">WORST DROP</th></tr>
     ${sz.plans.map(p => `<tr><td><b>${E(p.label)}</b>${N(p.over_depth) ? `<div class="why">${num(p.over_depth)} stakes above Kalshi's depth</div>` : ""}</td><td class="n ${cls(N(p.final) - start)}">${usd(p.final)}</td><td class="n">${num(p.bets)}</td><td class="n">${pct(p.max_dd)}</td></tr>`).join("")}</table></div>` : "";
   const gaps = k.gaps || [], nf = Object.entries(k.no_fill || {});
-  $("gaps").innerHTML = gaps.length || nf.length ? `<div class="sech">KALSHI LINE vs OURS</div><div class="lsec"><table class="kt"><tr><th>KALSHI LINE</th><th style="text-align:right">FILLED</th><th style="text-align:right">RECORD</th><th style="text-align:right">PROFIT</th></tr>
-    ${gaps.map(g => `<tr><td>${E(g.label)}</td><td class="n">${num(g.rec.fills)}</td><td class="n">${recTxt(g.rec)}</td><td class="n ${cls(g.rec.profit)}">${N(g.rec.graded) ? sgn(g.rec.profit) : "—"}</td></tr>`).join("")}
+  $("gaps").innerHTML = gaps.length || nf.length ? `<div class="sech">KALSHI LINE vs OURS</div><div class="lsec"><table class="kt"><tr><th>KALSHI LINE</th><th style="text-align:right">FILLED</th><th style="text-align:right">RECORD</th><th style="text-align:right">ROI</th></tr>
+    ${gaps.map(g => `<tr><td>${E(g.label)}</td><td class="n">${num(g.rec.fills)}</td><td class="n">${recTxt(g.rec)}</td><td class="n ${cls(g.rec.roi)}">${N(g.rec.graded) ? pct(g.rec.roi) : "—"}</td></tr>`).join("")}
     ${nf.map(([why, n]) => `<tr><td colspan="3"><span class="why">No fill: ${E(why)}</span></td><td class="n">${num(n)}</td></tr>`).join("")}</table></div>` : "";
   const days = k.days || [];
-  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>Kalshi fills</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">PROFIT</th><th style="text-align:right">LOGGED LINE</th></tr>
-    ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n ${cls(d.profit)}">${N(d.w) + N(d.l) ? sgn(d.profit) : "—"}</td><td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td></tr>`).join("")}</table></div>` : "";
+  const hd = (k.head || {}).days || {}, acd = d => hd[d] && N(hd[d].w) + N(hd[d].l) ? `${num(hd[d].w)}-${num(hd[d].l)} <span class="${cls(hd[d].pl)}">${sgn(hd[d].pl)}</span>` : (hd[d] ? `${num(hd[d].bets)} open` : "—");
+  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the 1% paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">1% ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE</th>' : ""}</tr>
+    ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n">${acd(d.day)}</td>${MINE ? `<td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td>` : ""}</tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders.${MINE ? "" : " A research test, read only — not picks to bet."} Each pick is priced on Kalshi and Polymarket US within seconds of
     being made (Auto Lives, ${LOCKS()}, football Lives; tennis board picks as their board posts them, before the match - no
     other pregame picks since 11/11): on each venue the line at least as good as ours, an order of the pick's own
     stake (units × $5, or ${MINE ? "your" : "Scott's"} locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
+    The money at the top, today's graph and each pick's bet are the 1% paper account: $100 Kalshi + $100 Polymarket, a standard
+    bet = 1% of the bankroll (it grows and shrinks with it), ${MINE ? "your" : "Scott's"} limits (3 a game, 4 pts apart, never both sides, skip worse than -140).
+    ${MINE ? "Your" : "Scott's"} real bet size is for All Bets, not this test.
     BEST = the venue the pick takes, chosen when it was priced, never after. "Logged line" is the same pick at the line + price its page
     wrote down — a comparison, not a CMMG record. Football research plays (recorded, never posted) are priced but never bet by the accounts.
     Both sides = an Over on one venue + an Under on the other: an arb costs under $1 per $1 pair (profit either way); a middle costs a

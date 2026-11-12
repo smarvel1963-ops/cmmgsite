@@ -98,6 +98,8 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
     <div id="chart"></div>
     <div id="rows"></div>
     <div id="older"></div>
+    <div id="edge"></div>
+    <div id="maker"></div>
     <div id="bysrc"></div>
     <div id="acct"></div>
     <div id="boards"></div>
@@ -130,7 +132,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "chart", "rows", "older", "bysrc", "acct", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "chart", "rows", "older", "edge", "maker", "bysrc", "acct", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -327,6 +329,28 @@ function srcTxt(r) {
   if (r.src === "football") return "FOOTBALL" + (r.per ? " " + (PER_TXT[r.per] || r.per).toUpperCase() : " GAME") + (r.tier ? " · " + r.tier : "") + (r.rs ? " (never posted)" : "");
   return r.eng || "";
 }
+// EDGE MAP (plan phase 1, Scott 11/11 "it need good info and run on it own"): where our picks beat the exchange's OWN
+// price, not the book's. A cell is PROVEN only at 30+ picks with its 95% low above the price and its later half still
+// above; until one is, the engine bets nothing - said plainly.
+function drawEdge(k) {
+  const el = $("edge"), e = k.edge; if (!el) return;
+  if (!e || !N(e.n)) { el.innerHTML = ""; return; }
+  const vb = v => v === "PROVEN" ? '<span class="rb WIN">PROVEN</span>' : v === "LEAK" ? '<span class="rb LOSS">LEAK</span>' : '<span class="rb OPEN">WATCH</span>';
+  el.innerHTML = `<div class="sech">EDGE MAP<small>where our picks beat the exchange's own price · ${num(e.n)} graded fills: win ${pct(e.wr)} vs price ${pct(e.px)} · ${N(e.proven) ? `<b>${num(e.proven)} proven</b>` : `no proven cell yet - the engine bets nothing until one is (${num(e.min_n)}+ picks, 95% low above the price, later half still above)`}</small></div>
+    <div class="lsec xs"><table class="kt"><tr><th>CELL</th><th style="text-align:right">PICKS</th><th style="text-align:right">WIN</th><th style="text-align:right">PRICE</th><th style="text-align:right">EDGE</th><th style="text-align:right">STRICT LOW</th><th style="text-align:right"></th></tr>
+    ${(e.cells || []).map(c => `<tr><td>${E(c.k)}</td><td class="n">${num(c.n)}</td><td class="n">${pct(c.wr)}</td><td class="n">${pct(c.px)}</td><td class="n ${c.v === "WATCH" ? "" : cls(c.edge)}">${c.edge > 0 ? "+" : ""}${pct(c.edge)}</td><td class="n">${pct(c.lo)}</td><td class="n">${vb(c.v)}</td></tr>`).join("")}</table></div>`;
+}
+// MAKER ORDERS, SIMULATED (plan phase 2): each graded pick replayed as a resting order 1-3c better, filled only when
+// sellers came strictly through our price within 10 minutes (Kalshi's public trades) - beside simply taking.
+function drawMaker(k) {
+  const el = $("maker"), m = k.maker; if (!el) return;
+  if (!m || !N(m.n)) { el.innerHTML = ""; return; }
+  const t = m.taker || {};
+  el.innerHTML = `<div class="sech">MAKER ORDERS<small>paper simulation · ${num(m.n)} graded picks replayed as a resting order a few cents better (maker fee 0.0175 vs 0.07), filled only when sellers went through our price within 10 min</small></div>
+    <div class="lsec xs"><table class="kt"><tr><th>ORDER</th><th style="text-align:right">FILLED</th><th style="text-align:right">RECORD</th><th style="text-align:right">ROI</th><th style="text-align:right">TAKING, SAME PICKS</th></tr>
+    <tr><td>Take the price (what the test does)</td><td class="n">${num(m.n)}</td><td class="n">${num(t.w)}-${num(t.l)}</td><td class="n ${cls(t.roi)}">${N(t.roi) != null ? pct(t.roi) : "—"}</td><td class="n">—</td></tr>
+    ${(m.offsets || []).map(o => `<tr><td>Rest ${num(o.c)}¢ better</td><td class="n">${num(o.filled)} of ${num(m.n)}</td><td class="n">${num(o.w)}-${num(o.l)}</td><td class="n ${cls(o.roi)}">${N(o.roi) != null ? pct(o.roi) : "—"}</td><td class="n ${cls(o.taker_roi)}">${N(o.taker_roi) != null ? pct(o.taker_roi) : "—"}</td></tr>`).join("")}</table></div>`;
+}
 function drawSrc(k) {
   const el = $("bysrc"), s = k.by_src || []; if (!el) return;
   if (!s.length) { el.innerHTML = ""; return; }
@@ -426,6 +450,8 @@ function draw(k, at) {
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>` + (rn ? `<div class="why" style="margin:-4px 2px 12px"><b>Rules v${num(rn.v)}</b> since ${E(dayLbl(rn.since))}: ${E(rn.what)}${rn.replayed ? " - every logged pick replayed under these rules" : ` - its record starts ${E(dayLbl(rn.since))}`}.`
     + (ru.earlier || []).filter(e => e.final).map(e => ` v${num(e.v)} (${E(dayLbl(e.since))} - ${E(dayLbl(e.until))}: ${E(e.what)}) ended ${rvTxt(e)}.`).join("") + `</div>` : "");
   try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
+  try { drawEdge(k); } catch (e) { $("edge").innerHTML = ""; }
+  try { drawMaker(k); } catch (e) { $("maker").innerHTML = ""; }
   try { drawAcct(k); } catch (e) { $("acct").innerHTML = ""; }
   drawChart(k);
   // today's picks, then the earlier days below, newest day first (the part carries the newest ROWS_MAX picks;

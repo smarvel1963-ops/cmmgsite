@@ -327,8 +327,11 @@ const PER_TXT = { "1H": "1st half", "2H": "2nd half", Q1: "1st quarter", Q2: "2n
 function srcTxt(r) {
   if (r.src === "manual") return LOCK().toUpperCase();
   if (r.src === "football") return "FOOTBALL" + (r.per ? " " + (PER_TXT[r.per] || r.per).toUpperCase() : " GAME") + (r.tier ? " · " + r.tier : "") + (r.rs ? " (never posted)" : "");
+  if (r.src === "tennis") return "TENNIS BOARD";
   return r.eng || "";
 }
+// the pick: side + line for a total, the player + "ML" for a tennis match (Scott 11/12: tennis in the main record)
+const pickTxt = r => `${E(r.side || "")} ${N(r.line) != null ? num(r.line, 1) : r.src === "tennis" ? "ML" : "—"}`;
 // EDGE MAP (plan phase 1, Scott 11/11 "it need good info and run on it own"): where our picks beat the exchange's OWN
 // price, not the book's. A cell is PROVEN only at 30+ picks with its 95% low above the price and its later half still
 // above; until one is, the engine bets nothing - said plainly.
@@ -348,7 +351,7 @@ function drawMaker(k) {
   const t = m.taker || {};
   el.innerHTML = `<div class="sech">MAKER ORDERS<small>paper simulation · ${num(m.n)} graded picks replayed as a resting order a few cents better (maker fee 0.0175 vs 0.07), filled only when sellers went through our price within 10 min</small></div>
     <div class="lsec xs"><table class="kt"><tr><th>ORDER</th><th style="text-align:right">FILLED</th><th style="text-align:right">RECORD</th><th style="text-align:right">ROI</th><th style="text-align:right">TAKING, SAME PICKS</th></tr>
-    <tr><td>Take the price (what the test does)</td><td class="n">${num(m.n)}</td><td class="n">${num(t.w)}-${num(t.l)}</td><td class="n ${cls(t.roi)}">${N(t.roi) != null ? pct(t.roi) : "—"}</td><td class="n">—</td></tr>
+    <tr><td>Take the price (Lives picks, what the test does)</td><td class="n">${num(m.n)}</td><td class="n">${num(t.w)}-${num(t.l)}</td><td class="n ${cls(t.roi)}">${N(t.roi) != null ? pct(t.roi) : "—"}</td><td class="n">—</td></tr>
     ${(m.offsets || []).map(o => `<tr><td>Rest ${num(o.c)}¢ better</td><td class="n">${num(o.filled)} of ${num(m.n)}</td><td class="n">${num(o.w)}-${num(o.l)}</td><td class="n ${cls(o.roi)}">${N(o.roi) != null ? pct(o.roi) : "—"}</td><td class="n ${cls(o.taker_roi)}">${N(o.taker_roi) != null ? pct(o.taker_roi) : "—"}</td></tr>`).join("")}</table></div>`;
 }
 function drawSrc(k) {
@@ -364,16 +367,16 @@ function drawSrc(k) {
 // an earlier day's pick, short (k.old): what it was, the venue it took, the result
 function oldRow(o) {
   const [, tm] = when(o.t);
-  const who = o.src === "manual" ? LOCK() : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : (o.eng || "");
+  const who = o.src === "manual" ? LOCK() : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : o.src === "tennis" ? "tennis board" : (o.eng || "");
   const venue = o.v === "P" ? "Polymarket" : o.v === "K" ? "Kalshi" : "";
   const res = N(o.as) != null ? (N(o.apl) != null ? `<span class="${cls(o.apl)}">${E(o.res || "")} ${sgn(o.apl)}</span>` : `<span class="why">open</span>`)
     : o.st === "NO_FILL" ? `<span class="why">no fill</span>` : `<span class="why">no 1% bet${o.aw ? " - " + E(o.aw) : ""}</span>`;
-  return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${E(o.side || "")} ${num(o.line, 1)}</b> ${E(o.game || "")}
+  return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${pickTxt(o)}</b> ${E(o.game || "")}
     <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${N(o.as) != null ? ` · 1% bet ${usd(o.as)}` : ""}${MINE && o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
 }
 function row(r) {
   const [d, t] = when(r.t);
-  const book = r.bk ? E(r.bk) : r.src === "manual" ? (MINE ? "your line" : "Scott's line") : r.src === "football" ? "football Lives line" : "Auto Lives line";
+  const book = r.bk ? E(r.bk) : r.src === "manual" ? (MINE ? "your line" : "Scott's line") : r.src === "football" ? "football Lives line" : r.src === "tennis" ? "tennis board price" : "Auto Lives line";
   // the win-chance number is not proven yet (review 11/10) - Scott sees it, members don't, so it never reads like a pick rating
   const conf = MINE && N(r.p) != null ? `win chance ${pct(r.p)}${r.cohort ? ` (${E(r.cohort)}, ${num(r.n)} graded)` : ""}` : "";
   const kx = venueLine("KALSHI", r.side, r.k, r.gap, r.ko, r.dep, r.st, r.why, r.res, null, r.best === "KALSHI")
@@ -385,7 +388,7 @@ function row(r) {
   const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.res) || lv.cls;
   const sx = srcTxt(r);
   return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${sx ? " · " + E(sx) : ""}</span></div>
-    <div><div class="pk">${E(r.side)} ${num(r.line, 1)}${r.per ? ` <span class="why">${E(PER_TXT[r.per] || r.per)}</span>` : ""} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${acc || N(r.delay) != null ? `<div class="why">${acc}${acc && N(r.delay) != null ? " · " : ""}${N(r.delay) != null ? `priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
+    <div><div class="pk">${pickTxt(r)}${r.per ? ` <span class="why">${E(PER_TXT[r.per] || r.per)}</span>` : ""} <span class="why">at ${odds(r.bo)} (${book})</span></div><div class="gm">${E(r.game)}</div>${lv.html}${conf ? `<div class="why">${conf}</div>` : ""}${acc || N(r.delay) != null ? `<div class="why">${acc}${acc && N(r.delay) != null ? " · " : ""}${N(r.delay) != null ? `priced ${num(r.delay)}s after the pick` : ""}</div>` : ""}</div>
     <div class="kx">${kx}</div>
     <div class="r">${badge(r.best === "POLY" ? r.pst : r.st, r.best === "POLY" ? r.pres : r.res)}<span>${r.bwhy ? E(r.bwhy) : ""}</span><span>${bk}</span></div></div>`;
 }
@@ -399,7 +402,7 @@ function drawAcct(k) {
   el.querySelectorAll("details[data-k]").forEach(d => { d.open ? ACCT_OPEN.add(d.dataset.k) : ACCT_OPEN.delete(d.dataset.k); });
   const st = a.start || {}, since = a.since ? dayLbl(a.since) : "";
   const line = o => {
-    const sm = o.src === "manual" ? ` (${LOCK()})` : o.src === "football" ? ` (football${o.per ? " " + (PER_TXT[o.per] || o.per) : ""})` : "";
+    const sm = o.src === "manual" ? ` (${LOCK()})` : o.src === "football" ? ` (football${o.per ? " " + (PER_TXT[o.per] || o.per) : ""})` : o.src === "tennis" ? " (tennis)" : "";
     const [, tm] = when(o.t), g = `${E(o.game || "")}${E(sm)} <b>${E(o.side || "")}${N(o.k) != null ? " " + num(o.k, 1) : ""}</b>${N(o.o) != null ? " " + odds(o.o) : ""}`;
     if (!o.v) return `<div class="al sk"><span>${E(tm)}</span><span class="g">${g}</span><span class="r">skip: ${E(o.why || "")}</span></div>`;
     const venue = o.v === "POLY" ? "Polymarket" : o.v === "BOTH" ? "both venues" : "Kalshi";
@@ -441,8 +444,8 @@ function draw(k, at) {
   if (v.POLY) tiles.push(tile("POLYMARKET" + since, recTxt(v.POLY), roiSub(v.POLY) + sameK));
   if (v.BEST) tiles.push(tile("BEST PRICE (EACH PICK)" + since, recTxt(v.BEST), roiSub(v.BEST) + sameK));
   if (MINE) tiles.push(tile("AT THE LOGGED LINE", N(a.book_w) + N(a.book_l) ? `${num(a.book_w)}-${num(a.book_l)}` : "—",
-    N(a.book_w) + N(a.book_l) ? "the same picks at the line their page wrote down (comparison only)" : "waits for grades"));
-  tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
+    N(a.book_w) + N(a.book_l) ? "the Lives picks at the line their page wrote down (comparison only; tennis has no logged line)" : "waits for grades"));
+  tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet, or a tennis match already under way)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   // the rules these numbers run on (Scott 11/11: "data we have matching what version we are on"): the current version,
   // replayed over every logged pick when the logged fills allow it; earlier versions' frozen records beside it, never mixed
@@ -491,7 +494,7 @@ function draw(k, at) {
         <div class="kx">${kx}</div><div class="r"><span>${r.bwhy ? E(r.bwhy) : ""}</span></div></div>`;
     };
     const ln = bd.lines, lnTxt = ln ? ["KALSHI", "POLY", "BEST"].map(v => `${v === "BEST" ? "best" : v === "POLY" ? "Polymarket" : "Kalshi"} ${recTxt(ln[v])}${N((ln[v] || {}).graded) ? ` <span class="${cls(ln[v].roi)}">ROI ${pct(ln[v].roi)}</span>` : ""}`).join(" · ") : "";
-    $("boards").innerHTML = `<div class="sech">BOARD PICKS · TENNIS<small>every posted tennis pick priced on both venues before the match (no ITF on Polymarket) · ${num(bd.n)} so far · pregame game lines (ML + totals) stopped 11/11 - their earlier rows stay below</small></div>
+    $("boards").innerHTML = `<div class="sech">BOARD PICKS · TENNIS<small>every posted tennis pick priced on both venues before the match (no ITF on Polymarket) · ${num(bd.n)} so far · every one also counts in the totals, today's picks, BY SOURCE and the accounts above (the Nov 11 ones had started before they could be priced) · pregame game lines (ML + totals) stopped 11/11 - their earlier rows stay below</small></div>
       <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile("TENNIS · " + (v === "BEST" ? "BEST PRICE" : VNAME[v]), recTxt(rc[v]), roiSub(rc[v]))).join("")}</div>` +
       (ln ? `<div class="why" style="margin:-4px 2px 10px">Game lines priced before 11/11 (${num(bd.n_lines)}, not in the tennis record): ${lnTxt}</div>` : "") +
       ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No tennis picks priced yet. Each one is priced on both venues as its board posts it, before the match starts.</div>`);
@@ -518,7 +521,7 @@ function draw(k, at) {
     ${nf.map(([why, n]) => `<tr><td colspan="3"><span class="why">No fill: ${E(why)}</span></td><td class="n">${num(n)}</td></tr>`).join("")}</table></div>` : "";
   const days = k.days || [];
   const hd = (k.head || {}).days || {}, acd = d => hd[d] && N(hd[d].w) + N(hd[d].l) ? `${num(hd[d].w)}-${num(hd[d].l)} <span class="${cls(hd[d].pl)}">${sgn(hd[d].pl)}</span>` : (hd[d] ? `${num(hd[d].bets)} open` : "—");
-  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the 1% paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">1% ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE</th>' : ""}</tr>
+  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the 1% paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">1% ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE (LIVES)</th>' : ""}</tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n">${acd(d.day)}</td>${MINE ? `<td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td>` : ""}</tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders.${MINE ? "" : " A research test, read only — not picks to bet."} Each pick is priced on Kalshi and Polymarket US within seconds of
     being made (Auto Lives, ${LOCKS()}, football Lives - NBA out of this test since 11/11; tennis board picks as their board posts them, before the match - no

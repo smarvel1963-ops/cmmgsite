@@ -420,7 +420,11 @@ function draw(k, at) {
     N(a.book_w) + N(a.book_l) ? "the same picks at the line their page wrote down (comparison only)" : "waits for grades"));
   tiles.push(tile("PRICED / FILLED", `${num(c.priced)} / ${num(c.fills)}`, `${num(c.late)} seen late (runner not up yet)`));
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
-  $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>`;
+  // the rules these numbers run on (Scott 11/11: "data we have matching what version we are on"): the current version,
+  // replayed over every logged pick when the logged fills allow it; earlier versions' frozen records beside it, never mixed
+  const ru = k.rules || {}, rn = ru.now, rvTxt = e => `Kalshi ${num(e.final.w)}-${num(e.final.l)} (ROI ${pct(e.final.roi)}), best price ${num(e.final.best_w)}-${num(e.final.best_l)} (ROI ${pct(e.final.best_roi)})${e.final.asof ? ` - as of ${E(e.final.asof)}${N(e.final.open) ? `, ${num(e.final.open)} still open` : ""}` : ""}`;
+  $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>` + (rn ? `<div class="why" style="margin:-4px 2px 12px"><b>Rules v${num(rn.v)}</b> since ${E(dayLbl(rn.since))}: ${E(rn.what)}${rn.replayed ? " - every logged pick replayed under these rules" : ` - its record starts ${E(dayLbl(rn.since))}`}.`
+    + (ru.earlier || []).filter(e => e.final).map(e => ` v${num(e.v)} (${E(dayLbl(e.since))} - ${E(dayLbl(e.until))}: ${E(e.what)}) ended ${rvTxt(e)}.`).join("") + `</div>` : "");
   try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
   try { drawAcct(k); } catch (e) { $("acct").innerHTML = ""; }
   drawChart(k);
@@ -487,7 +491,7 @@ function draw(k, at) {
   $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the 1% paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">1% ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE</th>' : ""}</tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n">${acd(d.day)}</td>${MINE ? `<td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td>` : ""}</tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders.${MINE ? "" : " A research test, read only — not picks to bet."} Each pick is priced on Kalshi and Polymarket US within seconds of
-    being made (Auto Lives, ${LOCKS()}, football Lives; tennis board picks as their board posts them, before the match - no
+    being made (Auto Lives, ${LOCKS()}, football Lives - NBA out of this test since 11/11; tennis board picks as their board posts them, before the match - no
     other pregame picks since 11/11): on each venue the line at least as good as ours, an order of the pick's own
     stake (units × $5, or ${MINE ? "your" : "Scott's"} locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
     The money at the top, today's graph and each pick's bet are the 1% paper account: $100 Kalshi + $100 Polymarket, a standard

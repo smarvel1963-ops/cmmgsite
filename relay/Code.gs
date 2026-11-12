@@ -11,6 +11,9 @@
  *   v1.21 (Scott 11/11 "allow my polymarkets to be viewed by others not altered by them" -> "All CMMG members" -> "free
  *   as well"): task "kalshi" opens to ANYONE signed in with Discord (free included), READ ONLY - the only writer is the
  *   feed's write key. The reply carries owner true/false so the page says "Scott's lock" to members. Needs a redeploy.
+ *   v1.22 (Scott 11/11 "build the better number finder" -> "should show on the web app liek all other info"): feed part
+ *   "numbers" + task "numbers" - live book totals that beat the exchanges' fair line (MasterHub better_number.py), READ
+ *   ONLY for anyone signed in, like "kalshi". Never a board, never on the scoreboard. Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -83,7 +86,7 @@ const CHUNK = 8000;                   // Script Property values max ~9 KB - big 
 const TRACK_MAX = 300;                // a member's tracked picks kept (v1.8: 500 -> 300, Script Properties are ~500 KB in all)
 // v1.8 byte caps per feed part (escaped JSON as stored). The PC exporter (cmmg_feed_export.py) caps a little lower, by
 // UTF-8 bytes: history 120 KB, today 60 KB, each board 40 KB, all together ~320 KB - the margin here covers \u escapes.
-const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000, kalshi: 24000 };
+const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000, kalshi: 24000, numbers: 12000 };
 
 function doGet() { return out({ ok: true, app: "cmmg relay", v: 1 }); }
 
@@ -106,6 +109,7 @@ function doPost(e) {
       case "trackall": return out(trackAll(P, session(P, req.session), req));
       case "hubrecords": return out(hubRecords(P, session(P, req.session)));
       case "kalshi": return out(kalshiPaper(P, session(P, req.session)));
+      case "numbers": return out(betterNumbers(P, session(P, req.session)));
       case "share": return out(shareTracker(P, session(P, req.session), req));
       case "members": return out(members(P, session(P, req.session)));
       case "forget": return out(forget(P, session(P, req.session)));
@@ -121,7 +125,7 @@ function doPost(e) {
 function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
-  if (["today", "history", "records", "hub", "kalshi"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
+  if (["today", "history", "records", "hub", "kalshi", "numbers"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
   const str = ascii(JSON.stringify({ at: new Date().toISOString(), data: req.data }));
   const cap = PART_CAP[/^board_/.test(req.part) ? "board" : req.part];
   if (str.length > cap) return { ok: false, error: "part too big: " + str.length + " > " + cap + " bytes - not stored (the last copy stays)" };
@@ -534,6 +538,17 @@ function kalshiPaper(P, s) {
   if (!s) return { ok: false, error: "sign in with Discord first" };
   const r = getBig(P, "F_kalshi");
   return { ok: true, denied: false, owner: isOwner(P, s.uid), at: r ? r.at : null, kalshi: r && r.data || null };
+}
+
+// v1.22 BETTER NUMBERS (Scott 11/11 "build the better number finder" -> "should show on the web app liek all other
+// info"): the feed's "numbers" part as the PC sent it - live NBA / NCAAB book totals whose line + price beat the
+// exchanges' fair line, in Scott's rules, plus the finder's own graded record. READ ONLY for anyone signed in (same
+// access as "kalshi"; Scott 11/11, asked Elite-only or everyone: "Everyone signed in"); written only with the feed's
+// write key. Never a board, never on the scoreboard.
+function betterNumbers(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  const r = getBig(P, "F_numbers");
+  return { ok: true, owner: isOwner(P, s.uid), at: r ? r.at : null, numbers: r && r.data || null };
 }
 
 // v1.16 MEMBERS (Scott 10/18 "both"): what members mark, for the owner. Two parts, never mixed:

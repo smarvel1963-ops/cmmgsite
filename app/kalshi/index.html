@@ -408,7 +408,7 @@ function drawAcct(k) {
   };
   const card = tr => {
     const up = N(tr.equity) - N(tr.start), sk = Object.entries(tr.skips || {}).map(([w, n]) => `${num(n)} ${E(w)}`).join(" · ");
-    return `<div class="acc"><div class="ah">${E(String(tr.label || "").toUpperCase())}</div>
+    return `<div class="acc"><div class="ah">${E(String(tr.label || "").toUpperCase())}${tr.key && tr.key === (k.head || {}).key ? " · TOP OF PAGE" : ""}</div>
       <div class="av ${cls(up)}">${usd(tr.equity)}</div>
       <div class="as"><span class="${cls(up)}">${sgn(up)}</span> from ${usd(tr.start)} · ${num(tr.w)}-${num(tr.l)} · ${num(tr.bets)} bets${N(tr.plays) ? ` · ${num(tr.plays)} both-sides` : ""}</div>
       <div class="ab"><span>Kalshi <b>${usd(tr.kalshi)}</b></span><span>Polymarket <b>${usd(tr.poly)}</b></span><span>Riding <b>${usd(tr.riding)}</b></span></div>
@@ -446,7 +446,11 @@ function draw(k, at) {
   tiles.push(tile("AVERAGE KALSHI PRICE", pr ? odds(pr.kalshi) : "—", pr ? `vs ${odds(pr.book)} logged, ${num(pr.n)} fills` : "no fills yet"));
   // the rules these numbers run on (Scott 11/11: "data we have matching what version we are on"): the current version,
   // replayed over every logged pick when the logged fills allow it; earlier versions' frozen records beside it, never mixed
-  const ru = k.rules || {}, rn = ru.now, rvTxt = e => `Kalshi ${num(e.final.w)}-${num(e.final.l)} (ROI ${pct(e.final.roi)}), best price ${num(e.final.best_w)}-${num(e.final.best_l)} (ROI ${pct(e.final.best_roi)})${e.final.asof ? ` - as of ${E(e.final.asof)}${N(e.final.open) ? `, ${num(e.final.open)} still open` : ""}` : ""}`;
+  // a version that changed only the top account (v2) froze that account's money; v1 froze the Kalshi records
+  const ru = k.rules || {}, rn = ru.now, rvTxt = e => e.final.acct
+    ? `${e.final.asof ? `as of ${E(e.final.asof)}, ` : ""}with ${E(e.final.acct)} at the top${e.replayed && e.final.from ? ` (replayed from ${E(dayLbl(e.final.from))})` : ""}: ${usd(e.final.equity)} (<span class="${cls(e.final.profit)}">${sgn(e.final.profit)}</span>), picks ${num(e.final.w)}-${num(e.final.l)} - that account keeps running below`
+    : `Kalshi ${num(e.final.w)}-${num(e.final.l)} (ROI ${pct(e.final.roi)}), best price ${num(e.final.best_w)}-${num(e.final.best_l)} (ROI ${pct(e.final.best_roi)})`
+      + `${e.final.asof ? ` - as of ${E(e.final.asof)}${N(e.final.open) ? `, ${num(e.final.open)} still open` : ""}` : ""}`;
   $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>` + (rn ? `<div class="why" style="margin:-4px 2px 12px"><b>Rules v${num(rn.v)}</b> since ${E(dayLbl(rn.since))}: ${E(rn.what)}${rn.replayed ? " - every logged pick replayed under these rules" : ` - its record starts ${E(dayLbl(rn.since))}`}.`
     + (ru.earlier || []).filter(e => e.final).map(e => ` v${num(e.v)} (${E(dayLbl(e.since))} - ${E(dayLbl(e.until))}: ${E(e.what)}) ended ${rvTxt(e)}.`).join("") + `</div>` : "");
   try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
@@ -521,7 +525,8 @@ function draw(k, at) {
     other pregame picks since 11/11): on each venue the line at least as good as ours, an order of the pick's own
     stake (units × $5, or ${MINE ? "your" : "Scott's"} locked dollars) walked through the live book, the venue's fee included, graded off that venue's own result.
     The money at the top, today's graph and each pick's bet are the 1% paper account: $100 Kalshi + $100 Polymarket, a standard
-    bet = 1% of the bankroll (it grows and shrinks with it), ${MINE ? "your" : "Scott's"} limits (3 a game, 4 pts apart, never both sides, skip worse than -140).
+    bet = 1% of the bankroll (it grows and shrinks with it), ${MINE ? "your" : "Scott's"} limits (3 a game, 4 pts apart, never both sides), no -140 cut since 11/11;
+    an identical account that skips prices worse than -140 runs beside it for comparison.
     ${MINE ? "Your" : "Scott's"} real bet size is for All Bets, not this test.
     BEST = the venue the pick takes, chosen when it was priced, never after. "Logged line" is the same pick at the line + price its page
     wrote down — a comparison, not a CMMG record. Football research plays (recorded, never posted) are priced but never bet by the accounts.

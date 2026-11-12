@@ -1,0 +1,113 @@
+<!doctype html>
+<!-- SAVE AS: index.html · LOCATION: C:/MarvelApps/cmmgsite/app/numbers/index.html
+     BETTER NUMBERS (Scott 11/11: "build the better number finder" -> "should show on the web app liek all other info").
+     Live NBA + college totals where a sportsbook's line + price beat the exchanges' fair line (Kalshi + Polymarket
+     price live totals fast and close to fair; books are slower). MasterHub better_number.py finds them every 45 s,
+     in Scott's live rules only; cmmg_feed_numbers.py sends them as relay part "numbers" (v1.22, read only for anyone
+     signed in). Every flag is graded at the book's line, so the finder shows its own record. A price check, not a
+     pick: lines move in seconds. Nothing on this page writes. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Better Numbers · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
+<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
+<link rel="icon" type="image/png" href="/img/lion_64.png"><link rel="apple-touch-icon" href="/img/apple_touch_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="CMMG">
+<meta name="robots" content="noindex">
+<style>
+.signbar, .soonbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 16px; border-radius:14px; margin-bottom:14px; font-size:14px; font-weight:700; }
+.signbar { border:1px solid rgba(127,216,255,.35); background:rgba(127,216,255,.07); }
+.soonbar { border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); } .soonbar b { color:#ffd700; }
+.status { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:10px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(10,22,40,.7); margin-bottom:14px; font-size:13px; font-weight:700; color:var(--dim); }
+.status b { color:var(--text); } .dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+.up { background:#22c55e; box-shadow:0 0 8px #22c55e; } .unk { background:#64748b; }
+.sech { font-family:var(--disp, inherit); font-weight:800; letter-spacing:.06em; font-size:13px; color:var(--dim); margin:18px 0 8px; display:flex; justify-content:space-between; gap:10px; }
+.sech small { font-weight:600; letter-spacing:0; }
+.ncard { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 14px; padding:12px 14px; border-radius:14px; border:1px solid rgba(34,197,94,.45); background:linear-gradient(90deg, rgba(34,197,94,.10), rgba(10,22,40,.7)); margin-bottom:10px; }
+.ncard .bet { font-size:20px; font-weight:900; letter-spacing:.01em; } .ncard .bet .bk { color:#7fd8ff; }
+.ncard .gm { font-size:13px; color:var(--dim); font-weight:700; }
+.ncard .edge { text-align:right; font-weight:900; font-size:18px; color:#22c55e; } .ncard .edge small { display:block; font-size:12px; color:var(--dim); font-weight:700; }
+.ncard .why { grid-column:1 / -1; font-size:12px; color:var(--dim); }
+.empty { padding:16px; border-radius:12px; border:1px dashed var(--line); color:var(--dim); font-size:14px; }
+.tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:6px; }
+.tile { padding:12px; border-radius:12px; border:1px solid var(--line); background:rgba(10,22,40,.7); } .tile .k { font-size:12px; color:var(--dim); font-weight:700; } .tile .v { font-size:22px; font-weight:900; }
+.pos { color:#22c55e; } .neg { color:#ef4444; }
+table.kt { width:100%; border-collapse:collapse; font-size:13px; } table.kt td, table.kt th { padding:7px 6px; border-bottom:1px solid var(--line); text-align:left; } table.kt th { color:var(--dim); font-weight:700; font-size:12px; }
+.rb { display:inline-block; padding:2px 7px; border-radius:6px; font-size:11px; font-weight:900; } .rb.WIN { background:rgba(34,197,94,.18); color:#22c55e; } .rb.LOSS { background:rgba(239,68,68,.18); color:#ef4444; } .rb.PUSH, .rb.OPEN { background:rgba(100,116,139,.2); color:#94a3b8; }
+.note2 { font-size:12px; color:var(--dim); line-height:1.5; margin-top:16px; }
+</style></head>
+<body>
+<div class="layout wide">
+  <main class="main">
+    <div class="vhero"><h1>BETTER NUMBERS</h1><p>LIVE NBA + COLLEGE TOTALS WHERE A BOOK'S LINE BEATS THE EXCHANGES' FAIR LINE</p></div>
+    <div id="gate"></div>
+    <div id="status"></div>
+    <div id="now"></div>
+    <div id="tiles"></div>
+    <div id="recent"></div>
+    <div id="note"></div>
+  </main>
+</div>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script>
+const E = CMMG.esc, $ = id => document.getElementById(id);
+const N = v => v == null || v === "" ? null : (isFinite(+v) ? +v : null);
+const num = (v, d = 0) => { const x = N(v); return x == null ? "—" : x.toLocaleString("en-US", { maximumFractionDigits: d }); };
+const odds = o => { const x = N(o); return x == null ? "—" : x > 0 ? "+" + x : String(x); };
+const tm = t => { const m = String(t || "").match(/T(\d\d):(\d\d)/); if (!m) return ""; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? "AM" : "PM"} CT`; };
+const ago = iso => { const t = Date.parse(iso || ""); if (!t) return "—"; const s = Math.round((Date.now() - t) / 1000); return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`; };
+const played = (lg, p) => { const x = N(p); if (x == null) return ""; const total = lg === "NBA" ? 48 : 40, left = Math.max(0, total - x); return `${num(left, 1)} min left`; };
+function gate(msg, btn) {
+  $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
+  ["status", "now", "tiles", "recent", "note"].forEach(id => { $(id).innerHTML = ""; });
+}
+function draw(d, at) {
+  $("gate").innerHTML = "";
+  const fresh = !!at && (N(d.live_games) || N(d.games) || 0) > 0 && (Date.now() - Date.parse(at)) < 5 * 60e3;   // relay time (UTC): right in every time zone
+  $("status").innerHTML = `<div class="status"><span><span class="dot ${fresh ? "up" : "unk"}"></span><b>${fresh ? "Watching live games" : "No live games right now"}</b></span>
+    <span>last check <b>${E(tm(d.scan_at))}</b></span><span>games priced <b>${num(d.games)}</b></span><span>sent ${E(ago(at))}</span></div>`;
+  // a copy older than 3 min is not "now": its prices are gone (PC off mid-game, a failed send) - never shown as live
+  const stale = !at || (Date.now() - Date.parse(at)) > 3 * 60e3;
+  const live = stale ? [] : (d.live || []);
+  $("now").innerHTML = `<div class="sech">BETTER NUMBERS NOW<small>sorted by edge · lines move in seconds - check the book before you bet</small></div>` +
+    (live.length ? live.map(r => `<div class="ncard"><div><div class="bet"><span class="bk">${E(r.book)}</span> ${E(r.side)} ${num(r.line, 1)} ${odds(r.odds)}</div>
+      <div class="gm">${E(r.lg)} · ${E(r.game)}${r.score ? " · " + E(r.score) : ""}${r.played != null ? " · " + played(r.lg, r.played) : ""}</div></div>
+      <div class="edge">${N(r.ev) != null ? "+" + Math.round(N(r.ev) * 100) + "%" : "—"}<small>edge</small></div>
+      <div class="why">Fair line ${num(r.fair, 1)} (Kalshi + Polymarket) · this line is ${num(r.pts, 1)} pts better for the ${E(String(r.side || "").toLowerCase())}${r.t ? " · first seen " + E(tm(r.t)) : ""}</div></div>`).join("")
+    : `<div class="empty">${stale && (d.live || []).length ? `No live check for ${E(ago(at))} - the alerts from then are gone, so none are shown.` : "Nothing right now. When a book is slower than the exchanges on a live total, inside the rules, it shows here within about a minute."}</div>`);
+  const rr = (d.rec || {}).rules || {}, ra = (d.rec || {}).all || {};
+  const rec = x => N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)}` : "—";
+  $("tiles").innerHTML = `<div class="sech">THE FINDER'S OWN RECORD<small>one bet per game and side, graded at the book's line, 1 unit at the book's price</small></div><div class="tiles">
+    <div class="tile"><div class="k">In the rules</div><div class="v">${rec(rr)}</div></div>
+    <div class="tile"><div class="k">Units (in the rules)</div><div class="v ${N(rr.units) > 0 ? "pos" : N(rr.units) < 0 ? "neg" : ""}">${N(rr.units) == null ? "—" : (N(rr.units) > 0 ? "+" : "") + num(rr.units, 2) + "u"}</div></div>
+    <div class="tile"><div class="k">Bets logged (in the rules)</div><div class="v">${num(rr.bets)}</div></div>
+    <div class="tile"><div class="k">Everything spotted (incl. outside the rules)</div><div class="v">${rec(ra)}</div></div></div>`;
+  const rc = d.recent || [];
+  $("recent").innerHTML = rc.length ? `<div class="sech">TONIGHT'S FLAGS<small>newest first</small></div><div class="lsec"><table class="kt">
+    <tr><th>TIME</th><th>GAME</th><th>BET</th><th>FAIR</th><th>EDGE</th><th>RESULT</th></tr>
+    ${rc.map(r => `<tr><td>${E(tm(r.t))}</td><td>${E(r.lg)} · ${E(r.game)}</td><td>${E(r.book)} ${E(r.side)} ${num(r.line, 1)} ${odds(r.odds)}</td><td>${num(r.fair, 1)}</td>
+      <td>${N(r.ev) != null ? "+" + Math.round(N(r.ev) * 100) + "%" : "—"}</td><td><span class="rb ${E(r.res || "OPEN")}">${E(r.res || "OPEN")}</span>${r.fin != null ? ` <span class="why">final ${num(r.fin)}</span>` : ""}</td></tr>`).join("")}</table></div>` : "";
+  const ru = d.rules || {};
+  $("note").innerHTML = `<p class="note2">How it works: every 45 seconds during live NBA and college games, the fair line comes from Kalshi and
+    Polymarket (the middle of each market's bid and ask), and every major US book's live total is checked against it. A book shows here when its
+    line and price beat the fair chance by at least ${N(ru.ev_min) != null ? Math.round(N(ru.ev_min) * 100) : 4}% and the line is at least
+    ${num(ru.min_pts, 1)} point${N(ru.min_pts) === 1 ? "" : "s"} better - and only inside Scott's live rules: his game-clock windows and the same line
+    rules his own lock button uses. One alert per game and side: the best book. A book line that hasn't updated in a couple of minutes, or is still
+    the pregame number, is never shown. A price check, not a pick; nothing here places a bet.</p>`;
+}
+let STOP = false, LAST = null;
+async function load() {
+  const sess = CMMG.session();
+  if (!sess) { STOP = true; gate("Sign in with Discord (free) to see Better Numbers.", true); return; }
+  let j; try { j = await CMMG.relay({ task: "numbers", session: sess.token }); } catch (e) { j = null; }
+  if (!j) { gate("Couldn't reach CMMG right now — trying again shortly."); return; }
+  if (!j.ok && j.error === "unknown task") { gate("<b>Almost there.</b> This page needs the CMMG relay v1.22 deployed in Apps Script."); return; }
+  if (!j.ok) { gate(E(j.error || "Sign in again to continue."), /sign in/i.test(j.error || "")); return; }
+  if (!j.numbers) { gate("<b>No data yet.</b> The finder sends this page while live games are on."); return; }
+  LAST = j; draw(j.numbers, j.at);
+}
+setInterval(() => { if (!STOP && !document.hidden) load(); }, 60000);   // the finder updates every 45 s; 60 s spares the relay's daily quota
+document.addEventListener("visibilitychange", () => { if (!document.hidden && !STOP) load(); });
+SHELL.mount("numbers");
+load();
+</script>
+</body></html>

@@ -354,6 +354,20 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   check("kalshi: never on the scoreboard", !JSON.stringify(sbk).includes("kalshi"), sbk);
   check("kalshi: not a board", post({ task: "board", name: "kalshi", session: proS }).error === "unknown board");
 }
+// v1.22 BETTER NUMBERS (Scott 11/11 "build the better number finder" -> "should show on the web app liek all other info")
+{
+  const nd = { v: 1, at: "2026-11-11T22:00:00", live: [{ lg: "NBA", game: "Orlando Magic @ Utah Jazz", book: "espnbet", side: "UNDER", line: 228.5, odds: -120, fair: 223.9, pts: 4.6, ev: 0.26 }], rec: { w: 0, l: 0 } };
+  check("numbers: wrong write key refused", post({ task: "put", key: "nope", part: "numbers", data: nd }).error === "not allowed");
+  check("numbers: PUT stored", post({ task: "put", key: "wkey", part: "numbers", data: nd }).ok === true);
+  check("numbers: too big refused (12 KB cap)", /too big/.test(post({ task: "put", key: "wkey", part: "numbers", data: { x: "y".repeat(13000) } }).error));
+  check("numbers: signed out refused", post({ task: "numbers" }).ok === false);
+  const nr = post({ task: "numbers", session: freeS });
+  check("numbers: a FREE member reads it exactly as sent", nr.ok && JSON.stringify(nr.numbers) === JSON.stringify(nd) && !!nr.at, nr);
+  check("numbers: a member is not the owner", nr.owner === false);
+  check("numbers: a member's session is not a write key", post({ task: "put", key: proS, part: "numbers", data: { x: 1 } }).error === "not allowed");
+  check("numbers: never on the scoreboard", !JSON.stringify(post({ task: "scoreboard", session: proS })).includes("espnbet"));
+  check("numbers: not a board", post({ task: "board", name: "numbers", session: proS }).error === "unknown board");
+}
 // v1.16 MEMBERS (Scott 10/18 "how would me track each individules bets they mark" -> "both")
 {
   post({ task: "put", key: "wkey", part: "history", data: { picks: [

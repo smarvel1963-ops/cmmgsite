@@ -363,12 +363,14 @@ const SHELL = (() => {
   // (The key was cmmg.kalshi.owner under v1.20 - renamed so a member's cached "0" from then never hides the chip.)
   function ownerKalshi(active) {
     const s = CMMG.session(); if (!s) return;
+    // + BETTER NUMBERS (relay v1.22, same access as "kalshi"; Scott 11/11 "should show on the web app liek all other info")
     const show = () => {
       const on = active === "kalshi" ? "on" : "", ic = typeof ICON !== "undefined" ? ICON.ui("chart") : "";
-      document.querySelector("nav.sportrow .pickjump")?.insertAdjacentHTML("afterend", `<a class="${on}" href="/app/kalshi/">${ic}KALSHI PAPER</a>`);
+      const onN = active === "numbers" ? "on" : "";
+      document.querySelector("nav.sportrow .pickjump")?.insertAdjacentHTML("afterend", `<a class="${on}" href="/app/kalshi/">${ic}KALSHI PAPER</a><a class="${onN}" href="/app/numbers/">${ic}BETTER NUMBERS</a>`);
       const rail = document.getElementById("leftDrawer");
-      if (rail) rail.insertAdjacentHTML("afterbegin", `<h4>Paper test</h4><a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper Run</a>`);
-      document.querySelector("nav.mnav")?.insertAdjacentHTML("afterbegin", `<a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper</a>`);
+      if (rail) rail.insertAdjacentHTML("afterbegin", `<h4>Live edges</h4><a class="${onN}" href="/app/numbers/">${ic}Better Numbers</a><a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper Run</a>`);
+      document.querySelector("nav.mnav")?.insertAdjacentHTML("afterbegin", `<a class="${onN}" href="/app/numbers/">${ic}Better #s</a><a class="${on}" href="/app/kalshi/">${ic}Kalshi Paper</a>`);
     };
     let known = null; try { known = sessionStorage.getItem("cmmg.kalshi.see"); } catch (e) {}
     if (known === "1") return show();

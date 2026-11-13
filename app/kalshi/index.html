@@ -75,6 +75,14 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
 .chart { position:relative; border-radius:16px; border:1px solid var(--line); background:linear-gradient(180deg, rgba(22,44,78,.55), rgba(8,17,32,.9)); padding:12px 12px 6px; margin-bottom:12px; }
 .chart .ch { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:0 4px 6px; }
 .chart .ch b { font-family:Saira; font-style:italic; font-weight:800; font-size:22px; } .chart .ch span { font-size:12px; color:var(--dim); font-weight:700; }
+.chart .kstrip { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; margin:0; }
+.chart .kfoot { text-align:center; font-size:11px; font-weight:700; color:var(--dim); margin:4px 0 8px; }
+.chart .kc { min-width:0; padding:7px 6px 6px; border-radius:10px; border:1px solid rgba(127,216,255,.12); background:rgba(6,13,26,.45); text-align:center; }
+.chart .kc.now { border-color:rgba(255,215,0,.45); }
+.chart .kc .kl { display:block; font-size:10px; font-weight:900; letter-spacing:.08em; color:var(--dim); }
+.chart .kc b { display:block; font-family:Saira; font-style:italic; font-weight:800; font-size:clamp(15px, 4.8vw, 24px); line-height:1.15; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chart .kc b.sm { font-size:clamp(13px, 3.7vw, 22px); }
+.chart .kc .ks { display:block; font-size:11px; font-weight:700; color:var(--dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .chart svg { display:block; width:100%; height:200px; overflow:visible; }
 .chart .grid { stroke:rgba(127,216,255,.10); stroke-width:1; } .chart .zero { stroke:rgba(255,255,255,.35); stroke-width:1; stroke-dasharray:4 4; }
 .chart .tick { fill:#7d93ad; font:600 10px Inter, sans-serif; }
@@ -326,7 +334,21 @@ function drawChart0(k) {
   const open = today.filter(r => r.apl == null).length;
   const title = today.length ? "TONIGHT" : "TODAY";
   const last24 = has24 ? ` · ${since ? "since " + E(hmOf(from)) : "last 24 h"} <b class="${cls(cum)}">${sgn(cum)}</b>` : "";
-  el.innerHTML = `<div class="chart"><div class="ch"><b class="${cls(tot)}">${title} ${sgn(tot)}</b>
+  // Scott 11/13: "where it says tonight i want yesterday profit today profit over all profit across top in that open
+  // gap and this needs to be maintained live"; "profit" = the WHOLE 1% account, picks + both-sides plays). head.pls
+  // (MasterHub cmmg_feed_kalshi._pls - the PC's 2-min send and the server's overnight send build it the same way):
+  // YESTERDAY = the previous session day, TODAY = since the close, OVERALL = every day under the current rules
+  // version = the account tile's profit; the days are whole cents that add up to it. The graph line stays picks only,
+  // so TODAY can differ from it. They take the TONIGHT title's place and redraw with every send. An older feed
+  // without them keeps the title. A missing number shows $0.00, never blank. w = 1 marks the whole-account build:
+  // a feed without it (the first, picks-only build) keeps the title too.
+  const ps = k.head && k.head.pls && typeof k.head.pls === "object" && k.head.pls.w === 1 ? k.head.pls : null;
+  const pv = v => N(v) || 0;
+  const mday = d => /^\d{4}-\d\d-\d\d$/.test(String(d || "")) ? new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }) : "";
+  const kc = (lbl, v, sub, now) => { const tx = sgn(pv(v));          // "+$1,234.56" and longer: one size down (360 px)
+    return `<div class="kc${now ? " now" : ""}"><span class="kl">${lbl}</span><b class="${cls(pv(v))}${tx.length > 8 ? " sm" : ""}">${tx}</b><span class="ks">${sub || "&nbsp;"}</span></div>`; };
+  const strip = ps ? `<div class="kstrip">${kc("YESTERDAY", ps.y, dayLbl(ps.yd))}${kc("TODAY", ps.t, dayLbl(ps.td), true)}${kc("OVERALL", ps.o, mday(ps.since) ? "since " + mday(ps.since) : "")}</div><div class="kfoot">picks + both-sides</div>` : "";
+  el.innerHTML = `<div class="chart">${strip}<div class="ch">${ps ? "" : `<b class="${cls(tot)}">${title} ${sgn(tot)}</b>`}
     <span>1% paper account · ${today.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""}${last24} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
       : `${E(dayLbl(day))} · no picks yet today${last24 || " - the line starts moving with the first bet"}`}</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${has24 ? "Running total, last 24 hours" : "Tonight's running total"}">

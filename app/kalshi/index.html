@@ -82,7 +82,8 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
 .chart .area.up { fill:url(#gUp); } .chart .area.dn { fill:url(#gDn); }
 .chart .bet { fill:#0b1a2e; stroke:#93c5fd; stroke-width:2; } .chart .bet.lw { stroke:#4ade80; } .chart .bet.ll { stroke:#f87171; }
 .chart .w { fill:#22c55e; stroke:#04140a; stroke-width:1.5; } .chart .l { fill:#ef4444; stroke:#1f0505; stroke-width:1.5; }
-.chart .head { fill:#ffd700; } .chart .ring { fill:none; stroke:#ffd700; stroke-width:2; transform-box:fill-box; transform-origin:center; animation:ping 1.6s ease-out infinite; }
+.chart .turn { stroke:#ffd700; stroke-opacity:.55; stroke-width:1.5; stroke-dasharray:3 4; } .chart .turnl { fill:#ffd700; fill-opacity:.8; }
+.chart .old { opacity:.5; } .chart .head { fill:#ffd700; } .chart .ring { fill:none; stroke:#ffd700; stroke-width:2; transform-box:fill-box; transform-origin:center; animation:ping 1.6s ease-out infinite; }
 @keyframes ping { 0% { opacity:.9; transform:scale(.6); } 100% { opacity:0; transform:scale(2.6); } }
 @media (max-width:760px) { .krow { grid-template-columns:minmax(0,1fr) auto; } .krow .t { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } .krow .kx { grid-column:1 / -1; } }
 </style></head>
@@ -249,38 +250,58 @@ function curDay(k) {
   return kd === todayCt || (n != null && (n - ctMs(kd + "T00:00") < 30 * 3600e3 || (newest && n - newest < 12 * 3600e3))) ? kd : todayCt;
 }
 const rowDay = r => r.d || String(r.t || "").slice(0, 10);       // the session day (r.d), never split at midnight
+// ms (naive CT) -> "9:05 PM"
+const hmOf = ms => { const d = new Date(ms), h = d.getUTCHours(); return `${h % 12 || 12}:${String(d.getUTCMinutes()).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
 function drawChart0(k) {
   const el = $("chart"); if (!el) return;
-  const day = curDay(k), live = true;
-  const rows = (k.rows || []).filter(r => rowDay(r) === day);
-  const ares = r => r.av === "P" ? r.pres : r.res;                 // the result of the venue the 1% account bet
-  // the 1% paper account's bets (Scott 11/11): its own series for the day when sent - every bet, even past the pick rows
-  // that fit in the part - else the rows. Each as {t, ag, apl, res, g}.
-  const hs = k.head && k.head.day === day && Array.isArray(k.head.series) ? k.head.series : null;
-  const RES = { W: "WIN", L: "LOSS", P: "PUSH", V: "VOID" };
-  const bets = hs ? hs.map(x => ({ t: x[0], ag: x[1], apl: x[2], res: RES[x[3]] || x[3] || null, g: x[4] || "", as: null }))
-    : rows.filter(r => N(r.as) != null).map(r => ({ t: r.t, ag: r.ag, apl: r.apl, res: ares(r), g: `${r.side || ""} ${num(r.line, 1)} ${r.game || ""}`, as: r.as, row: r }));
-  const evs = [];
-  bets.forEach(b => {
-    const tb = ctMs(b.t); if (tb != null) evs.push({ t: tb, kind: "bet", r: b });
-    const tg = ctMs(b.ag); if (tg != null && N(b.apl) != null) evs.push({ t: tg, kind: "res", r: b, d: N(b.apl) || 0 });
-  });
   let now = nowCt();
   if (now == null) { el.innerHTML = ""; return; }
+  const RES = { W: "WIN", L: "LOSS", P: "PUSH", V: "VOID" };
+  // Scott 11/12 "build graph on 24 continous graph but total changes when eod occurs or 12 midnite" -> "show a live
+  // running 24 hours": head.w24 = the 1% account's bets made or settled in the last 24 h. The line is the running
+  // total over the last 24 h, live, straight through the close; the headline is the day's own total (BY DAY), which
+  // starts over when the day turns - a dashed "new day" line marks it. Without w24 (an older feed): tonight only.
+  const w = k.head && k.head.w24, has24 = !!(w && Array.isArray(w.b) && ctMs(w.base) != null);
+  // the headline's day: on the 24-hour chart the feed's own current day (the session day once the close rolled it,
+  // so the total starts over AT the close); its bets carry that day's flag. Else the page's day (curDay).
+  const day = has24 ? (w.day || k.head.day || curDay(k)) : curDay(k);
+  let bets, from = null, turn = null, since = false;
+  if (has24) {
+    const base = ctMs(w.base), at = m => (N(m) == null ? null : base + N(m) * 60e3);
+    bets = w.b.map(x => ({ tb: at(x[0]), tg: at(x[1]), apl: N(x[2]), res: RES[x[3]] || x[3] || null, g: x[4] || "", cur: x[5] === 1 }));
+    from = now - 24 * 3600e3;
+    // bets left out for room: the feed's `from` is past every one of them, so the line from there misses no result
+    if (N(w.from) != null && base + N(w.from) * 60e3 > from) { from = base + N(w.from) * 60e3; since = true; }
+    turn = ctMs(w.turn);
+    if (turn == null) { const c = bets.filter(b => b.cur && b.tb != null).map(b => b.tb); if (c.length) turn = Math.min(...c); }
+  } else {
+    const rows = (k.rows || []).filter(r => rowDay(r) === day);
+    const ares = r => r.av === "P" ? r.pres : r.res;                 // the result of the venue the 1% account bet
+    // the 1% paper account's bets (Scott 11/11): its own series for the day when sent, else the rows
+    const hs = k.head && k.head.day === day && Array.isArray(k.head.series) ? k.head.series : null;
+    bets = (hs ? hs.map(x => ({ t: x[0], ag: x[1], apl: x[2], res: RES[x[3]] || x[3] || null, g: x[4] || "" }))
+      : rows.filter(r => N(r.as) != null).map(r => ({ t: r.t, ag: r.ag, apl: r.apl, res: ares(r), g: `${r.side || ""} ${num(r.line, 1)} ${r.game || ""}`, row: r })))
+      .map(b => Object.assign(b, { tb: ctMs(b.t), tg: ctMs(b.ag), apl: N(b.apl), cur: true }));
+  }
+  const evs = [];
+  bets.forEach(b => {
+    if (b.tb != null && (from == null || b.tb >= from)) evs.push({ t: b.tb, kind: "bet", r: b });
+    if (b.tg != null && b.apl != null && (from == null || b.tg >= from)) evs.push({ t: b.tg, kind: "res", r: b, d: b.apl || 0 });
+  });
   evs.sort((a, b) => a.t - b.t || (a.kind === b.kind ? 0 : a.kind === "bet" ? -1 : 1));
   let cum = 0;
   evs.forEach(e => { if (e.kind === "res") cum = Math.round((cum + e.d) * 100) / 100; e.v = cum; });
   const lastT = evs.length ? evs[evs.length - 1].t : now;           // no picks yet: a flat $0 line up to now
-  now = live ? Math.max(now, lastT) : lastT + 10 * 60e3;
-  const t0 = Math.min(evs.length ? evs[0].t : now, now - (evs.length ? 3600e3 : 3 * 3600e3)) - 5 * 60e3,
-        t1 = Math.max(now, lastT) + 4 * 60e3;
+  now = Math.max(now, lastT);
+  const t0 = has24 ? from : Math.min(evs.length ? evs[0].t : now, now - (evs.length ? 3600e3 : 3 * 3600e3)) - 5 * 60e3,
+        t1 = now + 4 * 60e3;
+  if (turn != null && !(turn > t0 && turn < t1)) turn = null;
   const vals = [0, ...evs.map(e => e.v)], lo = Math.min(...vals), hi = Math.max(...vals), pad = Math.max(5, (hi - lo) * 0.15);
   const W = Math.max(280, (el.clientWidth || 624) - 24), H = 200, L = 46, R = 12, T = 10, B = 22;
   const X = t => L + (W - L - R) * (t - t0) / (t1 - t0), Y = v => T + (H - T - B) * (1 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)));
   let d = `M${X(t0).toFixed(1)},${Y(0).toFixed(1)}`;
   evs.forEach(e => { if (e.kind === "res") d += ` H${X(e.t).toFixed(1)} V${Y(e.v).toFixed(1)}`; });
   d += ` H${X(now).toFixed(1)}`;
-  const dir = cum > 0 ? "up" : cum < 0 ? "dn" : "ev";
   const area = `${d} V${Y(0).toFixed(1)} H${X(t0).toFixed(1)} Z`;
   const step = Math.max(1, Math.ceil(30 / ((W - L - R) * 3600e3 / (t1 - t0))));      // hour labels never crowd on a phone
   const hours = []; for (let h = Math.ceil(t0 / (step * 3600e3)) * step * 3600e3; h <= t1; h += step * 3600e3) hours.push(h);
@@ -288,24 +309,27 @@ function drawChart0(k) {
   const yt = [Math.round(lo - pad / 2), 0, Math.round(hi + pad / 2)].filter((v, i, a) => a.indexOf(v) === i);
   const valAt = t => { let v = 0; evs.forEach(e => { if (e.kind === "res" && e.t <= t) v = e.v; }); return v; };
   const marks = evs.map(e => {
-    const g = e.r.g;
+    const g = e.r.g, old = has24 && !e.r.cur ? " old" : "";        // the earlier day's dots, dimmed
     if (e.kind === "bet") {
-      const open = N(e.r.apl) == null, lv = open && e.r.row ? liveOf(e.r.row).cls : "";
-      return `<circle class="bet ${lv}" cx="${X(e.t).toFixed(1)}" cy="${Y(valAt(e.t)).toFixed(1)}" r="4.5"><title>${E(when(e.r.t)[1])} bet: ${E(g)}</title></circle>`;
+      const open = e.r.apl == null, lv = open && e.r.row ? liveOf(e.r.row).cls : "";
+      return `<circle class="bet ${lv}${old}" cx="${X(e.t).toFixed(1)}" cy="${Y(valAt(e.t)).toFixed(1)}" r="4.5"><title>${E(hmOf(e.t))} bet${g ? ": " + E(g) : ""}</title></circle>`;
     }
     const c = e.r.res === "WIN" ? "w" : e.r.res === "LOSS" ? "l" : "bet";            // colour by the result, not the sign
-    return `<circle class="${c}" cx="${X(e.t).toFixed(1)}" cy="${Y(e.v).toFixed(1)}" r="5"><title>${E(when(e.r.ag)[1])} ${E(e.r.res || "")} ${sgn(e.d)}: ${E(g)}</title></circle>`;
+    return `<circle class="${c}${old}" cx="${X(e.t).toFixed(1)}" cy="${Y(e.v).toFixed(1)}" r="5"><title>${E(hmOf(e.t))} ${E(e.r.res || "")} ${sgn(e.d)}${g ? ": " + E(g) : ""}</title></circle>`;
   }).join("");
   // the headline = the day's own total (the BY DAY row), so it always matches - even past ROWS_MAX picks
   const dr = ((k.head || {}).days || {})[day];                      // the 1% account's own day (Scott 11/11)
-  const tot = dr ? N(dr.pl) || 0 : cum, nW = dr ? N(dr.w) || 0 : evs.filter(e => e.r.res === "WIN" && e.kind === "res").length,
-        nL = dr ? N(dr.l) || 0 : evs.filter(e => e.r.res === "LOSS" && e.kind === "res").length;
-  const open = bets.filter(r => N(r.apl) == null).length;
-  const title = bets.length ? "TONIGHT" : "TODAY";
+  const today = bets.filter(b => b.cur), todayRes = evs.filter(e => e.kind === "res" && e.r.cur);
+  const tot = dr ? N(dr.pl) || 0 : todayRes.reduce((a, e) => Math.round((a + e.d) * 100) / 100, 0),
+        nW = dr ? N(dr.w) || 0 : todayRes.filter(e => e.r.res === "WIN").length,
+        nL = dr ? N(dr.l) || 0 : todayRes.filter(e => e.r.res === "LOSS").length;
+  const open = today.filter(r => r.apl == null).length;
+  const title = today.length ? "TONIGHT" : "TODAY";
+  const last24 = has24 ? ` · ${since ? "since " + E(hmOf(from)) : "last 24 h"} <b class="${cls(cum)}">${sgn(cum)}</b>` : "";
   el.innerHTML = `<div class="chart"><div class="ch"><b class="${cls(tot)}">${title} ${sgn(tot)}</b>
-    <span>1% paper account · ${bets.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
-      : `${E(dayLbl(day))} · no picks yet today - the line starts moving with the first bet`}</span></div>
-    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Tonight's running total">
+    <span>1% paper account · ${today.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""}${last24} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
+      : `${E(dayLbl(day))} · no picks yet today${last24 || " - the line starts moving with the first bet"}`}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${has24 ? "Running total, last 24 hours" : "Tonight's running total"}">
       <defs><linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
         <linearGradient id="gDn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ef4444" stop-opacity=".35"/><stop offset="1" stop-color="#ef4444" stop-opacity="0"/></linearGradient>
         <clipPath id="cUp"><rect x="0" y="0" width="${W}" height="${Y(0).toFixed(1)}"/></clipPath>
@@ -313,10 +337,11 @@ function drawChart0(k) {
       ${hours.map(h => `<line class="grid" x1="${X(h).toFixed(1)}" x2="${X(h).toFixed(1)}" y1="${T}" y2="${H - B}"/><text class="tick" x="${X(h).toFixed(1)}" y="${H - 6}" text-anchor="middle">${hl(h)}</text>`).join("")}
       ${yt.map(v => `<text class="tick" x="${L - 6}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end">${v === 0 ? "$0" : (v > 0 ? "+$" : "-$") + Math.abs(Math.round(v))}</text>`).join("")}
       <line class="zero" x1="${L}" x2="${W - R}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}"/>
+      ${turn != null ? `<line class="turn" x1="${X(turn).toFixed(1)}" x2="${X(turn).toFixed(1)}" y1="${T}" y2="${H - B}"/><text class="tick turnl" x="${(X(turn) + 4).toFixed(1)}" y="${T + 9}">new day</text>` : ""}
       ${evs.some(e => e.v !== 0) ? `<path class="area up" clip-path="url(#cUp)" d="${area}"/><path class="area dn" clip-path="url(#cDn)" d="${area}"/>
       <path class="ln up" clip-path="url(#cUp)" d="${d}"/><path class="ln dn" clip-path="url(#cDn)" d="${d}"/>` : `<path class="ln ev" d="${d}"/>`}
       ${marks}
-      ${live ? `<circle class="ring" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="6"/>` : ""}<circle class="head" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="4"/>
+      <circle class="ring" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="6"/><circle class="head" cx="${X(now).toFixed(1)}" cy="${Y(cum).toFixed(1)}" r="4"/>
     </svg></div>`;
 }
 
@@ -463,7 +488,8 @@ function draw(k, at) {
   drawChart(k);
   // today's picks, then the earlier days below, newest day first (the part carries the newest ROWS_MAX picks;
   // a day cut short says "newest x of y" - its full record is in BY DAY)
-  const rows = k.rows || [], cd = curDay(k), dayRow = d => (k.days || []).find(x => x.day === d);
+  // the day: the 24-hour chart's own (the session day once the close rolled it), so the list and the chart agree
+  const rows = k.rows || [], cd = (k.head && k.head.w24 && k.head.w24.day) || curDay(k), dayRow = d => (k.days || []).find(x => x.day === d);
   const ofAll = (d, n) => { const dr = dayRow(d), all = dr ? N(dr.picks) : null; return all != null && all > n ? `newest ${num(n)} of ${num(all)}` : `${num(n)} picks`; };
   const today = rows.filter(r => rowDay(r) === cd), byDay = {};
   // earlier days: full rows when the newest day is not today, then the short ones (k.old, the earlier days' picks)

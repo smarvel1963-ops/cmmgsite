@@ -167,6 +167,7 @@ let EV = {}, LAST = null;
 // v1.21: members read this page too (Scott 11/11 "All CMMG members", "free as well"). The relay says who is Scott; an
 // older relay sends no flag, and then only the owner could have loaded the data at all.
 let MINE = true;
+let ACC = "1%";      // the page's headline paper account, short (feed head.short; Scott 11/15 "test another week on upgraded formula")
 const LOCK = () => MINE ? "your lock" : "Scott's lock", LOCKS = () => MINE ? "your Lives locks" : "Scott's Lives locks";
 const nm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 const ymd = t => String(t || "").slice(0, 10).replace(/-/g, "");
@@ -349,7 +350,7 @@ function drawChart0(k) {
     return `<div class="kc${now ? " now" : ""}"><span class="kl">${lbl}</span><b class="${cls(pv(v))}${tx.length > 8 ? " sm" : ""}">${tx}</b><span class="ks">${sub || "&nbsp;"}</span></div>`; };
   const strip = ps ? `<div class="kstrip">${kc("YESTERDAY", ps.y, dayLbl(ps.yd))}${kc("TODAY", ps.t, dayLbl(ps.td), true)}${kc("OVERALL", ps.o, mday(ps.since) ? "since " + mday(ps.since) : "")}</div><div class="kfoot">picks + both-sides</div>` : "";
   el.innerHTML = `<div class="chart">${strip}<div class="ch">${ps ? "" : `<b class="${cls(tot)}">${title} ${sgn(tot)}</b>`}
-    <span>1% paper account · ${today.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""}${last24} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
+    <span>${E(ACC)} paper account · ${today.length ? `${num(nW)}-${num(nL)}${open ? ` · ${num(open)} open` : ""}${last24} · ● bet made · <span class="pos">●</span> win <span class="neg">●</span> loss`
       : `${E(dayLbl(day))} · no picks yet today${last24 || " - the line starts moving with the first bet"}`}</span></div>
     <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${has24 ? "Running total, last 24 hours" : "Tonight's running total"}">
       <defs><linearGradient id="gUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e" stop-opacity=".35"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/></linearGradient>
@@ -417,9 +418,9 @@ function oldRow(o) {
   const who = o.src === "manual" ? LOCK() : o.src === "football" ? "football" + (o.per ? " " + (PER_TXT[o.per] || o.per) : "") + (o.rs ? " (never posted)" : "") : o.src === "tennis" ? "tennis board" : (o.eng || "");
   const venue = o.v === "P" ? "Polymarket" : o.v === "K" ? "Kalshi" : "";
   const res = N(o.as) != null ? (N(o.apl) != null ? `<span class="${cls(o.apl)}">${E(o.res || "")} ${sgn(o.apl)}</span>` : `<span class="why">open</span>`)
-    : o.st === "NO_FILL" ? `<span class="why">no fill</span>` : `<span class="why">no 1% bet${o.aw ? " - " + E(o.aw) : ""}</span>`;
+    : o.st === "NO_FILL" ? `<span class="why">no fill</span>` : `<span class="why">no ${E(ACC)} bet${o.aw ? " - " + E(o.aw) : ""}</span>`;
   return `<div class="orow"><span class="ot">${E(tm)}</span><span class="og"><b>${pickTxt(o)}</b> ${E(o.game || "")}
-    <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${N(o.as) != null ? ` · 1% bet ${usd(o.as)}` : ""}${MINE && o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
+    <span class="why">· ${E(o.lg || "")}${who ? " · " + E(who) : ""}${venue ? ` · ${venue} ${N(o.k) != null ? num(o.k, 1) + " " : ""}${odds(o.o)}` : ""}${N(o.as) != null ? ` · ${E(ACC)} bet ${usd(o.as)}` : ""}${MINE && o.bres ? ` · at the book ${E(o.bres)}` : ""}</span></span><span class="or">${res}</span></div>`;
 }
 function row(r) {
   const [d, t] = when(r.t);
@@ -430,8 +431,8 @@ function row(r) {
            + venueLine("POLY", r.side, r.pk, r.pgap, r.po, r.pdep, r.pst, r.pwhy, r.pres, null, r.best === "POLY");
   const bk = MINE && r.bres ? `logged line: ${E(r.bres)}` : "";
   // the 1% paper account's bet on this pick (Scott 11/11: "build on 1 percent my 15 is for all bets")
-  const acc = N(r.as) != null ? `1% account: bet ${usd(r.as)} on ${r.av === "P" ? "Polymarket" : "Kalshi"}${N(r.apl) != null ? ` → <span class="${cls(r.apl)}">${sgn(r.apl)}</span>` : " (open)"}`
-    : r.aw ? `1% account: no bet - ${E(r.aw)}` : "";
+  const acc = N(r.as) != null ? `${E(ACC)} account: bet ${usd(r.as)} on ${r.av === "P" ? "Polymarket" : "Kalshi"}${N(r.apl) != null ? ` → <span class="${cls(r.apl)}">${sgn(r.apl)}</span>` : " (open)"}`
+    : r.aw ? `${E(ACC)} account: no bet - ${E(r.aw)}` : "";
   const lv = liveOf(r), rc = gradedCls(r.best === "POLY" ? r.pres : r.res) || lv.cls;
   const sx = srcTxt(r);
   return `<div class="krow ${rc}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}${sx ? " · " + E(sx) : ""}</span></div>
@@ -473,6 +474,7 @@ function tile(k, v, s) { return `<div class="ktile"><div class="k">${E(k)}</div>
 function roiSub(r) { return r && N(r.graded) ? `<span class="${cls(r.roi)}">ROI ${pct(r.roi)}</span> · every pick, at any size` : `${num((r || {}).fills)} filled, none graded`; }
 function recSub(r) { return r && N(r.graded) ? `<span class="${cls(r.profit)}">${sgn(r.profit)}</span> on ${usd(r.staked)} · ROI ${pct(r.roi)}` : `${num((r || {}).fills)} filled, none graded`; }
 function draw(k, at) {
+  ACC = String(((k || {}).head || {}).short || "1%");     // the headline account's short name (MasterHub rules v5: "1/4 Kelly")
   const s = k.status || {}, age = N(s.runner_age_s), up = age != null && age < 120;
   const fedAge = Date.now() - Date.parse(at || "");
   $("status").innerHTML = `<div class="status"><span><span class="dot ${age == null ? "unk" : up ? "up" : "down"}"></span>Runner <b>${age == null ? "unknown" : up ? "up" : "down"}</b> when sent</span>
@@ -524,7 +526,7 @@ function draw(k, at) {
   const ds = [...new Set([...Object.keys(byDay), ...missing])].sort().reverse();
   $("older").innerHTML = ds.length ? `<div class="sech">EARLIER DAYS<small>newest day first</small></div>` + ds.map(d => {
     const dr = dayRow(d), ad = ((k.head || {}).days || {})[d];      // the day on the 1% paper account (Scott 11/11)
-    const wl = ad && N(ad.w) + N(ad.l) ? ` · 1% account ${num(ad.w)}-${num(ad.l)} <span class="${cls(ad.pl)}">${sgn(ad.pl)}</span>` : "";
+    const wl = ad && N(ad.w) + N(ad.l) ? ` · ${E(ACC)} account ${num(ad.w)}-${num(ad.l)} <span class="${cls(ad.pl)}">${sgn(ad.pl)}</span>` : "";
     if (!byDay[d]) return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${num((dr || {}).picks)} picks${wl} · not listed tonight - today's picks fill the page's room; the day's record is in BY DAY below</small></div>`;
     return `<div class="dayh">${E(String(dayLbl(d)).toUpperCase())} <small>${ofAll(d, byDay[d].length)}${wl}</small></div><div class="lsec">${byDay[d].map(x => x.fn(x.r)).join("")}</div>`;
   }).join("") : "";
@@ -573,7 +575,7 @@ function draw(k, at) {
     ${nf.map(([why, n]) => `<tr><td colspan="3"><span class="why">No fill: ${E(why)}</span></td><td class="n">${num(n)}</td></tr>`).join("")}</table></div>` : "";
   const days = k.days || [];
   const hd = (k.head || {}).days || {}, acd = d => hd[d] && N(hd[d].w) + N(hd[d].l) ? `${num(hd[d].w)}-${num(hd[d].l)} <span class="${cls(hd[d].pl)}">${sgn(hd[d].pl)}</span>` : (hd[d] ? `${num(hd[d].bets)} open` : "—");
-  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the 1% paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">1% ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE (LIVES)</th>' : ""}</tr>
+  $("days").innerHTML = days.length ? `<div class="sech">BY DAY<small>every pick on Kalshi (win-loss) · the ${E(ACC)} paper account's bets and money</small></div><div class="lsec"><table class="kt"><tr><th>DAY</th><th style="text-align:right">PRICED</th><th style="text-align:right">FILLED</th><th style="text-align:right">KALSHI</th><th style="text-align:right">${E(ACC.toUpperCase())} ACCOUNT</th>${MINE ? '<th style="text-align:right">LOGGED LINE (LIVES)</th>' : ""}</tr>
     ${days.map(d => `<tr><td>${dayLbl(d.day)}${N(d.late) ? ` <span class="why">+${num(d.late)} late</span>` : ""}</td><td class="n">${num(d.picks)}</td><td class="n">${num(d.fills)}</td><td class="n">${N(d.w) + N(d.l) ? `${num(d.w)}-${num(d.l)}` : "—"}</td><td class="n">${acd(d.day)}</td>${MINE ? `<td class="n">${N(d.book_w) + N(d.book_l) ? `${num(d.book_w)}-${num(d.book_l)}` : "—"}</td>` : ""}</tr>`).join("")}</table></div>` : "";
   $("note").innerHTML = `<p class="note2">PAPER — no account, no money, no orders.${MINE ? "" : " A research test, read only — not picks to bet."} Each pick is priced on Kalshi and Polymarket US within seconds of
     being made (Auto Lives, ${LOCKS()}, football Lives - NBA out of this test since 11/11; tennis board picks as their board posts them, before the match - no

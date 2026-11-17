@@ -112,6 +112,7 @@ table.kt td { padding:10px 14px; border-bottom:1px solid rgba(127,216,255,.08); 
     <div id="bysrc"></div>
     <div id="acct"></div>
     <div id="boards"></div>
+    <div id="pp"></div>
     <div id="both"></div>
     <div id="sizing"></div>
     <div id="gaps"></div>
@@ -141,7 +142,7 @@ const VNAME = { KALSHI: "KALSHI", POLY: "POLYMARKET" };
 function gate(msg, btn) {
   LAST = null;
   $("gate").innerHTML = `<div class="${btn ? "signbar" : "soonbar"}"><span>${msg}</span>${btn ? '<button class="btn disc" data-signin>Continue with Discord</button>' : ""}</div>`;
-  ["status", "tiles", "chart", "rows", "older", "edge", "maker", "bysrc", "acct", "boards", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
+  ["status", "tiles", "chart", "rows", "older", "edge", "maker", "bysrc", "acct", "boards", "pp", "both", "sizing", "gaps", "days", "note"].forEach(id => { $(id).innerHTML = ""; });
 }
 function badge(st, res) {
   if (st === "NO_FILL") return '<span class="rb NOFILL">NO FILL</span>';
@@ -549,6 +550,28 @@ function draw(k, at) {
       (ln ? `<div class="why" style="margin:-4px 2px 10px">Game lines priced before 11/11 (${num(bd.n_lines)}, not in the tennis record): ${lnTxt}</div>` : "") +
       ((bd.rows || []).length ? `<div class="lsec">${bd.rows.map(brow).join("")}</div>` : `<div class="empty">No tennis picks priced yet. Each one is priced on both venues as its board posts it, before the match starts.</div>`);
   } else $("boards").innerHTML = "";
+  // PRIZEPICKS TOP 10 ON KAL/POLY (MasterHub pp_kalpoly, Scott 11/14: "also do prize picks chooses able to run on kal poly
+  // we are very accurate on our top 10 pp"). Its own line, beside the test: never in the totals, the graph or the accounts.
+  const pq = k.pp, ppEl = $("pp");
+  if (pq && ppEl) {
+    const rc = pq.records || {}, ps = pq.pp_same || {}, pa = pq.pp_all || {};
+    const ppTxt = x => N(x.w) + N(x.l) ? `${num(x.w)}-${num(x.l)}${N(x.p) ? `-${num(x.p)}` : ""}` : "—";
+    const prow = r => {
+      const kx = venueLine("KALSHI", "", null, null, r.ko, null, r.kst, r.kwhy, r.kres, r.kpl, r.best === "KALSHI")
+               + venueLine("POLY", "", null, null, r.po, null, r.pst, r.pwhy, r.pres, r.ppl, r.best === "POLY");
+      const [d, t] = when(r.t);
+      const rc2 = gradedCls(r.best === "POLY" ? r.pres : r.kres) || "";
+      return `<div class="krow ${rc2}"><div class="t"><b>${E(t)}</b><span>${E(d)} · ${E(r.lg)}</span></div>
+        <div><div class="pk">${E(r.bet)} <span class="why">PrizePicks${r.tier ? " " + E(r.tier) : ""}</span></div><div class="gm">${E(r.game)}</div>
+        ${r.bres ? `<div class="why">at PrizePicks <span class="rb ${E(r.bres)}">${E(r.bres)}</span></div>` : ""}</div>
+        <div class="kx">${kx}</div><div class="r"><span></span></div></div>`;
+    };
+    const why = Object.entries(pq.why || {}).map(([w, n]) => `${E(w)} ×${num(n)}`).join(" · ");
+    ppEl.innerHTML = `<div class="sech">PRIZEPICKS TOP 10 · ON KAL/POLY<small>every published PrizePicks top-10 pick priced on both exchanges before its game, where the exchange lists the same player, stat and line (OVER 2.5 = YES on 3+, UNDER 2.5 = NO on 3+) · ${num(pq.n)} picks${pq.since ? " since " + E(dayLbl(pq.since)) : ""}, ${num(pq.listed)} listed on an exchange · paper, beside the ${E(ACC)} test - never in its totals, graph or accounts</small></div>
+      <div class="ktiles">${["KALSHI", "POLY", "BEST"].map(v => tile("PP · " + (v === "BEST" ? "BEST PRICE" : VNAME[v]), recTxt(rc[v]), roiSub(rc[v]))).join("")}${tile("PP · AT PRIZEPICKS", ppTxt(ps), `the same filled picks · every pick ${ppTxt(pa)}`)}</div>` +
+      (why ? `<div class="why" style="margin:-4px 2px 10px">Not priced: ${why}</div>` : "") +
+      ((pq.rows || []).length ? `<div class="lsec">${pq.rows.map(prow).join("")}</div>` : `<div class="empty">No PrizePicks top-10 pick priced yet. Each one is priced on both exchanges once, when the top 10 posts, before its game starts.</div>`);
+  } else if (ppEl) ppEl.innerHTML = "";
   const b = k.both;
   if (b) {
     const sa = (b.summary || {}).ARB || {}, sm = (b.summary || {}).MIDDLE || {}, ru = b.rules || {};

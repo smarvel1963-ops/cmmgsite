@@ -12,7 +12,9 @@
      individual sport can track own records ... keep consistent"; "we should not be rebuilding units"): MasterHub's OWN
      per-sport and per-page records (relay task "hubrecords", feed part "hub" from page_stats_tracker) - Today / Week /
      Month / All exactly as each MasterHub page shows them. Copied, never recomputed here. The tab appears only when the
-     relay serves it (owner by default).
+     relay serves it (owner by default). 11/04 (Scott 11/03 "no where near correct on all different time periods"): the
+     feed now tops both lists with ALL BETS (Session Intel) and By Sport splits it. No ROI column here: most of these
+     records hold no stakes, so it read "—" on nearly every row and pushed units off a phone screen.
      MEMBERS tab + SHARE box (Scott 10/18 "how would me track each individules bets they mark" -> "both"; relay v1.16):
      the owner sees ANONYMOUS totals of what members mark + the named tracker of members who tick "Share my tracker
      with CMMG". Both appear only when the relay has MEMBERS_ON. Privacy page updated the same day. -->
@@ -46,7 +48,16 @@
 .autoall { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; margin-bottom:12px; border-radius:12px; border:1px solid rgba(74,222,128,.4); background:rgba(22,163,74,.08); font-size:13px; color:var(--dim); cursor:pointer; }
 .autoall b { color:var(--text); } .autoall input { margin-top:2px; width:18px; height:18px; flex:none; }
 .hubt td, .hubt th { white-space:nowrap; }
-@media (max-width:640px) { .hubt td, .hubt th { padding:8px 5px; font-size:12px; } .hubt td:first-child { max-width:120px; overflow:hidden; text-overflow:ellipsis; } }
+@media (max-width:640px) { .hubt td, .hubt th { padding:8px 5px; font-size:12px; } .hubt td:first-child { white-space:normal; max-width:96px; } .hubt .game { font-size:11px; } }
+/* MY CALENDAR (Scott 11/17 "Receipts + calendar") - same look as Verified Results' calendar */
+.calnav { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; } .calnav b { font-family:Saira; font-style:italic; font-size:20px; letter-spacing:.03em; }
+.calnav button { background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:9px; width:34px; height:30px; font-weight:900; cursor:pointer; } .calnav button:disabled { opacity:.3; cursor:default; }
+.cal { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px; max-width:640px; } .cal .dh { font-size:10px; letter-spacing:.12em; color:var(--dim); text-align:center; font-weight:800; padding-bottom:2px; }
+.cal .d { aspect-ratio:1 / .92; border-radius:9px; border:1px solid rgba(148,163,184,.14); background:rgba(10,22,40,.45); padding:4px 5px; display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+.cal .d .n { font-size:11px; color:var(--dim); font-weight:700; } .cal .d .u { font-family:Saira; font-weight:800; font-size:clamp(11px, 1.4vw, 15px); line-height:1; white-space:nowrap; } .cal .d .r { font-size:10px; color:rgba(226,232,240,.75); white-space:nowrap; }
+.cal .d.has { cursor:pointer; } .cal .d.has:hover { border-color:rgba(127,216,255,.6); } .cal .d.sel { outline:2px solid #ffd700; outline-offset:1px; } .cal .d.today .n { color:#7fd8ff; } .cal .d.blank { visibility:hidden; }
+@media (max-width:560px) { .cal { gap:3px; } .cal .d { padding:3px; border-radius:7px; } .cal .d .r { display:none; } .cal .d .u { font-size:11px; } .cal .d .n { font-size:9px; } }
+.calsum { display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--dim); } .calsum b { color:var(--text); }
 </style></head>
 <body>
 <div class="layout wide">
@@ -167,15 +178,17 @@ function hubTab() {
   const list = (HUB && HUB[HVIEW]) || [], rows = list.map(e => [e, e.periods && e.periods[HPER]]).filter(([, b]) => b);
   const at = HUB_AT ? new Date(HUB_AT).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " CT" : "";
   const chips = (arr, cur, attr) => arr.map(([k, l]) => `<button data-${attr}="${k}" class="${k === cur ? "on" : ""}">${l}</button>`).join("");
+  // ALL BETS = Session Intel / the Boss report. By Sport splits it. By Page is each page's own record; pages overlap.
+  const what = HVIEW === "sports" ? "ALL BETS is the Session Intel record. The sports below split it." : "Each page's record, as its page or Discord card counts it. Pages share picks, so they don't add up.";
+  const since = e => HPER === "all" && e.since ? `<div class="game">since ${E(nice(e.since))}</div>` : "";
   return `<div class="rng">${chips([["sports", "By Sport"], ["pages", "By Page"]], HVIEW, "hview")}</div>
     <div class="rng">${chips(HPERS, HPER, "hper")}</div>
     <div class="box"><h3>${ICON.ui("shield")}CMMG RECORD · ${HVIEW === "sports" ? "BY SPORT" : "BY PAGE"}</h3>
-    <p class="game" style="margin:0 0 8px">Straight from MasterHub - the same numbers each page shows${HUB.through ? ` · session ${E(nice(HUB.through))}` : ""}${at ? ` · updated ${E(at)}` : ""}.${HPER === "week" ? " Week = last 7 days." : HPER === "month" ? " Month = last 30 days." : ""}</p>
-    ${rows.length ? `<div style="overflow-x:auto"><table class="rt hubt"><tr><th>${HVIEW === "sports" ? "SPORT" : "PAGE"}</th><th>W-L-P</th><th>WIN %</th><th>UNITS</th><th>ROI</th></tr>` + rows.map(([e, b]) => `<tr>
-      <td style="white-space:nowrap">${HVIEW === "sports" ? ICON.sport(e.key) + " " : ""}${E(e.label || e.key)}</td><td>${E(b.record || `${b.wins}-${b.losses}`)}</td>
+    <p class="game" style="margin:0 0 8px">${what}${HUB.through ? ` Session ${E(nice(HUB.through))}` : ""}${at ? ` · updated ${E(at)}` : ""}.${HPER === "week" ? " Week = last 7 days." : HPER === "month" ? " Month = last 30 days." : ""}</p>
+    ${rows.length ? `<div style="overflow-x:auto"><table class="rt hubt"><tr><th>${HVIEW === "sports" ? "SPORT" : "PAGE"}</th><th>W-L-P</th><th>WIN %</th><th>UNITS</th></tr>` + rows.map(([e, b]) => `<tr${e.key === "ALL" ? ' style="font-weight:800"' : ""}>
+      <td>${HVIEW === "sports" && e.key !== "ALL" && e.key !== "OLDER" ? ICON.sport(e.key) + " " : ""}${E(e.label || e.key)}${since(e)}</td><td>${E(b.record || `${b.wins}-${b.losses}`)}</td>
       <td>${b.wins + b.losses ? Number(b.win_rate).toFixed(1) + "%" : "—"}</td>
-      <td class="${b.profit > 0 ? "pos" : b.profit < 0 ? "neg" : ""}">${sgn(b.profit)}</td>
-      <td class="${b.roi > 0 ? "pos" : b.roi < 0 ? "neg" : ""}">${b.wins + b.losses ? (b.roi > 0 ? "+" : "") + Number(b.roi).toFixed(1) + "%" : "—"}</td></tr>`).join("") + `</table></div>`
+      <td class="${b.profit > 0 ? "pos" : b.profit < 0 ? "neg" : ""}">${sgn(b.profit)}</td></tr>`).join("") + `</table></div>`
       : `<p class="game">No graded picks ${HPER === "today" ? "yet today" : "in this window"}.</p>`}</div>`;
 }
 
@@ -216,6 +229,39 @@ function membersTab() {
   return `<div class="rng">${chips}</div>${body}`;
 }
 
+// MY CALENDAR (Scott 11/17 "Receipts + calendar"): the member's OWN graded days in the range, coloured by THEIR units
+// (their odds and stake, like the rest of this tab: mineS), W-L under it, month total + green / red days. Tap a day ->
+// that day's picks under the calendar. Verified Results carries the same calendar for CMMG's record.
+let TCALM = "", TSEL = "";
+function myCal(rows) {
+  const by = {}; rows.forEach(r => { const d = rowDay(r); if (/^\d{4}-\d\d-\d\d$/.test(d) && ["WIN", "LOSS", "PUSH"].includes(r.result)) (by[d] = by[d] || []).push(r); });
+  const ds = Object.keys(by).sort();
+  if (!ds.length) return `<div class="box"><h3>MY CALENDAR</h3><p class="game" style="margin:0">No graded picks in this range yet.</p></div>`;
+  const lo = ds[0].slice(0, 7), hi = ds[ds.length - 1].slice(0, 7);
+  if (!TCALM || TCALM < lo || TCALM > hi) TCALM = hi;
+  const [y, m] = TCALM.split("-").map(Number), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), today = todayKey();
+  const cells = []; for (let i = 0; i < first.getUTCDay(); i++) cells.push(`<div class="d blank"></div>`);
+  let mw = 0, ml = 0, mp = 0, mnet = 0, green = 0, red = 0;
+  for (let d = 1; d <= n; d++) {
+    const key = `${TCALM}-${String(d).padStart(2, "0")}`, dr = by[key], tc = key === today ? " today" : "";
+    if (!dr) { cells.push(`<div class="d${tc}"><span class="n">${d}</span></div>`); continue; }
+    const s = mineS(dr), rec = `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`;
+    mw += s.w; ml += s.l; mp += s.push; mnet += s.net; if (s.net > 0) green++; else if (s.net < 0) red++;
+    const a = (Math.min(1, Math.abs(s.net) / 5) * .55 + .14).toFixed(2);
+    const bg = s.net > 0 ? `rgba(34,197,94,${a})` : s.net < 0 ? `rgba(239,68,68,${a})` : "rgba(148,163,184,.2)";
+    cells.push(`<div class="d has${key === TSEL ? " sel" : ""}${tc}" data-tday="${key}" style="background:${bg}" title="${E(nice(key))}: ${rec}, ${sgn(s.net)}u">
+      <span class="n">${d}</span><span class="u">${(s.net > 0 ? "+" : "") + s.net.toFixed(1)}</span><span class="r">${rec}</span></div>`);
+  }
+  const name = first.toLocaleDateString("en-US", { timeZone: "UTC", month: "long", year: "numeric" });
+  const sel = TSEL && by[TSEL] ? by[TSEL].slice().sort((a, b) => String(a.time || a.at).localeCompare(String(b.time || b.at))) : null;
+  const list = sel ? `<div style="margin-top:12px;overflow-x:auto"><table class="rt"><tr><th>${E(nice(TSEL))}</th><th>MY ODDS</th><th>UNITS</th><th>RESULT</th><th>P/L</th></tr>${sel.map(r => {
+      const v = mineS([r]).net; return `<tr><td><b>${E(r.bet || "")}</b><div class="game">${E(r.sport || "")}${r.game ? " · " + E(r.game) : ""}</div></td><td>${odds(r.myOdds)}</td><td>${E(r.units)}</td>
+        <td><span class="rb ${E(r.result)}">${E(r.result)}</span></td><td class="${v > 0 ? "pos" : v < 0 ? "neg" : ""}">${sgn(v)}</td></tr>`; }).join("")}</table></div>` : `<p class="game" style="margin:10px 0 0">Tap a day to see its picks.</p>`;
+  return `<div class="box"><h3>MY CALENDAR</h3><div class="calnav" style="max-width:640px"><button data-tcm="-1" ${TCALM <= lo ? "disabled" : ""} aria-label="Previous month">‹</button><b>${E(name)}</b><button data-tcm="1" ${TCALM >= hi ? "disabled" : ""} aria-label="Next month">›</button></div>
+    <div class="cal">${["S", "M", "T", "W", "T", "F", "S"].map(w => `<div class="dh">${w}</div>`).join("")}${cells.join("")}</div>
+    <div class="calsum"><span>Month <b>${mw}-${ml}${mp ? "-" + mp : ""}</b></span><span><b class="${mnet > 0 ? "pos" : mnet < 0 ? "neg" : ""}">${sgn(mnet)}u</b></span><span><b>${green}</b> green days · <b>${red}</b> red</span></div>${list}</div>`;
+}
+
 function draw() {
   $("rng").style.display = TAB === "hub" || TAB === "mem" ? "none" : "";          // .rng is display:flex - [hidden] alone would not hide it
   $("tabs").innerHTML = [...(HUB ? [["hub", "CMMG Record"]] : []), ...(MEM ? [["mem", "Members"]] : []), ["over", "Overview"], ["sport", "By Sport"], ["tier", "By Tier"], ["type", "By Bet Type"], ["hist", "History"]].map(([k, l]) => `<button data-tab="${k}" class="${k === TAB ? "on" : ""}">${l}</button>`).join("");
@@ -241,6 +287,7 @@ function draw() {
     el.innerHTML = `<div class="two">${card("YOUR RESULTS", "star", "you", me, "", youX)}${card("CMMG PRO TRACK", "shield", "cm", cmRows ? cmmgS(cmRows) : null,
         cmRows ? "" : `<div class="lock2"><b>Goes live soon</b>CMMG's verified record appears here once Verified Results launches.</div>`, extra)}</div>
       <div class="box"><h3>UNITS PROFIT CHART</h3>${chart([{ name: "Your units", color: "#22c55e", rows, s: me }, ...(cmRows ? [{ name: "CMMG units", color: "#3b82f6", rows: cmRows, s: cmmgS(cmRows) }] : [])])}</div>
+      ${myCal(rows)}
       <div class="two"><div class="box"><h3>WIN RATE BY TIER</h3>${tierBars(rows, "wr")}</div><div class="box"><h3>UNITS BY TIER</h3>${tierBars(rows, "units")}</div></div>`;
   } else if (TAB === "sport") {
     el.innerHTML = `<div class="box"><h3>SPORT BREAKDOWN</h3>${table(rows, r => r.sport || "Other", [...new Set(rows.map(r => r.sport || "Other"))].sort(), "SPORT")}</div>`;
@@ -298,6 +345,8 @@ $("shareMine").addEventListener("change", async e => {
 });
 document.addEventListener("click", e => {
   const o = e.target.closest("[data-mopen]"); if (o) { MOPEN = MOPEN === o.dataset.mopen ? "" : o.dataset.mopen; draw(); return; }
+  const td = e.target.closest("[data-tday]"); if (td) { TSEL = TSEL === td.dataset.tday ? "" : td.dataset.tday; draw(); return; }   // MY CALENDAR day
+  const tm = e.target.closest("[data-tcm]"); if (tm) { if (!tm.disabled) { const [y, m] = TCALM.split("-").map(Number); TCALM = new Date(Date.UTC(y, m - 1 + Number(tm.dataset.tcm), 1)).toISOString().slice(0, 7); draw(); } return; }
   const t = e.target.closest("button"); if (!t) return;
   if (t.dataset.tab) { TAB = t.dataset.tab; TAB_PICKED = true; draw(); }
   if (t.dataset.hper) { HPER = t.dataset.hper; draw(); }

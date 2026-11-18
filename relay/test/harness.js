@@ -508,8 +508,27 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   check("v1.23: a member never sees the owner's All Bets - gets exactly mytracker", vg.ok && !vg.owner_allbets
     && !(vg.rows || []).some(r => /^AB_/.test(r.pick)) && JSON.stringify(vg) === JSON.stringify(post({ task: "mytracker", session: vip23 })), vg);
   check("v1.23: mytracker itself is unchanged for the owner (no All Bets rows)", !(post({ task: "mytracker", session: ownS }).rows || []).some(r => /^AB_/.test(r.pick)));
+  // v1.23 receipts + owner preview (Scott 11/17 "Receipts + calendar")
+  const savedPub = PROPS.RESULTS_PUBLIC;
+  post({ task: "put", key: "wkey", part: "history", data: { picks: [
+    { id: "rc1", need: "pro", date: "2026-11-17", time: "2026-11-18T00:00:00Z", sport: "NCAAF", game: "A @ B", bet: "OVER 49.5", odds: -110, units: 1, result: "WIN", profit: 0.91, lead: 1095, lag: 188 },
+    { id: "rc2", need: "free", date: "2026-11-17", sport: "NBA", bet: "X ML", odds: -120, result: "LOSS", profit: -1, lead: "1h", lag: null }] } });
+  delete PROPS.RESULTS_PUBLIC;
+  PROPS.OWNER_IDS = OWN;
+  check("v1.23: results OFF -> signed out still unpublished", post({ task: "results" }).published === false);
+  check("v1.23: results OFF -> a member still unpublished", post({ task: "results", session: vip23 }).published === false);
+  const pv = post({ task: "results", session: ownS });
+  check("v1.23: results OFF -> the owner gets a PREVIEW", pv.published === true && pv.preview === true && pv.picks.length === 2, pv);
+  const rc1 = pv.picks.find(p => p.id === "rc1"), rc2 = pv.picks.find(p => p.id === "rc2");
+  check("v1.23: receipt minutes pass through (lead 1095, lag 188)", rc1.lead === 1095 && rc1.lag === 188, rc1);
+  check("v1.23: a non-number lead / lag goes out as null", rc2.lead === null && rc2.lag === null, rc2);
+  PROPS.RESULTS_PUBLIC = "1";
+  const pubR = post({ task: "results" });
+  check("v1.23: results ON -> everyone, preview false, receipts included", pubR.published && pubR.preview === false && pubR.picks.find(p => p.id === "rc1").lead === 1095, pubR);
+  if (savedPub === undefined) delete PROPS.RESULTS_PUBLIC; else PROPS.RESULTS_PUBLIC = savedPub;
   delete PROPS.OWNER_IDS;
   const after = post({ task: "mygames", session: ownS });
   check("v1.23: owner removed from OWNER_IDS -> no All Bets rows any more", after.ok && !after.owner_allbets, after);
+  check("v1.23: ... and no Results preview", post({ task: "results", session: ownS }).published === (PROPS.RESULTS_PUBLIC === "1"));
 }
 console.log(`\n${ok} passed, ${bad} failed`);

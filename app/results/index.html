@@ -53,6 +53,36 @@
 .launch ul { list-style:none; padding:0; margin:0 auto 20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:10px; max-width:760px; } @media (max-width:560px) { .launch ul { grid-template-columns:1fr 1fr; } .launch li { padding:9px; font-size:12px; } }
 .launch li { background:rgba(10,22,40,.7); border:1px solid var(--line); border-radius:12px; padding:12px; font-size:13px; text-align:left; } .launch li b { display:block; color:#e8f4ff; margin-bottom:2px; }
 .launch .go { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; } .launch .go a { text-decoration:none; }
+/* RECEIPTS + CALENDAR (Scott 11/17 "Receipts + calendar") */
+.pvbar { padding:10px 14px; border-radius:12px; border:1px dashed rgba(255,215,0,.6); background:rgba(255,215,0,.06); color:#ffe58a; font-size:13px; font-weight:700; margin-bottom:12px; }
+.calrc { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.35fr); gap:14px; margin-bottom:14px; } @media (max-width:1000px) { .calrc { grid-template-columns:minmax(0,1fr); } }
+.calrc .box { margin-bottom:0; }
+.calnav { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; } .calnav b { font-family:Saira; font-style:italic; font-size:20px; letter-spacing:.03em; }
+.calnav button { background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:9px; width:34px; height:30px; font-weight:900; cursor:pointer; } .calnav button:disabled { opacity:.3; cursor:default; }
+.cal { display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px; } .cal .dh { font-size:10px; letter-spacing:.12em; color:var(--dim); text-align:center; font-weight:800; padding-bottom:2px; }
+.cal .d { position:relative; aspect-ratio:1 / .92; border-radius:9px; border:1px solid rgba(148,163,184,.14); background:rgba(10,22,40,.45); padding:4px 5px; display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+.cal .d .n { font-size:11px; color:var(--dim); font-weight:700; } .cal .d .u { font-family:Saira; font-weight:800; font-size:clamp(11px, 1.4vw, 15px); line-height:1; white-space:nowrap; } .cal .d .r { font-size:10px; color:rgba(226,232,240,.75); white-space:nowrap; }
+.cal .d.has { cursor:pointer; } .cal .d.has:hover { border-color:rgba(127,216,255,.6); } .cal .d.sel { outline:2px solid #ffd700; outline-offset:1px; }
+.cal .d.today .n { color:#7fd8ff; } .cal .d.blank { visibility:hidden; }
+.calsum { display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--dim); } .calsum b { color:var(--text); }
+@media (max-width:560px) { .cal { gap:3px; } .cal .d { padding:3px; border-radius:7px; } .cal .d .r { display:none; } .cal .d .u { font-size:11px; } .cal .d .n { font-size:9px; } }
+.rcgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap:16px; }
+.rcpt { position:relative; background:#f4efe2; color:#1f2430; font-family:"Courier New", Consolas, monospace; font-size:12px; padding:16px 14px 14px; border-radius:2px; min-width:0; margin:6px 0; box-shadow:0 10px 24px rgba(0,0,0,.35); }
+.rcpt::before, .rcpt::after { content:""; position:absolute; left:0; right:0; height:8px; background:linear-gradient(-45deg, transparent 5px, #f4efe2 0), linear-gradient(45deg, transparent 5px, #f4efe2 0); background-size:10px 10px; }
+.rcpt::before { top:-7px; transform:rotate(180deg); } .rcpt::after { bottom:-7px; }
+.rcpt .rh { display:flex; justify-content:space-between; font-weight:900; letter-spacing:.08em; font-size:11px; border-bottom:1px dashed #9aa0aa; padding-bottom:6px; }
+.rcpt .rcg { margin-top:8px; font-size:11px; color:#4b5260; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rcpt .rp { font-family:Saira, Inter, sans-serif; font-weight:800; font-size:17px; margin:2px 0 6px; line-height:1.15; overflow-wrap:anywhere; }
+.rcpt .ln { display:flex; justify-content:space-between; gap:8px; padding:2px 0; } .rcpt .ln span { color:#5b6270; } .rcpt .ln b { white-space:nowrap; }
+.rcpt .rctl { margin:8px 0 6px; border-top:1px dashed #9aa0aa; border-bottom:1px dashed #9aa0aa; padding:7px 0; display:grid; gap:4px; }
+.rcpt .rctl div { display:grid; grid-template-columns:10px minmax(0,1fr) auto; gap:6px; align-items:center; } .rcpt .rctl i { width:8px; height:8px; border-radius:50%; background:#1f2430; }
+.rcpt .rctl div:nth-child(2) i { background:#2563eb; } .rcpt .rctl span { color:#5b6270; font-size:10px; letter-spacing:.06em; }
+.rcpt .lead { font-size:11px; font-weight:900; color:#166534; padding-right:92px; } .rcpt .lead.nolock { color:#6b7280; font-weight:700; }
+.rcpt .stamp { position:absolute; right:10px; bottom:12px; transform:rotate(-12deg); border:3px solid currentColor; border-radius:6px; padding:3px 8px; font-family:Saira, Inter, sans-serif; font-weight:900; font-size:18px; letter-spacing:.06em; opacity:.85; mix-blend-mode:multiply; }
+.rcpt .stamp.WIN { color:#15803d; } .rcpt .stamp.LOSS { color:#b91c1c; } .rcpt .stamp.PUSH { color:#a16207; } .rcpt .stamp.VOID { color:#475569; }
+.rcpt .stamp small { display:block; font-size:11px; letter-spacing:0; text-align:center; }
+.rcpt .ft { margin-top:8px; font-size:10px; color:#6b7280; letter-spacing:.04em; padding-right:92px; min-height:14px; }
+.rchint { font-size:12px; color:var(--dim); margin:0 0 10px; }
 </style></head>
 <body>
 <div class="layout wide">
@@ -71,6 +101,12 @@
       <div class="prod" id="prod"></div>
       <div class="rngb" id="rngBtns"></div>
       <div class="kp" id="kpis"></div>
+      <div class="calrc">
+        <div class="box"><h3>THE CALENDAR</h3><div id="cal"></div></div>
+        <div class="box"><h3>RECEIPTS <span id="rcDay" style="font-weight:500;color:var(--dim);letter-spacing:0"></span></h3>
+          <p class="rchint">Every graded pick, stamped: when it went on the record, when the game started, when it graded. Tap a day on the calendar.</p>
+          <div class="rcgrid" id="rc"></div></div>
+      </div>
       <div class="box" id="trendBox"><h3>DAILY UNITS &amp; WIN RATE</h3><div id="trend"></div></div>
       <div class="r3">
         <div class="box"><h3>RESULT DISTRIBUTION</h3><div id="dist"></div></div>
@@ -142,6 +178,68 @@ function drawProd(base) {   // the two records side by side, each its own - neve
       <span>${x.n ? (100 * x.wr).toFixed(1) + "% · " + (x.net == null ? "units —" : sgn(x.net) + "u") : "no graded picks in range"}</span></button>`; }).join("");
 }
 
+// ── RECEIPTS + CALENDAR (Scott 11/17 "Receipts + calendar") ─────────────────────────────────────────────────────────
+// The calendar: every graded day of the filtered record, coloured by that day's STORED units (green / red, deeper =
+// bigger day, grey = a payout missing), W-L under it; month total + green / red day count. Tap a day -> its receipts.
+// A receipt = one graded pick, stamped with when it went ON THE RECORD (feed "lead": minutes before its start, from the
+// pick's own created_at / Free Pick posted_at), its GAME START and when it GRADED (feed "lag"), plus the WIN / LOSS stamp
+// and the real payout. A stamp the feed doesn't carry shows "—", never a guess.
+let CALM = "", SELDAY = "";
+const WD = ["S", "M", "T", "W", "T", "F", "S"];
+const ctFmt = ms => new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+const dur = m => { m = Math.max(0, Math.round(m)); const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60; return d ? `${d}d ${h}h` : h ? `${h}h ${mi}m` : `${mi}m`; };
+const shiftM = (ym, n) => { const [y, m] = ym.split("-").map(Number); return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7); };
+function byDay(rows) { const by = {}; rows.forEach(p => { if (/^\d{4}-\d\d-\d\d$/.test(p.date || "")) (by[p.date] = by[p.date] || []).push(p); }); return by; }
+function drawCal() {
+  const by = byDay(VIEW), ds = Object.keys(by).sort();
+  if (!ds.length) { $("cal").innerHTML = `<p class="game">No graded days in this range.</p>`; return; }
+  const lo = ds[0].slice(0, 7), hi = ds[ds.length - 1].slice(0, 7);
+  if (!CALM || CALM < lo || CALM > hi) CALM = (SELDAY && SELDAY.slice(0, 7) >= lo && SELDAY.slice(0, 7) <= hi) ? SELDAY.slice(0, 7) : hi;
+  const [y, m] = CALM.split("-").map(Number), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), today = ctToday();
+  const cells = []; for (let i = 0; i < first.getUTCDay(); i++) cells.push(`<div class="d blank"></div>`);
+  let mw = 0, ml = 0, mp = 0, mnet = 0, mnull = false, green = 0, red = 0;
+  for (let d = 1; d <= n; d++) {
+    const key = `${CALM}-${String(d).padStart(2, "0")}`, rows = by[key], tcls = key === today ? " today" : "";
+    if (!rows) { cells.push(`<div class="d${tcls}"><span class="n">${d}</span></div>`); continue; }
+    const s = stats(rows), rec = `${s.w}-${s.l}${s.push ? "-" + s.push : ""}`;
+    mw += s.w; ml += s.l; mp += s.push; if (s.net == null) mnull = true; else mnet += s.net;
+    if (s.net > 0) green++; else if (s.net < 0) red++;
+    const a = (s.net == null ? 0 : Math.min(1, Math.abs(s.net) / 5) * .55 + .14).toFixed(2);
+    const bg = s.net == null ? "rgba(100,116,139,.28)" : s.net > 0 ? `rgba(34,197,94,${a})` : s.net < 0 ? `rgba(239,68,68,${a})` : "rgba(148,163,184,.2)";
+    const u1 = s.net == null ? "—" : (s.net > 0 ? "+" : "") + s.net.toFixed(1);     // one decimal in the cell; exact in the title + receipts
+    cells.push(`<div class="d has${key === SELDAY ? " sel" : ""}${tcls}" data-day="${key}" style="background:${bg}" title="${E(nice(key))}: ${rec}, ${s.net == null ? "units —" : sgn(s.net) + "u"}">
+      <span class="n">${d}</span><span class="u">${u1}</span><span class="r">${rec}</span></div>`);
+  }
+  const name = first.toLocaleDateString("en-US", { timeZone: "UTC", month: "long", year: "numeric" });
+  $("cal").innerHTML = `<div class="calnav"><button data-cm="-1" ${CALM <= lo ? "disabled" : ""} aria-label="Previous month">‹</button><b>${E(name)}</b><button data-cm="1" ${CALM >= hi ? "disabled" : ""} aria-label="Next month">›</button></div>
+    <div class="cal">${WD.map(w => `<div class="dh">${w}</div>`).join("")}${cells.join("")}</div>
+    <div class="calsum"><span>Month <b>${mw}-${ml}${mp ? "-" + mp : ""}</b></span><span><b class="${mnet > 0 ? "pos" : mnet < 0 ? "neg" : ""}">${mnull ? "units —" : sgn(mnet) + "u"}</b></span><span><b>${green}</b> green days · <b>${red}</b> red</span></div>`;
+}
+function receipt(p) {
+  const st = Date.parse(p.time || ""), has = isFinite(st), v = pl(p);
+  const lk = has && typeof p.lead === "number" ? st - p.lead * 6e4 : null, gr = has && typeof p.lag === "number" ? st + p.lag * 6e4 : null;
+  let h = 2166136261; for (const c of String(p.id || p.date + p.bet)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  const no = (h >>> 0).toString(36).toUpperCase().padStart(6, "0").slice(-6);      // a short, stable receipt number
+  const ln = (l, b) => `<div class="ln"><span>${l}</span><b>${b}</b></div>`;
+  return `<div class="rcpt"><div class="rh"><span>CMMG SPORTS EDGE</span><span>#${E(no)}</span></div>
+    <div class="rcg">${E(p.sport)} · ${E(nice(p.date))} · ${E(p.game || "")}</div><div class="rp">${E(p.bet)}</div>
+    ${ln("ODDS", E(odds(p.odds) || "—"))}${ln("STAKE", E(p.units || 1) + "u")}${p.tier ? ln("TIER", E(p.tier)) : ""}${ln("RECORD", (p.need || "pro") === "free" ? "FREE PICK" : "PRO TRACK")}
+    <div class="rctl"><div><i></i><span>ON THE RECORD</span><b>${lk ? E(ctFmt(lk)) : "—"}</b></div>
+      <div><i></i><span>GAME START</span><b>${has ? E(ctFmt(st)) + " CT" : "—"}</b></div>
+      <div><i></i><span>GRADED</span><b>${gr ? E(ctFmt(gr)) : "—"}</b></div></div>
+    ${lk ? `<div class="lead">✓ Locked ${dur(p.lead)} before start</div>` : `<div class="lead nolock">Lock time not recorded</div>`}
+    <div class="stamp ${E(p.result)}">${E(p.result)}<small>${v == null ? "" : sgn(v) + "u"}</small></div>
+    <div class="ft">Pregame · as posted · real payout</div></div>`;
+}
+function drawReceipts() {
+  const days = [...new Set(VIEW.map(p => p.date).filter(Boolean))].sort();
+  if (!days.length) { $("rc").innerHTML = `<p class="game">No graded picks match.</p>`; $("rcDay").textContent = ""; return; }
+  if (!SELDAY || !days.includes(SELDAY)) SELDAY = days[days.length - 1];
+  const rows = VIEW.filter(p => p.date === SELDAY).sort((a, b) => String(a.time).localeCompare(String(b.time))), s = stats(rows);
+  $("rcDay").textContent = `· ${nice(SELDAY)} · ${s.w}-${s.l}${s.push ? "-" + s.push : ""}${s.net == null ? "" : " · " + sgn(s.net) + "u"}`;
+  $("rc").innerHTML = rows.map(receipt).join("");
+}
+
 function apply() {
   const sp = $("fSport").value, days = Number($("fRange").value) || 0, tier = $("fTier").value, res = $("fRes").value, q = $("fQ").value.trim().toLowerCase();
   const cut = rangeStart($("fRange").value);
@@ -149,7 +247,7 @@ function apply() {
     && (!q || `${p.game} ${p.bet} ${p.sport}`.toLowerCase().includes(q)));
   drawProd(base);
   VIEW = base.filter(p => (p.need || "pro") === PROD);
-  PAGE = 0; draw();
+  PAGE = 0; draw(); drawReceipts(); drawCal();
 }
 
 function bestStreak() {   // longest win streak in range, with dates
@@ -244,7 +342,9 @@ function extras2() {
 }
 
 async function load() {
-  let j; try { j = await CMMG.relay({ task: "results" }); } catch (e) { j = { ok: false }; }
+  // v1.23 (11/17): the session rides along so the owner can preview the page while RESULTS_PUBLIC is off
+  const ss = CMMG.session();
+  let j; try { j = await CMMG.relay(ss ? { task: "results", session: ss.token } : { task: "results" }); } catch (e) { j = { ok: false }; }
   if (!j.ok || !j.published) {
     $("soon").innerHTML = `<div class="launch"><div class="lic">🏆</div><h2>Verified Results launch soon</h2>
       <p>Every graded pick, wins and losses, goes here, with the date range and breakevens shown. We're finishing the audit first, so the numbers you see on day one are numbers we stand behind.</p>
@@ -252,6 +352,7 @@ async function load() {
       <div class="go"><a class="btn pro" href="/app/">See today's picks</a><a class="btn ghost" href="/app/tracker/">Open My Tracker</a></div></div>`;
     $("body").style.display = "none"; ALL = []; return;
   }
+  $("soon").innerHTML = j.preview ? `<div class="pvbar">OWNER PREVIEW · Verified Results is not public yet. Only your account sees this page; members see "launch soon" until RESULTS_PUBLIC is turned on.</div>` : "";
   ALL = (j.picks || []).slice().sort((a, b) => String(b.date + b.time).localeCompare(String(a.date + a.time)));
   EARLY = CMMG.earliest(CMMG.byNeed(ALL, PROD)); drawRanges();     // the shown record's own first date
   $("fSport").insertAdjacentHTML("beforeend", [...new Set(ALL.map(p => p.sport))].sort().map(s => `<option>${E(s)}</option>`).join(""));
@@ -261,6 +362,12 @@ async function load() {
 drawRanges();
 $("prod").addEventListener("click", e => { const b = e.target.closest("[data-prod]"); if (b) { PROD = b.dataset.prod; EARLY = CMMG.earliest(CMMG.byNeed(ALL, PROD)); drawRanges(); apply(); } });
 $("rngBtns").addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (b) { $("fRange").value = b.dataset.r; apply(); } });
+$("cal").addEventListener("click", e => {
+  const nb = e.target.closest("[data-cm]"); if (nb && !nb.disabled) { CALM = shiftM(CALM, Number(nb.dataset.cm)); drawCal(); return; }
+  const d = e.target.closest("[data-day]"); if (!d) return;
+  SELDAY = d.dataset.day; drawCal(); drawReceipts();
+  if (innerWidth < 1000) $("rc").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 $("fQ").addEventListener("input", apply);
 $("clear").addEventListener("click", () => { $("fSport").value = ""; $("fRange").value = "30"; drawRanges(); $("fTier").value = ""; $("fRes").value = ""; $("fQ").value = ""; apply(); });
 $("prev").addEventListener("click", () => { if (PAGE > 0) { PAGE--; draw(); } });

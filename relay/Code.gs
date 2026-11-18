@@ -18,7 +18,8 @@
  *   for others it will be the ones they say they be"): feed part "allbets" (MasterHub cmmg_feed_allbets.py - today's
  *   All Bets rows as stored) + task "mygames": OWNER_IDS get those rows; everyone else gets exactly what "mytracker"
  *   gives them (the picks they tapped). "mytracker" itself is unchanged, so the owner's Tracker page is unchanged.
- *   Needs a redeploy.
+ *   Same version (Scott 11/17 "Receipts + calendar"): task "results" rows carry lead / lag (receipt minutes) and the
+ *   OWNER gets the Results page as a preview while RESULTS_PUBLIC is off. Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -105,7 +106,7 @@ function doPost(e) {
       case "me": { const s = session(P, req.session); return out(s ? { ok: true, me: publicMe(s) } : { ok: false, error: "signed out" }); }
       case "picks": return out(picks(P, session(P, req.session)));
       case "record": return out(records(P));
-      case "results": return out(results(P));
+      case "results": return out(results(P, session(P, req.session)));
       case "board": return out(board(P, session(P, req.session), req));
       case "scoreboard": return out(scoreboard(P, session(P, req.session)));
       case "community": return out(community(P, session(P, req.session)));
@@ -370,12 +371,18 @@ function records(P) {
 
 // v1.5 Verified Results: every GRADED pick from the feed's history (wins, losses, pushes, voids), OFF until Scott sets
 // Script Property RESULTS_PUBLIC = "1" (grade fixes + record decisions first - docs/cmmg_app/RECORD_AUDIT_2026-10-11.md).
-function results(P) {
-  if (P.getProperty("RESULTS_PUBLIC") !== "1") return { ok: true, published: false };
+// v1.23 also (Scott 11/17 "Receipts + calendar"): each row carries the feed's receipt numbers - lead (minutes the pick
+// was on the record BEFORE its start) and lag (minutes from the start to the grade) - and the OWNER sees the page as a
+// preview while RESULTS_PUBLIC is off (preview: true). Everyone else is exactly as before.
+function results(P, s) {
+  const pub = P.getProperty("RESULTS_PUBLIC") === "1", owner = !!(s && isOwner(P, s.uid));
+  if (!pub && !owner) return { ok: true, published: false };
   const h = getBig(P, "F_history"), rows = (h && h.data && h.data.picks || []).filter(function (p) { return p.result; });
-  return { ok: true, published: true, at: h ? h.at : null, picks: rows.map(function (p) {
+  const num = function (v) { return typeof v === "number" && isFinite(v) ? v : null; };
+  return { ok: true, published: true, preview: !pub, at: h ? h.at : null, picks: rows.map(function (p) {
     return { id: p.id, date: p.date, time: p.time, sport: p.sport, game: p.game, bet: p.bet, market: p.market, odds: p.odds,
-             units: p.units, tier: p.tier, result: p.result, need: p.need, profit: p.profit == null ? null : p.profit };
+             units: p.units, tier: p.tier, result: p.result, need: p.need, profit: p.profit == null ? null : p.profit,
+             lead: num(p.lead), lag: num(p.lag) };
   }) };
 }
 

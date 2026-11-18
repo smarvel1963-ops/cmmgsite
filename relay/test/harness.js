@@ -479,4 +479,37 @@ check("auto_since = the feed's oldest graded day", post({ task: "mytracker", ses
   check("v1.19: a lock cannot be tracked, even by a direct call", post({ task: "track", session: fr.session, pick: "lk9" }).ok === false);
   check("v1.19: ... but it still shows on the board", post({ task: "board", name: "lives", session: fr.session }).picks.some(p => p.id === "lk9" && p.bet === "UNDER 3"));
 }
+// v1.23 MY GAMES (Scott 11/17 "my games ... should aways be all pages auto lives and hero lives that got to all bets for
+// others it will be the ones they say they be")
+{
+  const OWN = "123456789012345678";
+  PROPS.OWNER_IDS = OWN;
+  DISCORD.user = { id: OWN, username: "owner", global_name: "Owner" }; DISCORD.roles = null;
+  const ownS = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  DISCORD.user = { id: "555555555555555555", username: "vip23" }; DISCORD.roles = ["1471082166149578936"];
+  const vip23 = post({ task: "login", code: "abcdefghijk", verifier: V, redirect: RED }).session;
+  check("v1.23: signed out -> asked to sign in", post({ task: "mygames" }).ok === false);
+  const noPart = post({ task: "mygames", session: ownS });
+  check("v1.23: no allbets part yet -> the owner gets mytracker's answer", noPart.ok && !noPart.owner_allbets
+    && JSON.stringify(noPart) === JSON.stringify(post({ task: "mytracker", session: ownS })), noPart);
+  check("v1.23: wrong write key cannot put allbets", post({ task: "put", key: "nope", part: "allbets", data: {} }).error === "not allowed");
+  const ab = { day: "2026-11-17", trimmed: 0, rows: [
+    { id: "AL1", sport: "NBA", game: "DET @ SAS", bet: "UNDER 231.5", odds: -110, units: 3, book: "DK", result: "WIN", units_pl: 2.73, time: "2026-11-18T01:10:00Z", tier: "", page: "Auto Lives" },
+    { id: "lk9", sport: "NCAAB", game: "ILL @ DUKE", bet: "UNDER 151.5", odds: -105, units: 3, book: "", result: "PENDING", units_pl: null, time: "", tier: "", page: "NCAAB Lives" }] };
+  check("v1.23: feed puts the allbets part", post({ task: "put", key: "wkey", part: "allbets", data: ab }).ok === true);
+  check("v1.23: an allbets part over 32,000 bytes is refused", /too big/.test(post({ task: "put", key: "wkey", part: "allbets", data: { day: "x", rows: [{ bet: "x".repeat(33000) }] } }).error || ""));
+  const mg = post({ task: "mygames", session: ownS });
+  check("v1.23: owner -> owner_allbets with today's All Bets rows", mg.ok && mg.owner_allbets === true && mg.day === "2026-11-17" && mg.rows.length === 2, mg);
+  const r0 = mg.rows[0];
+  check("v1.23: ... a row in My Games' shape, stored result + profit, its page", r0.pick === "AB_AL1" && r0.bet === "UNDER 231.5" && r0.myOdds === -110
+    && r0.units === 3 && r0.myBook === "DK" && r0.result === "WIN" && r0.units_pl === 2.73 && r0.page === "Auto Lives" && r0.date === "2026-11-17", r0);
+  check("v1.23: ... an open row stays PENDING with no profit", mg.rows[1].result === "PENDING" && mg.rows[1].units_pl === null, mg.rows[1]);
+  const vg = post({ task: "mygames", session: vip23 });
+  check("v1.23: a member never sees the owner's All Bets - gets exactly mytracker", vg.ok && !vg.owner_allbets
+    && !(vg.rows || []).some(r => /^AB_/.test(r.pick)) && JSON.stringify(vg) === JSON.stringify(post({ task: "mytracker", session: vip23 })), vg);
+  check("v1.23: mytracker itself is unchanged for the owner (no All Bets rows)", !(post({ task: "mytracker", session: ownS }).rows || []).some(r => /^AB_/.test(r.pick)));
+  delete PROPS.OWNER_IDS;
+  const after = post({ task: "mygames", session: ownS });
+  check("v1.23: owner removed from OWNER_IDS -> no All Bets rows any more", after.ok && !after.owner_allbets, after);
+}
 console.log(`\n${ok} passed, ${bad} failed`);

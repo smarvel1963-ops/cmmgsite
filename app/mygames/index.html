@@ -9,7 +9,11 @@
      losing"): every pick reads its game's score against the bet - moneyline (that team ahead), spread (team score + line
      vs the other), total (both scores vs the line) - and the card goes GREEN "WINNING" / RED "LOSING" (yellow "EVEN" on a
      tie / exactly on the line). The last score seen is kept on this phone (cmmg.lastscore), so a card still shows it
-     after ESPN drops the game. A bet the page can't read (props, members-only) shows the score with no colour. -->
+     after ESPN drops the game. A bet the page can't read (props, members-only) shows the score with no colour.
+     11/17 (Scott: "my games on cmmg site should aways be all pages auto lives and hero lives that got to all bets  for
+     others it will be the ones they say they be"): relay task "mygames" (v1.23). Scott's account (OWNER_IDS) gets every
+     row of today's All Bets (MasterHub cmmg_feed_allbets.py - as stored, never re-graded), each with its page; every
+     other member gets the picks they tapped, as before. Falls back to "mytracker" until the relay is redeployed. -->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>My Games · CMMG Sports Edge</title><link rel="stylesheet" href="/css/app.css">
 <link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#060d1a">
@@ -41,9 +45,9 @@
 <body>
 <div class="layout wide">
   <main class="main">
-    <div class="vhero"><h1>MY GAMES</h1><p>THE PICKS YOU TOOK. LIVE. GRADED.</p></div>
+    <div class="vhero"><h1>MY GAMES</h1><p id="vsub">THE PICKS YOU TOOK. LIVE. GRADED.</p></div>
     <div class="k3" id="k3"></div>
-    <div class="box"><h3>PICKS I TOOK</h3><div id="took"><div class="empty" style="border:0">Loading…</div></div></div>
+    <div class="box"><h3 id="tookh">PICKS I TOOK</h3><div id="took"><div class="empty" style="border:0">Loading…</div></div></div>
     <div class="box"><h3>WATCHING <span class="game" style="letter-spacing:0;font-weight:500">· not a tracked pick</span></h3><div id="watch"></div></div>
   </main>
 </div>
@@ -118,9 +122,18 @@ function card(g, body, cls, extra) {
 async function load() {
   const s = CMMG.session();
   if (!s) { $("k3").innerHTML = ""; $("took").innerHTML = `<div class="empty" style="border:0">Sign in to see the games you're following.<br><br><button class="btn disc" data-signin>Continue with Discord</button></div>`; drawWatch([]); return; }
-  let mj; try { mj = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { mj = {}; }
+  // 11/17 (Scott: "my games on cmmg site should aways be all pages auto lives and hero lives that got to all bets  for
+  // others it will be the ones they say they be"): relay v1.23 task "mygames" - the owner gets today's All Bets rows,
+  // every other member exactly their "I Took This Pick" rows. A relay not yet redeployed says "unknown task": then the
+  // old "mytracker" call, so nobody's page goes blank in between.
+  let mj; try { mj = await CMMG.relay({ task: "mygames", session: s.token }); } catch (e) { mj = {}; }
+  if (!mj.ok && /unknown task/i.test(mj.error || "")) { try { mj = await CMMG.relay({ task: "mytracker", session: s.token }); } catch (e) { mj = {}; } }
+  const ALL = !!mj.owner_allbets;
+  $("vsub").textContent = ALL ? "EVERY BET IN ALL BETS TODAY. ALL PAGES. AUTO LIVES. HERO LIVES." : "THE PICKS YOU TOOK. LIVE. GRADED.";
+  $("tookh").textContent = ALL ? `ALL BETS · ${mj.day || "TODAY"}${mj.trimmed ? ` · ${mj.trimmed} older graded rows not shown` : ""}` : "PICKS I TOOK";
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
-  const rows = (mj.ok ? mj.rows || [] : []).filter(r => r.result === "PENDING" || (r.date || "") === today || (r.time && Date.now() - Date.parse(r.time) < 36 * 36e5));
+  // the owner's rows are already ONE All Bets day (it stays yesterday until the night close rolls it) - shown whole
+  const rows = (mj.ok ? mj.rows || [] : []).filter(r => ALL || r.result === "PENDING" || (r.date || "") === today || (r.time && Date.now() - Date.parse(r.time) < 36 * 36e5));
   const games = await Promise.all(rows.map(async r => { if (!PATHS[r.sport]) return null; const day = r.time ? ymd(r.time) : today.replace(/-/g, ""); return (await board(r.sport, day)).find(g => onGame(r.game, g)) || null; }));
   const live = games.filter(g => g && g.state === "in").length;
   const done = rows.filter(r => r.result && r.result !== "PENDING"), w = done.filter(r => r.result === "WIN").length, l = done.filter(r => r.result === "LOSS").length;
@@ -137,11 +150,12 @@ async function load() {
       : g && g.state === "post" && !res ? `<div class="st3"><span class="last">Final score · waiting for the grade</span></div>` : "";
     const chip = now && !res ? ` <span class="wl ${now}">${WL_TXT[now]}</span>` : "";
     return card(g, `<div class="sel">${r.tier ? `<span class="tag ${E(r.tier)}" style="font-size:11px">${TIER_ICON[r.tier] || ""} ${E(r.tier)}</span>` : ""}
-        <b>${E(r.bet || "Members-only pick")}</b>${chip}<div class="game">My odds ${odds(r.myOdds)} · ${E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}</div>
+        ${r.page ? `<span class="pill2 pre" style="margin-right:4px">${E(r.page)}</span>` : ""}<b>${E(r.bet || "Members-only pick")}</b>${chip}<div class="game">${ALL ? "Odds" : "My odds"} ${odds(r.myOdds)} · ${r.units == null ? "—" : E(r.units)}u${r.myBook ? " · " + E(r.myBook) : ""}</div>
         ${res ? `<div style="margin-top:6px"><span class="rb ${E(res)}">${E(res)}</span> <b class="${r.units_pl > 0 ? "pos" : r.units_pl < 0 ? "neg" : ""}" style="font-family:Saira;display:inline">${r.units_pl > 0 ? "+" : ""}${r.units_pl ?? ""}u</b></div>` : ""}
         <div class="flow">${[1, 2, 3, 4].map(k => `<i class="${k < n ? (k === 3 && res === "LOSS" ? "bad" : "done") : k === n ? (n === 4 ? (res === "LOSS" ? "bad" : "done") : "on") : ""}"></i>`).join("")}</div>
         <div class="flowl"><span>Upcoming</span><span>Live</span><span>Final</span><span>Graded</span></div></div>`,
       `${g && g.state === "in" ? "live" : ""} ${res ? "r-" + res : ""} ${now}`, lastLine); }).join("")
+    : ALL ? `<div class="empty" style="border:0">Nothing in All Bets yet today. Every pick that reaches All Bets shows up here on its own.</div>`
     : `<div class="empty" style="border:0">No games yet. Tap <b>✓ I Took This Pick</b> on <a href="/app/" style="color:var(--ice)">Pro Track</a> and the game shows up here.</div>`;
   drawWatch(games);
   clearTimeout(timer); timer = setTimeout(load, games.some(g => g && g.state === "in") ? 30000 : 120000);

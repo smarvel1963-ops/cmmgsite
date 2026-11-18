@@ -2,7 +2,7 @@
  * (the live copy is a Google Apps Script web app in Scott's Google account, project "CMMG relay" -
  *  this file is the source of record; the repo is public, so NO secrets ever go in this file)
  *
- * CMMG SPORTS EDGE RELAY v1.20 - see the v1.20 line below. (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
+ * CMMG SPORTS EDGE RELAY v1.23 - see the v1.23 line below. (v1.9.1: OWNER_IDS checked on every request, so an old session needs no re-sign-in. v1.9, Scott 10/17 "i am owner why am i locked out of live totals": the server owner holds no
  *   member role, so his session had no access. Discord user ids listed in Script Property OWNER_IDS get every access
  *   level at sign-in, whatever their roles. No OWNER_IDS = exactly as v1.8. Needs a redeploy + a fresh sign-in.
  *   v1.19 (Scott 11/08 "Free with sign-in"): a pick the feed marks signed_in opens to anyone signed in with Discord. Needs a redeploy.
@@ -14,6 +14,11 @@
  *   v1.22 (Scott 11/11 "build the better number finder" -> "should show on the web app liek all other info"): feed part
  *   "numbers" + task "numbers" - live book totals that beat the exchanges' fair line (MasterHub better_number.py), READ
  *   ONLY for anyone signed in, like "kalshi". Never a board, never on the scoreboard. Needs a redeploy.
+ *   v1.23 (Scott 11/17 "my games on cmmg site should aways be all pages auto lives and hero lives that got to all bets
+ *   for others it will be the ones they say they be"): feed part "allbets" (MasterHub cmmg_feed_allbets.py - today's
+ *   All Bets rows as stored) + task "mygames": OWNER_IDS get those rows; everyone else gets exactly what "mytracker"
+ *   gives them (the picks they tapped). "mytracker" itself is unchanged, so the owner's Tracker page is unchanged.
+ *   Needs a redeploy.
  *   v1.18 (Scott 10/21 "never empty on website"): task "board" passes the feed's "last" (the last day a board published,
  *   sent only when today is empty), masked like today's picks; its record only with RESULTS_PUBLIC. No feed change = null.
  *   v1.17 (Scott 10/18 "void 1"): "I play every CMMG pick" counts a pick ONCE - the Free Pick is skipped when a Pro
@@ -86,7 +91,7 @@ const CHUNK = 8000;                   // Script Property values max ~9 KB - big 
 const TRACK_MAX = 300;                // a member's tracked picks kept (v1.8: 500 -> 300, Script Properties are ~500 KB in all)
 // v1.8 byte caps per feed part (escaped JSON as stored). The PC exporter (cmmg_feed_export.py) caps a little lower, by
 // UTF-8 bytes: history 120 KB, today 60 KB, each board 40 KB, all together ~320 KB - the margin here covers \u escapes.
-const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000, kalshi: 24000, numbers: 12000 };
+const PART_CAP = { today: 64000, history: 128000, records: 44000, hub: 44000, board: 44000, kalshi: 24000, numbers: 12000, allbets: 32000 };
 
 function doGet() { return out({ ok: true, app: "cmmg relay", v: 1 }); }
 
@@ -106,6 +111,7 @@ function doPost(e) {
       case "community": return out(community(P, session(P, req.session)));
       case "track": return out(track(P, session(P, req.session), req));
       case "mytracker": return out(myTracker(P, session(P, req.session)));
+      case "mygames": return out(myGames(P, session(P, req.session)));
       case "trackall": return out(trackAll(P, session(P, req.session), req));
       case "hubrecords": return out(hubRecords(P, session(P, req.session)));
       case "kalshi": return out(kalshiPaper(P, session(P, req.session)));
@@ -125,7 +131,7 @@ function doPost(e) {
 function feedPut(P, req) {
   const cfg = JSON.parse(P.getProperty("CMMG_FEED") || "{}");
   if (!cfg.write || String(req.key || "") !== cfg.write) return { ok: false, error: "not allowed" };
-  if (["today", "history", "records", "hub", "kalshi", "numbers"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
+  if (["today", "history", "records", "hub", "kalshi", "numbers", "allbets"].indexOf(req.part) < 0 && BOARDS.indexOf(String(req.part).replace(/^board_/, "")) < 0) return { ok: false, error: "unknown part" };
   const str = ascii(JSON.stringify({ at: new Date().toISOString(), data: req.data }));
   const cap = PART_CAP[/^board_/.test(req.part) ? "board" : req.part];
   if (str.length > cap) return { ok: false, error: "part too big: " + str.length + " > " + cap + " bytes - not stored (the last copy stays)" };
@@ -512,6 +518,24 @@ function myTracker(P, s) {
   return { ok: true, auto: auto, auto_since: auto ? autoSince : "", shareable: members_on(P), shared: !!P.getProperty("S_" + s.uid), rows: rows.reverse(), summary: { tracked: rows.length, won: w, lost: done.length - w,
            pushes: rows.filter(function (r) { return r.result === "PUSH"; }).length, pending: rows.filter(function (r) { return r.result === "PENDING"; }).length,
            net_units: Math.round(net * 100) / 100 } };
+}
+
+// v1.23 MY GAMES (Scott 11/17 "my games on cmmg site should aways be all pages auto lives and hero lives that got to all
+// bets  for others it will be the ones they say they be"): the OWNER gets today's All Bets rows (feed part "allbets", as
+// MasterHub stored them - result + profit never recomputed here) in My Games' row shape; every other member gets exactly
+// myTracker's answer. No "allbets" part yet (or an old one from another day) = the owner gets myTracker too.
+function myGames(P, s) {
+  if (!s) return { ok: false, error: "sign in with Discord first" };
+  if (!isOwner(P, s.uid)) return myTracker(P, s);
+  const r = getBig(P, "F_allbets"), d = r && r.data;
+  if (!d || !Array.isArray(d.rows)) return myTracker(P, s);
+  const rows = d.rows.map(function (x) {
+    return { pick: "AB_" + String(x.id || ""), at: x.time || "", date: d.day || "", time: x.time || "", game: x.game || "",
+             bet: x.bet || "", sport: x.sport || "", tier: x.tier || "", need: "", myOdds: x.odds != null ? x.odds : null,
+             units: x.units != null ? x.units : null, myBook: x.book || "", note: "", auto: false, page: x.page || "",
+             result: x.result || "PENDING", units_pl: x.units_pl == null ? null : Number(x.units_pl) };
+  });
+  return { ok: true, owner_allbets: true, day: d.day || "", at: r.at || null, trimmed: d.trimmed || 0, rows: rows };
 }
 
 // v1.15 MasterHub records (Scott 10/18): the feed's "hub" part as the PC sent it - MasterHub's own per-page and

@@ -21,6 +21,8 @@
 .lg { display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; } .lg::-webkit-scrollbar { display:none; }
 .lg button { flex:0 0 auto; display:flex; align-items:center; gap:7px; background:rgba(10,22,40,.7); border:1px solid var(--line); color:var(--text); border-radius:11px; padding:8px 14px; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
 .lg button .ic { width:18px; height:18px; } .lg button small { color:var(--dim); font-weight:700; } .lg button.on { background:linear-gradient(180deg,#e8f4ff,#b9dcff); color:#06101f; } .lg button.on small { color:#334155; }
+.lgrec { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:11px; border:1px dashed rgba(127,216,255,.45); font-weight:800; font-size:14px; white-space:nowrap; }
+.lgrec .k { font-size:10px; letter-spacing:.12em; color:var(--dim); } .lgrec .pos { color:#4ade80; } .lgrec .neg { color:#f87171; } .lgrec .pend { color:var(--dim); font-weight:700; font-size:12px; }
 .sech { display:flex; align-items:center; gap:10px; margin:18px 0 10px; font-family:Saira; font-style:italic; font-weight:800; font-size:20px; letter-spacing:.04em; }
 .sech .dot { width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 10px #ef4444; animation:pulse 1.4s infinite; }
 .sech small { font-family:Inter; font-style:normal; font-size:12px; color:var(--dim); font-weight:700; letter-spacing:0; }
@@ -157,9 +159,24 @@ function draw() {
   gtabs();
   const mine = PICKS.filter(inGroup), lgs = ORDER.filter(k => mine.some(p => p.sport === k));
   if (LEAGUE && !lgs.includes(LEAGUE)) LEAGUE = "";
-  $("lg").innerHTML = lgs.length > 1 ? `<button data-lg="" class="${LEAGUE ? "" : "on"}">All<small>${mine.length}</small></button>` +
-    lgs.map(k => `<button data-lg="${k}" class="${LEAGUE === k ? "on" : ""}">${ICON.sport(k)}${k}<small>${mine.filter(p => p.sport === k).length}</small></button>`).join("") : "";
   const vis = mine.filter(p => !LEAGUE || p.sport === LEAGUE);
+  // TODAY'S RECORD beside the picked pill (Scott 11/17: "whatever is clicked all or nba or ncaab or whatever it sohuld show
+  // cutrrent record for that day over to right of that pill choice"). The day's plays on this page for that pill, the same
+  // count as the Live Totals row: every graded play except Scott's own locks (no_record - shown, never counted, feed rule
+  // 11/08); units = the STORED profits, shown only when every graded play has one. A locked (members-only) play carries
+  // no result, so with any in view the record would come up short - then no chip.
+  const recChip = () => {
+    if (vis.some(p => p.locked)) return "";
+    const cnt = vis.filter(p => !p.no_record), g = cnt.filter(p => ["WIN", "LOSS", "PUSH"].includes(p.result));
+    if (!cnt.length) return "";
+    const w = g.filter(p => p.result === "WIN").length, l = g.filter(p => p.result === "LOSS").length, pu = g.filter(p => p.result === "PUSH").length;
+    const allP = g.length && g.every(p => p.profit != null && isFinite(Number(p.profit))), u = allP ? g.reduce((a, p) => a + Number(p.profit), 0) : null;
+    const pend = cnt.filter(p => !p.result).length;
+    return `<span class="lgrec"><span class="k">TODAY</span>${w}-${l}${pu ? "-" + pu : ""}${u != null ? ` <span class="${u > 0 ? "pos" : u < 0 ? "neg" : ""}">${u > 0 ? "+" : ""}${u.toFixed(2)}u</span>` : ""}${pend ? ` <span class="pend">${pend} open</span>` : ""}</span>`;
+  };
+  const chip = recChip();
+  $("lg").innerHTML = lgs.length > 1 ? `<button data-lg="" class="${LEAGUE ? "" : "on"}">All<small>${mine.length}</small></button>${LEAGUE ? "" : chip}` +
+    lgs.map(k => `<button data-lg="${k}" class="${LEAGUE === k ? "on" : ""}">${ICON.sport(k)}${k}<small>${mine.filter(p => p.sport === k).length}</small></button>${LEAGUE === k ? chip : ""}`).join("") : chip;
   const live = vis.filter(p => !p.locked && !p.result).map(p => [p, eventFor(p)]).filter(([, ev]) => ev && ev.status.type.state === "in");
   $("live").innerHTML = live.length ? `<div class="sech"><span class="dot"></span>ON THE CLOCK NOW<small>${live.length} live play${live.length === 1 ? "" : "s"}</small></div><div class="livegrid">${live.map(([p, ev]) => liveCard(p, ev)).join("")}</div>` : "";
   if (!mine.length && LAST && (LAST.picks || []).filter(inGroup).length) {   // never empty (Scott 10/21: "lives should show previous nite total")

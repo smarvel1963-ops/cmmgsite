@@ -51,11 +51,12 @@
     <div class="box"><h3>WATCHING <span class="game" style="letter-spacing:0;font-weight:500">· not a tracked pick</span></h3><div id="watch"></div></div>
   </main>
 </div>
-<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script><script src="/js/livescore.js"></script>
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id);
-const PATHS = { NFL: "football/nfl", NCAAF: "football/college-football", NBA: "basketball/nba", NCAAB: "basketball/mens-college-basketball",
-  WNBA: "basketball/wnba", MLB: "baseball/mlb", NHL: "hockey/nhl", MLS: "soccer/usa.1" };
+// The scoreboard reader, the game matcher and the winning / losing call live in /js/livescore.js (11/20) - one copy
+// for My Games and the boards. Its cache is cleared before each refresh, so a live game's score moves.
+const { PATHS, board, onGame, standing } = LIVESCORE;
 const TIER_ICON = { ICE: ICON.tier("ICE"), EDGE: ICON.tier("EDGE"), FIRE: ICON.tier("FIRE") };
 const hex = c => /^[0-9a-f]{6}$/i.test(c || "") ? "#" + c : "#334155";
 const lum = c => { const n = parseInt((c || "334155").slice(0, 6), 16); return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000; };
@@ -64,44 +65,6 @@ const norm = s => String(s || "").toLowerCase(), odds = o => o == null || o === 
 const ymd = iso => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" }).replace(/-/g, "");
 let timer = null, WATCH = [];
 try { WATCH = JSON.parse(localStorage.getItem("cmmg.watch") || "[]") || []; } catch (e) {}
-const CACHE = {};
-async function board(l, day) {   // ESPN scoreboard for league + day (cached per load)
-  const k = l + day; if (CACHE[k]) return CACHE[k];
-  const extra = l === "NCAAF" ? "&groups=80&limit=300" : l === "NCAAB" ? "&groups=50&limit=400" : "";
-  return CACHE[k] = fetch(`https://site.api.espn.com/apis/site/v2/sports/${PATHS[l]}/scoreboard?dates=${day}${extra}`).then(r => r.json()).then(j => (j.events || []).map(e => {
-    const c = e.competitions[0], st = e.status.type;
-    return { id: e.id, l, date: e.date, state: st.state, detail: st.shortDetail, tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", "),
-      teams: c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1)).map(t => ({ abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName, nick: t.team.name, location: t.team.location, color: t.team.color, alt: t.team.alternateColor, score: t.score })) };
-  })).catch(() => []);
-}
-// Is the pick winning right now? "win" | "lose" | "even" | "" (can't tell). Totals: OVER/UNDER (or o/u) + line vs both scores.
-// Sides: the team named in the bet (+ its spread, ML = 0) vs the other team. Anything the full-game score can't decide
-// returns "" - no colour beats a wrong colour (masterhub-reviewer 10/17): player props (a word after the line, or a prop
-// word), part-game and team totals (1H / F5 / TT ...), and a bet naming both teams or neither.
-const tnames = t => [t.name, t.location, t.short, t.nick, t.abbr].filter(n => n && n.length > 1);
-const PROP_W = /\b(pts|points|reb|rebounds|ast|assists|pra|sog|shots|hits|hrr|runs|outs|yds|yards|rec|receptions|rush|pass|tds?|ks|tb|bases|saves|strikeouts|rbi|hr|threes|3pm|stl|blk|goals|fantasy|more|less)\b/i;
-const PART_W = /\b(1h|2h|1q|2q|3q|4q|1p|2p|3p|f5|f3|tt|team total|first half|second half)\b/i;
-function standing(bet, g) {
-  if (!g || g.state === "pre" || !bet) return "";
-  const [a, h] = g.teams, sa = Number(a.score), sh = Number(h.score); if (!isFinite(sa) || !isFinite(sh)) return "";
-  const b = String(bet).trim(), cmp = d => d > 0 ? "win" : d < 0 ? "lose" : "even";
-  if (PROP_W.test(b) || PART_W.test(b)) return "";
-  const m = /\b(over|under)\s*([0-9]+(?:\.[0-9]+)?)(.*)$/i.exec(b) || /(?:^|[\s/])([ou])\s?([0-9]+(?:\.[0-9]+)?)(.*)$/i.exec(b);
-  if (m) {
-    if (/[a-z]/i.test(m[3].replace(/\(.*?\)/g, ""))) return "";                  // "u1.5 HRR", "o5.5 rec": a word after the line = a prop
-    const over = /^o/i.test(m[1]), d = sa + sh - Number(m[2]); return cmp(over ? d : -d);
-  }
-  // the side: the team with the LONGEST name found in the bet ("Iowa State" beats "Iowa"); both teams equally / neither = ""
-  const low = norm(b), esc = n => norm(n).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const best = t => Math.max(0, ...tnames(t).filter(n => new RegExp("(^|[^a-z])" + esc(n) + "([^a-z]|$)").test(low)).map(n => n.length));
-  const la = best(a), lh = best(h); if (la === lh) return "";
-  const side = la > lh ? a : h;
-  // the line: the first signed number under 50 (bigger = odds, e.g. "Red Sox -145", "+1.5 -145"); ML / none = 0
-  const nums = (b.replace(/\(.*?\)/g, " ").match(/[+-]\d+(?:\.\d+)?/g) || []).map(Number), ln = nums.find(x => Math.abs(x) < 50);
-  const line = /\bML\b|moneyline/i.test(b) || ln == null ? 0 : ln;
-  const mine = side === a ? sa : sh, them = side === a ? sh : sa;
-  return cmp(mine + line - them);
-}
 const WL_TXT = { win: "WINNING", lose: "LOSING", even: "EVEN" };
 let LAST = {}; try { LAST = JSON.parse(localStorage.getItem("cmmg.lastscore") || "{}") || {}; } catch (e) {}
 function remember(id, g) {           // the last live/final score seen for this pick, kept on this phone
@@ -110,7 +73,6 @@ function remember(id, g) {           // the last live/final score seen for this 
   const cut = Date.now() - 14 * 864e5; Object.keys(LAST).forEach(k => { if (!(LAST[k].at > cut)) delete LAST[k]; });   // keep 14 days
   try { localStorage.setItem("cmmg.lastscore", JSON.stringify(LAST)); } catch (e) {}
 }
-const onGame = (txt, g) => g.teams.every(t => [t.name, t.short, t.nick].filter(n => n && n.length > 2).some(n => norm(txt).includes(norm(n))));
 function card(g, body, cls, extra) {
   const [a, h] = g ? g.teams : [];
   return `<div class="mg ${cls || ""}" ${g ? `data-go="/app/game/?l=${g.l}&id=${encodeURIComponent(g.id)}"` : ""}>
@@ -134,6 +96,7 @@ async function load() {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
   // the owner's rows are already ONE All Bets day (it stays yesterday until the night close rolls it) - shown whole
   const rows = (mj.ok ? mj.rows || [] : []).filter(r => ALL || r.result === "PENDING" || (r.date || "") === today || (r.time && Date.now() - Date.parse(r.time) < 36 * 36e5));
+  LIVESCORE.clear();                 // fresh scores on every refresh (the old per-page cache froze them, 11/20)
   const games = await Promise.all(rows.map(async r => { if (!PATHS[r.sport]) return null; const day = r.time ? ymd(r.time) : today.replace(/-/g, ""); return (await board(r.sport, day)).find(g => onGame(r.game, g)) || null; }));
   const live = games.filter(g => g && g.state === "in").length;
   const done = rows.filter(r => r.result && r.result !== "PENDING"), w = done.filter(r => r.result === "WIN").length, l = done.filter(r => r.result === "LOSS").length;

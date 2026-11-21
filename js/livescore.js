@@ -3,8 +3,12 @@
  * board"; built 11/20). ESPN's free public scoreboard, read in the browser like My Games / Live Totals / Scores - no key,
  * no relay part, nothing stored. The matcher and the winning / losing call are My Games' (masterhub-reviewer 10/17):
  * the game = both teams named in the pick's game text; the call leaves props, part-game and team totals uncoloured
- * ("no colour beats a wrong colour"). My Games still carries its own copy (moving it onto this file is a follow-up).
- *   LIVESCORE.find(sport, gameText, isoStart) -> Promise<game|null>  game = { state: pre|in|post, detail, teams:[away, home] }
+ * ("no colour beats a wrong colour"). My Games reads this file too since 11/20 (its own copy cached each scoreboard
+ * for the life of the page, so its 30 s refresh kept showing the first scores - it now clears before each refresh).
+ *   LIVESCORE.board(league, yyyymmdd) -> Promise<[game]>   game = { id, l, date, state: pre|in|post, detail, tv,
+ *                                                                    teams:[away, home] {abbr, name, short, nick, location, color, alt, score} }
+ *   LIVESCORE.onGame(gameText, game) -> bool  (both teams named in the text)
+ *   LIVESCORE.find(sport, gameText, isoStart) -> Promise<game|null>
  *   LIVESCORE.standing(bet, game) -> "win" | "lose" | "even" | ""
  *   LIVESCORE.clear()  - forget the cached scoreboards (the next find reads ESPN again)
  * CMMG Corp LLC */
@@ -21,9 +25,10 @@
       .then(r => r.json()).then(j => (j.events || []).map(e => {
         const c = e.competitions[0], st = e.status.type;
         return { id: e.id, l, date: e.date, state: st.state, detail: st.shortDetail,
+          tv: [...new Set((c.broadcasts || []).flatMap(b => b.names || []))].slice(0, 2).join(", "),
           teams: c.competitors.slice().sort((a, b) => (a.homeAway === "away" ? 0 : 1) - (b.homeAway === "away" ? 0 : 1))
             .map(t => ({ abbr: t.team.abbreviation, name: t.team.displayName, short: t.team.shortDisplayName, nick: t.team.name,
-                         location: t.team.location, score: t.score })) };
+                         location: t.team.location, color: t.team.color, alt: t.team.alternateColor, score: t.score })) };
       })).catch(() => []);
   }
   const onGame = (txt, g) => g.teams.every(t => [t.name, t.short, t.nick].filter(n => n && n.length > 2).some(n => norm(txt).includes(norm(n))));
@@ -60,5 +65,5 @@
     const mine = side === a ? sa : sh, them = side === a ? sh : sa;
     return cmp(mine + line - them);
   }
-  window.LIVESCORE = { PATHS, find, standing, clear: () => { CACHE = {}; } };
+  window.LIVESCORE = { PATHS, board, onGame, find, standing, clear: () => { CACHE = {}; } };
 })();

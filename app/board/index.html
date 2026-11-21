@@ -27,6 +27,8 @@
 .livepill { display:inline-block; font-size:11px; font-weight:900; letter-spacing:.1em; color:#fff; background:#dc2626; border-radius:6px; padding:2px 7px; margin-left:6px; box-shadow:0 0 10px rgba(239,68,68,.6); }
 .rb { display:inline-block; min-width:30px; text-align:center; font-weight:900; border-radius:7px; padding:5px 7px; font-family:Saira, Inter; margin-top:6px; }
 .rb.WIN { background:#16a34a; color:#04140a; } .rb.LOSS { background:#dc2626; color:#fff; } .rb.PUSH { background:#ca8a04; color:#1f1600; } .rb.VOID { background:#64748b; color:#fff; }
+.sc { font-size:14px; font-weight:800; margin-top:6px; color:#c3d6ea; } .sc:empty { display:none; }
+.sc .lv { color:#ef4444; } .sc.win { color:#fb923c; } .sc.WIN { color:#22c55e; } .sc.LOSS { color:#ef4444; }
 .soonbar { padding:18px 20px; border-radius:14px; border:1px solid rgba(255,215,0,.45); background:rgba(255,215,0,.07); margin-bottom:14px; font-size:15px; } .soonbar b { color:#ffd700; }
 @media (max-width:640px) { .bcard { grid-template-columns:minmax(0,1fr) auto; } .bcard .when { grid-column:1 / -1; display:flex; gap:10px; align-items:baseline; } }
 </style></head>
@@ -39,7 +41,7 @@
     <div id="hist"></div>
   </main>
 </div>
-<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script>
+<script src="/js/cmmg.js"></script><script src="/js/icons.js"></script><script src="/js/icons-color.js"></script><script src="/js/shell.js"></script><script src="/js/livescore.js"></script>
 <script>
 const E = CMMG.esc, $ = id => document.getElementById(id);
 // key, tab label, title, tagline, icon key (ICON.sport), what it is
@@ -74,9 +76,27 @@ const card = p => p.locked
       <div class="r">${SHELL.STORE ? "" : `<a class="btn pro" style="text-decoration:none" href="${SHELL.UPGRADE}">Unlock</a>`}</div></div>`
   : `<div class="box bcard ${p.result ? "r-" + E(p.result) : ""}"><div class="when"><b>${ct(p.time)}</b><span>${E(p.market || p.sport)}</span></div>
       <div><span class="tag ${E(p.tier)}">${ICON.tier(p.tier)} ${E(p.tier || "")}</span>${p.live ? '<span class="livepill">LIVE</span>' : ""}${p.paper ? '<span class="pill" title="Tracked play, not an official bet">PAPER</span>' : ""}${p.need === "free" ? ' <span class="pill">FREE</span>' : ""}
-        <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}</div>
+        <div class="pk">${E(p.bet)}</div><div class="ev">${E(p.game)}</div>${p.detail ? `<div class="dt">${E(p.detail)}</div>` : ""}${SCORES && !p.past ? `<div class="sc" data-sc="${E(p.id)}"></div>` : ""}</div>
       <div class="r"><div class="odds">${odds(p.odds)}</div><div class="bk">${E(p.book || "")}${p.units ? " · " + E(p.units) + "u" : ""}</div>${p.result ? `<span class="rb ${E(p.result)}">${E(p.result)}</span>` : SHELL.took(p)}</div></div>`;
 const lastDay = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+// LIVE SCORES on the ICE board (Scott 11/18 "ice page has score column added" -> "Yes, the website's ICE board"; 11/20):
+// the score line under each unlocked pick, like the app's SCORE column - ESPN's public scoreboard read here
+// (js/livescore.js), every minute while the page is open. Orange = live and winning, green / red = graded; props and
+// part-game bets show the score with no colour. Sports ESPN doesn't carry here (tennis, KBO, NPB, CFL) show no line.
+const SCORES = KEY === "ice" && !!window.LIVESCORE;
+let SHOWN = [];
+async function scores() {
+  if (!SCORES) return;
+  for (const p of SHOWN) {
+    const el = document.querySelector(`[data-sc="${CSS.escape(String(p.id))}"]`);
+    if (!el || p.locked) continue;
+    let g = null; try { g = await LIVESCORE.find(p.sport, p.game, p.time); } catch (e) { g = null; }
+    if (!g || g.state === "pre") { el.textContent = ""; el.className = "sc"; continue; }
+    const [a, h] = g.teams, live = g.state === "in";
+    el.className = "sc " + (p.result ? E(p.result) : live && LIVESCORE.standing(p.bet, g) === "win" ? "win" : "");
+    el.innerHTML = `${live ? '<span class="lv">●</span> ' : ""}${E(a.abbr)} ${E(a.score)} - ${E(h.score)} ${E(h.abbr)} · ${E(live ? g.detail : "Final")}`;
+  }
+}
 function groups(rows) {
   const g = []; rows.forEach(p => { const k = p.group || p.sport || ""; let x = g.find(y => y.k === k); if (!x) g.push(x = { k, rows: [] }); x.rows.push(p); });
   return g.map(x => `<div class="grp">${ICON.sport(x.rows[0].sport)}${E(x.k)}<span class="n">${x.rows.length} pick${x.rows.length === 1 ? "" : "s"}</span></div>${x.rows.map(card).join("")}`).join("");
@@ -102,6 +122,7 @@ async function load() {
   $("list").innerHTML = rows.length ? groups(rows)
     : last ? `<div class="soonbar"><b>New picks on the way.</b> Last published: ${E(lastDay(last.date))}.</div>` + groups(last.picks.map(p => ({ ...p, past: true })).sort((a, b) => String(a.time).localeCompare(String(b.time))))
     : `<div class="empty">No ${E(B[1])} picks posted yet today${j.date ? " (" + E(j.date) + ")" : ""} — check back soon.</div>`;
+  SHOWN = rows; scores();
   if (j.published && (j.history || []).length) {
     const h = j.history.slice().sort((a, b) => String(b.time || b.date).localeCompare(String(a.time || a.date))).slice(0, 30);
     // no W-L total here: this list is capped, so a sum would not be the board's record (reviewer 10/11, Rule #4)
@@ -112,5 +133,6 @@ async function load() {
 }
 SHELL.mount("board"); load();
 if (B[0] === "lives") setInterval(load, 60000);   // live board refreshes every minute while open
+if (SCORES) setInterval(() => { LIVESCORE.clear(); scores(); }, 60000);   // ICE: the score lines, not the picks, every minute
 </script>
 </body></html>

@@ -511,7 +511,7 @@ function draw(k, at) {
     ? `${e.final.asof ? `as of ${E(e.final.asof)}, ` : ""}with ${E(e.final.acct)} at the top${e.replayed && e.final.from ? ` (replayed from ${E(dayLbl(e.final.from))})` : ""}: ${usd(e.final.equity)} (<span class="${cls(e.final.profit)}">${sgn(e.final.profit)}</span>), picks ${num(e.final.w)}-${num(e.final.l)} - that account keeps running below`
     : `Kalshi ${num(e.final.w)}-${num(e.final.l)} (ROI ${pct(e.final.roi)}), best price ${num(e.final.best_w)}-${num(e.final.best_l)} (ROI ${pct(e.final.best_roi)})`
       + `${e.final.asof ? ` - as of ${E(e.final.asof)}${N(e.final.open) ? `, ${num(e.final.open)} still open` : ""}` : ""}`;
-  $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>` + (rn ? `<div class="why" style="margin:-4px 2px 12px"><b>Rules v${num(rn.v)}</b> since ${E(dayLbl(rn.since))}: ${E(rn.what)}${rn.replayed ? " - every logged pick replayed under these rules" : ` - its record starts ${E(dayLbl(rn.since))}`}.`
+  $("tiles").innerHTML = `<div class="ktiles">${tiles.join("")}</div>` + (rn ? `<div class="why" style="margin:-4px 2px 12px"><b>Rules v${num(rn.v)}</b> since ${E(dayLbl(rn.since))}: ${E(rn.what)}${rn.replayed ? " - every logged pick replayed under these rules" : ` - its record starts ${E(dayLbl(rn.count_from || rn.since))}`}.`
     + (ru.earlier || []).filter(e => e.final).map(e => ` v${num(e.v)} (${E(dayLbl(e.since))} - ${E(dayLbl(e.until))}: ${E(e.what)}) ended ${rvTxt(e)}.`).join("") + `</div>` : "");
   try { drawSrc(k); } catch (e) { $("bysrc").innerHTML = ""; }
   try { drawEdge(k); } catch (e) { $("edge").innerHTML = ""; }

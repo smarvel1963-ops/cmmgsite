@@ -276,11 +276,15 @@ function drawChart0(k) {
   // the headline's day: on the 24-hour chart the feed's own current day (the session day once the close rolled it,
   // so the total starts over AT the close); its bets carry that day's flag. Else the page's day (curDay).
   const day = has24 ? (w.day || k.head.day || curDay(k)) : curDay(k);
-  let bets, from = null, turn = null, since = false;
+  let bets, from = null, turn = null, since = false, reached = false;
   if (has24) {
     const base = ctMs(w.base), at = m => (N(m) == null ? null : base + N(m) * 60e3);
     bets = w.b.map(x => ({ tb: at(x[0]), tg: at(x[1]), apl: N(x[2]), res: RES[x[3]] || x[3] || null, g: x[4] || "", cur: x[5] === 1 }));
     from = now - 24 * 3600e3;
+    // REACH BACK (Scott 11/22 "Yes, reach back"): no bet in the last 24 h - the feed sent the 24 h ending at the
+    // account's latest bet (w.reach). Draw from there, flat to now, and say since when, so a quiet day never shows
+    // an empty line.
+    if (w.reach === 1 && base < from) { from = base; reached = true; }
     // bets left out for room: the feed's `from` is past every one of them, so the line from there misses no result
     if (N(w.from) != null && base + N(w.from) * 60e3 > from) { from = base + N(w.from) * 60e3; since = true; }
     turn = ctMs(w.turn);
@@ -316,7 +320,9 @@ function drawChart0(k) {
   const area = `${d} V${Y(0).toFixed(1)} H${X(t0).toFixed(1)} Z`;
   const step = Math.max(1, Math.ceil(30 / ((W - L - R) * 3600e3 / (t1 - t0))));      // hour labels never crowd on a phone
   const hours = []; for (let h = Math.ceil(t0 / (step * 3600e3)) * step * 3600e3; h <= t1; h += step * 3600e3) hours.push(h);
-  const hl = h => { const x = new Date(h).getUTCHours(); return `${x % 12 || 12}${x < 12 ? "a" : "p"}`; };
+  const hl = h => { const dt = new Date(h), x = dt.getUTCHours();            // over a day wide: midnight shows the date
+    if (x === 0 && t1 - t0 > 30 * 3600e3) return `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}`;
+    return `${x % 12 || 12}${x < 12 ? "a" : "p"}`; };
   const yt = [Math.round(lo - pad / 2), 0, Math.round(hi + pad / 2)].filter((v, i, a) => a.indexOf(v) === i);
   const valAt = t => { let v = 0; evs.forEach(e => { if (e.kind === "res" && e.t <= t) v = e.v; }); return v; };
   const marks = evs.map(e => {
@@ -336,7 +342,9 @@ function drawChart0(k) {
         nL = dr ? N(dr.l) || 0 : todayRes.filter(e => e.r.res === "LOSS").length;
   const open = today.filter(r => r.apl == null).length;
   const title = today.length ? "TONIGHT" : "TODAY";
-  const last24 = has24 ? ` · ${since ? "since " + E(hmOf(from)) : "last 24 h"} <b class="${cls(cum)}">${sgn(cum)}</b>` : "";
+  const dmOf = ms => { const dt = new Date(ms); return `${dt.getUTCMonth() + 1}/${dt.getUTCDate()} ${hmOf(ms)}`; };
+  const last24 = has24 ? ` · ${reached ? "no bets in the last 24 h - since " + E(dmOf(from))
+    : since ? "since " + E(hmOf(from)) : "last 24 h"} <b class="${cls(cum)}">${sgn(cum)}</b>` : "";
   // Scott 11/13: "where it says tonight i want yesterday profit today profit over all profit across top in that open
   // gap and this needs to be maintained live"; "profit" = the WHOLE 1% account, picks + both-sides plays). head.pls
   // (MasterHub cmmg_feed_kalshi._pls - the PC's 2-min send and the server's overnight send build it the same way):
